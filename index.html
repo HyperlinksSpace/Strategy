@@ -7,7 +7,7 @@
   <title>Hyperlinks Space — $1T Strategy</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="icon" href="assets/logo-mark.svg" type="image/svg+xml">
   <link rel="stylesheet" href="css/main.css">
   <script>
@@ -33,10 +33,10 @@
   </script>
 </head>
 <body>
-  <div class="stars" aria-hidden="true"></div>
+  <canvas id="scene-bg" class="scene-bg" aria-hidden="true"></canvas>
   <div class="grid-overlay" aria-hidden="true"></div>
 
-  <header class="site-header">
+  <header class="site-header glass-bar">
     <a href="#hero" class="logo" aria-label="Hyperlinks Space">
       <img class="logo-full logo-full-dark" src="assets/logo-full-dark.svg" alt="Hyperlinks Space" width="104" height="40" decoding="async">
       <img class="logo-full logo-full-light" src="assets/logo-full-light.svg" alt="Hyperlinks Space" width="104" height="40" decoding="async">
@@ -46,9 +46,11 @@
     <nav class="nav-primary" id="nav-primary" aria-label="Main">
       <a href="#vision" data-i18n="nav.vision">Vision</a>
       <a href="#pillars" data-i18n="nav.pillars">Pillars</a>
+      <a href="#earth-space" data-i18n="nav.earthSpace">Earth &amp; Space</a>
       <a href="#roadmap" data-i18n="nav.roadmap">Roadmap</a>
       <a href="#architecture" data-i18n="nav.architecture">Architecture</a>
       <a href="#revenue" data-i18n="nav.revenue">Revenue</a>
+      <a href="#moats" data-i18n="nav.moats">Moats</a>
       <a href="#north-star" data-i18n="nav.northStar">North Star</a>
     </nav>
 
@@ -106,6 +108,28 @@
     </div>
   </header>
 
+  <nav class="section-strip glass" aria-label="Jump to section">
+    <a href="#vision" class="section-chip" data-section-id="vision"><span>01</span><span data-i18n="nav.vision">Vision</span></a>
+    <a href="#pillars" class="section-chip" data-section-id="pillars"><span>02</span><span data-i18n="nav.pillars">Pillars</span></a>
+    <a href="#earth-space" class="section-chip" data-section-id="earth-space"><span>03</span><span data-i18n="nav.earthSpace">Earth &amp; Space</span></a>
+    <a href="#roadmap" class="section-chip" data-section-id="roadmap"><span>04</span><span data-i18n="nav.roadmap">Roadmap</span></a>
+    <a href="#architecture" class="section-chip" data-section-id="architecture"><span>05</span><span data-i18n="nav.architecture">Architecture</span></a>
+    <a href="#revenue" class="section-chip" data-section-id="revenue"><span>06</span><span data-i18n="nav.revenue">Revenue</span></a>
+    <a href="#moats" class="section-chip" data-section-id="moats"><span>07</span><span data-i18n="nav.moats">Moats</span></a>
+    <a href="#north-star" class="section-chip" data-section-id="north-star"><span>08</span><span data-i18n="nav.northStar">North Star</span></a>
+  </nav>
+
+  <nav class="section-rail glass" aria-label="Section index">
+    <a href="#vision" class="section-rail-link" data-section-id="vision"><span class="rail-num">01</span><span class="rail-label" data-i18n="nav.vision">Vision</span></a>
+    <a href="#pillars" class="section-rail-link" data-section-id="pillars"><span class="rail-num">02</span><span class="rail-label" data-i18n="nav.pillars">Pillars</span></a>
+    <a href="#earth-space" class="section-rail-link" data-section-id="earth-space"><span class="rail-num">03</span><span class="rail-label" data-i18n="nav.earthSpace">Earth &amp; Space</span></a>
+    <a href="#roadmap" class="section-rail-link" data-section-id="roadmap"><span class="rail-num">04</span><span class="rail-label" data-i18n="nav.roadmap">Roadmap</span></a>
+    <a href="#architecture" class="section-rail-link" data-section-id="architecture"><span class="rail-num">05</span><span class="rail-label" data-i18n="nav.architecture">Architecture</span></a>
+    <a href="#revenue" class="section-rail-link" data-section-id="revenue"><span class="rail-num">06</span><span class="rail-label" data-i18n="nav.revenue">Revenue</span></a>
+    <a href="#moats" class="section-rail-link" data-section-id="moats"><span class="rail-num">07</span><span class="rail-label" data-i18n="nav.moats">Moats</span></a>
+    <a href="#north-star" class="section-rail-link" data-section-id="north-star"><span class="rail-num">08</span><span class="rail-label" data-i18n="nav.northStar">North Star</span></a>
+  </nav>
+
   <main>
     <section id="hero" class="hero">
       <div class="hero-content">
@@ -113,19 +137,19 @@
         <h1 data-i18n="hero.title">The Interplanetary Nervous System</h1>
         <p class="hero-lead" data-i18n="hero.lead">From $0 at 30 to a $1T+ infrastructure monopoly — orchestrating Earth's industry today and humanity's expansion beyond.</p>
         <div class="hero-stats">
-          <div class="stat">
+          <div class="stat glass">
             <span class="stat-value">$1T+</span>
             <span class="stat-label" data-i18n="hero.stat1">Target valuation</span>
           </div>
-          <div class="stat">
+          <div class="stat glass">
             <span class="stat-value">93</span>
             <span class="stat-label" data-i18n="hero.stat2">Open repositories</span>
           </div>
-          <div class="stat">
+          <div class="stat glass">
             <span class="stat-value">4</span>
             <span class="stat-label" data-i18n="hero.stat3">Execution phases</span>
           </div>
-          <div class="stat">
+          <div class="stat glass">
             <span class="stat-value">5</span>
             <span class="stat-label" data-i18n="hero.stat4">Protocol pillars</span>
           </div>
@@ -134,34 +158,26 @@
           <a href="#roadmap" class="btn btn-primary" data-i18n="hero.cta1">Explore Roadmap</a>
           <a href="https://github.com/HyperlinksSpace" class="btn btn-ghost" target="_blank" rel="noopener" data-i18n="hero.cta2">GitHub Organization</a>
         </div>
+        <div class="section-jump">
+          <p class="section-jump-title" data-i18n="sections.jump">Explore the strategy</p>
+          <div class="section-jump-grid">
+            <a href="#vision" class="jump-tile glass" data-section-id="vision"><span>01</span><span data-i18n="nav.vision">Vision</span></a>
+            <a href="#pillars" class="jump-tile glass" data-section-id="pillars"><span>02</span><span data-i18n="nav.pillars">Pillars</span></a>
+            <a href="#earth-space" class="jump-tile glass" data-section-id="earth-space"><span>03</span><span data-i18n="nav.earthSpace">Earth &amp; Space</span></a>
+            <a href="#roadmap" class="jump-tile glass" data-section-id="roadmap"><span>04</span><span data-i18n="nav.roadmap">Roadmap</span></a>
+            <a href="#architecture" class="jump-tile glass" data-section-id="architecture"><span>05</span><span data-i18n="nav.architecture">Architecture</span></a>
+            <a href="#revenue" class="jump-tile glass" data-section-id="revenue"><span>06</span><span data-i18n="nav.revenue">Revenue</span></a>
+            <a href="#moats" class="jump-tile glass" data-section-id="moats"><span>07</span><span data-i18n="nav.moats">Moats</span></a>
+            <a href="#north-star" class="jump-tile glass" data-section-id="north-star"><span>08</span><span data-i18n="nav.northStar">North Star</span></a>
+          </div>
+        </div>
       </div>
-      <div class="hero-visual">
-        <svg class="orbit-diagram" viewBox="0 0 500 500" aria-labelledby="orbit-title">
-          <title id="orbit-title">Hyperlinks Space orbital architecture</title>
-          <defs>
-            <linearGradient id="glow" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="var(--accent-cyan)"/>
-              <stop offset="100%" stop-color="var(--accent-violet)"/>
-            </linearGradient>
-            <filter id="blur"><feGaussianBlur stdDeviation="3"/></filter>
-          </defs>
-          <circle cx="250" cy="250" r="200" fill="none" stroke="url(#glow)" stroke-width="0.5" opacity="0.3"/>
-          <circle cx="250" cy="250" r="150" fill="none" stroke="url(#glow)" stroke-width="0.5" opacity="0.4" stroke-dasharray="4 8"/>
-          <circle cx="250" cy="250" r="100" fill="none" stroke="url(#glow)" stroke-width="0.5" opacity="0.5"/>
-          <circle cx="250" cy="250" r="40" fill="url(#glow)" opacity="0.15"/>
-          <circle cx="250" cy="250" r="20" fill="url(#glow)" filter="url(#blur)"/>
-          <text x="250" y="255" text-anchor="middle" fill="var(--text-primary)" font-size="11" font-family="Orbitron,sans-serif">CORE</text>
-          <g class="orbit-nodes">
-            <circle cx="250" cy="50" r="8" fill="var(--accent-cyan)"><title>LEO</title></circle>
-            <circle cx="450" cy="250" r="8" fill="var(--accent-violet)"><title>Moon</title></circle>
-            <circle cx="250" cy="450" r="8" fill="var(--accent-amber)"><title>Earth Edge</title></circle>
-            <circle cx="50" cy="250" r="8" fill="var(--accent-green)"><title>Mars</title></circle>
-          </g>
-          <path d="M250 50 Q350 150 450 250" fill="none" stroke="var(--accent-cyan)" stroke-width="1" opacity="0.5"/>
-          <path d="M450 250 Q350 350 250 450" fill="none" stroke="var(--accent-violet)" stroke-width="1" opacity="0.5"/>
-          <path d="M250 450 Q150 350 50 250" fill="none" stroke="var(--accent-amber)" stroke-width="1" opacity="0.5"/>
-          <path d="M50 250 Q150 150 250 50" fill="none" stroke="var(--accent-green)" stroke-width="1" opacity="0.5"/>
-        </svg>
+      <div class="hero-visual glass">
+        <canvas id="hero-orb" class="hero-orb-canvas" aria-hidden="true"></canvas>
+        <div class="hero-visual-caption">
+          <span class="hero-visual-tag">AI CORE</span>
+          <span class="hero-visual-sub" data-i18n="hero.visualSub">Distributed intelligence · Earth to orbit</span>
+        </div>
       </div>
     </section>
 
@@ -573,6 +589,7 @@
   </footer>
 
   <script src="js/i18n.js"></script>
+  <script src="js/scene.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
