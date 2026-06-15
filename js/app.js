@@ -4,7 +4,6 @@
   var LANG_KEY = 'hls-lang';
   var THEME_KEY = 'hls-theme';
   var SUPPORTED_LANGS = { en: true, ru: true, zh: true };
-  var MOBILE_BP = 768;
 
   function detectSystemLang() {
     var list = navigator.languages && navigator.languages.length
@@ -100,17 +99,27 @@
     var panel = document.getElementById('header-panel');
     if (!toggle || !panel) return;
 
+    var mobileMq = window.matchMedia('(max-width: 768px)');
+
+    function syncMenuVisibility() {
+      toggle.hidden = !mobileMq.matches;
+      if (!mobileMq.matches) closeHeaderPanel();
+    }
+
+    syncMenuVisibility();
+    if (mobileMq.addEventListener) {
+      mobileMq.addEventListener('change', syncMenuVisibility);
+    } else if (mobileMq.addListener) {
+      mobileMq.addListener(syncMenuVisibility);
+    }
+
     toggle.addEventListener('click', function () {
       var open = panel.classList.toggle('open');
       toggle.setAttribute('aria-expanded', open);
     });
 
-    panel.querySelectorAll('a, .theme-btn, .lang-btn').forEach(function (el) {
-      el.addEventListener('click', function () {
-        if (el.tagName === 'A' || el.classList.contains('theme-btn')) {
-          closeHeaderPanel();
-        }
-      });
+    panel.querySelectorAll('.theme-btn, .lang-btn, .panel-promo-link').forEach(function (el) {
+      el.addEventListener('click', closeHeaderPanel);
     });
 
     document.addEventListener('keydown', function (e) {
@@ -124,75 +133,12 @@
     });
   }
 
-  function initResponsiveNav() {
-    var header = document.querySelector('.site-header');
-    var primary = document.getElementById('nav-primary');
-    var panelNav = document.getElementById('nav-panel');
-    var toggle = document.querySelector('.menu-toggle');
-    if (!header || !primary || !panelNav || !toggle) return;
-
-    var mobileMq = window.matchMedia('(max-width: ' + MOBILE_BP + 'px)');
-    var layoutTimer;
-
-    function moveAllToPrimary() {
-      while (panelNav.firstChild) {
-        primary.appendChild(panelNav.firstChild);
-      }
-    }
-
-    function moveAllToPanel() {
-      while (primary.firstChild) {
-        panelNav.appendChild(primary.firstChild);
-      }
-    }
-
-    function layoutNav() {
-      closeHeaderPanel();
-
-      if (mobileMq.matches) {
-        moveAllToPanel();
-        toggle.hidden = false;
-        return;
-      }
-
-      moveAllToPrimary();
-      toggle.hidden = true;
-
-      var guard = primary.children.length + 1;
-      while (guard-- > 0 && primary.scrollWidth > primary.clientWidth && primary.lastElementChild) {
-        panelNav.appendChild(primary.lastElementChild);
-        toggle.hidden = false;
-      }
-    }
-
-    function scheduleLayout() {
-      clearTimeout(layoutTimer);
-      layoutTimer = setTimeout(layoutNav, 60);
-    }
-
-    window.addEventListener('resize', scheduleLayout);
-    if (mobileMq.addEventListener) {
-      mobileMq.addEventListener('change', scheduleLayout);
-    } else if (mobileMq.addListener) {
-      mobileMq.addListener(scheduleLayout);
-    }
-
-    if (window.ResizeObserver) {
-      new ResizeObserver(scheduleLayout).observe(header);
-      new ResizeObserver(scheduleLayout).observe(primary);
-    }
-
-    window.addEventListener('hls:locale-change', scheduleLayout);
-
-    scheduleLayout();
-  }
-
   function initSectionSpy() {
     var sectionIds = [
       'vision', 'pillars', 'earth-space', 'roadmap',
       'architecture', 'revenue', 'moats', 'north-star'
     ];
-    var links = document.querySelectorAll('[data-section-id]');
+    var links = document.querySelectorAll('.section-chip[data-section-id]');
     var strip = document.querySelector('.section-strip');
     var sections = sectionIds.map(function (id) {
       return document.getElementById(id);
@@ -254,9 +200,7 @@
     links.forEach(function (link) {
       link.addEventListener('click', function () {
         closeHeaderPanel();
-        if (link.classList.contains('section-chip')) {
-          scrollStripToActive(link.getAttribute('data-section-id'));
-        }
+        scrollStripToActive(link.getAttribute('data-section-id'));
       });
     });
 
@@ -289,7 +233,6 @@
     applyTheme(getTheme(), false);
     initLangSwitch();
     initThemeSwitch();
-    initResponsiveNav();
     initHeaderMenu();
     initSectionSpy();
     initHeaderShadow();

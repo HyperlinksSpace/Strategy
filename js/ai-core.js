@@ -120,16 +120,20 @@
     inputEl: null,
     formEl: null,
     voiceBtn: null,
+    micBtn: null,
     typing: false,
     tourTimer: null,
     tourIndex: 0,
     reducedMotion: false,
     voiceEnabled: true,
     speechSupported: false,
-    speaking: false,
-    speechResolve: null,
+    recognitionSupported: false,
+    listening: false,
+    recognition: null,
     lastLang: null,
-    ready: false
+    ready: false,
+    speaking: false,
+    speechResolve: null
   };
 
   var VOICE_KEY = 'hls-ai-voice';
@@ -493,7 +497,114 @@
     });
 
     document.addEventListener('visibilitychange', function () {
-      if (document.hidden) stopSpeech();
+      if (document.hidden) {
+        stopSpeech();
+        stopListening();
+      }
+    });
+  }
+
+  function updateMicButton() {
+    if (!state.micBtn) return;
+    var listening = state.listening;
+    state.micBtn.setAttribute('aria-pressed', listening ? 'true' : 'false');
+    state.micBtn.setAttribute('aria-label', t(listening ? 'ai.micOffLabel' : 'ai.micOnLabel'));
+    state.micBtn.title = t(listening ? 'ai.micOffLabel' : 'ai.micOnLabel');
+  }
+
+  function stopListening() {
+    if (!state.recognition || !state.listening) return;
+    try {
+      state.recognition.stop();
+    } catch (err) {
+      /* already stopped */
+    }
+    state.listening = false;
+    updateMicButton();
+  }
+
+  function initSpeechRecognition() {
+    var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    state.recognitionSupported = !!SR;
+    state.micBtn = document.getElementById('ai-core-mic');
+    if (!state.micBtn) return;
+
+    if (!state.recognitionSupported) {
+      state.micBtn.hidden = true;
+      return;
+    }
+
+    state.recognition = new SR();
+    state.recognition.continuous = false;
+    state.recognition.interimResults = true;
+    state.recognition.maxAlternatives = 1;
+
+    state.recognition.onstart = function () {
+      state.listening = true;
+      updateMicButton();
+    };
+
+    state.recognition.onend = function () {
+      state.listening = false;
+      updateMicButton();
+    };
+
+    state.recognition.onerror = function (event) {
+      state.listening = false;
+      updateMicButton();
+      if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+        sayBot('ai.micDenied');
+      } else if (event.error !== 'aborted' && event.error !== 'no-speech') {
+        sayBot('ai.micError');
+      }
+    };
+
+    state.recognition.onresult = function (event) {
+      var transcript = '';
+      var isFinal = false;
+      var i;
+
+      for (i = event.resultIndex; i < event.results.length; i++) {
+        transcript += event.results[i][0].transcript;
+        if (event.results[i].isFinal) isFinal = true;
+      }
+
+      transcript = transcript.trim();
+      if (state.inputEl) state.inputEl.value = transcript;
+
+      if (isFinal && transcript) {
+        stopListening();
+        handleInput(transcript);
+        if (state.inputEl) state.inputEl.value = '';
+      }
+    };
+
+    updateMicButton();
+
+    state.micBtn.addEventListener('click', function () {
+      if (state.listening) {
+        stopListening();
+        return;
+      }
+      stopTour();
+      stopSpeech();
+      try {
+        state.recognition.lang = SPEECH_LANG[getLang()] || SPEECH_LANG.en;
+        state.recognition.start();
+      } catch (err) {
+        try {
+          state.recognition.stop();
+          state.recognition.lang = SPEECH_LANG[getLang()] || SPEECH_LANG.en;
+          state.recognition.start();
+        } catch (retryErr) {
+          sayBot('ai.micError');
+        }
+      }
+    });
+
+    window.addEventListener('hls:locale-change', function () {
+      if (state.listening) stopListening();
+      updateMicButton();
     });
   }
 
@@ -571,6 +682,7 @@
     if (!text || state.typing) return;
 
     stopTour();
+    stopListening();
     sayUser(raw);
 
     var lang = getLang();
@@ -633,13 +745,10 @@
 
   function initSectionNavBridge() {
     document.addEventListener('click', function (e) {
-      var link = e.target.closest(
-        '.section-chip[data-section-id], #nav-primary a[href^="#"], #nav-panel a[href^="#"]'
-      );
+      var link = e.target.closest('.section-chip[data-section-id]');
       if (!link) return;
 
-      var href = link.getAttribute('href') || '';
-      var id = link.getAttribute('data-section-id') || href.replace(/^#/, '');
+      var id = link.getAttribute('data-section-id');
       if (!id || id === 'hero') return;
 
       var sec = sectionFromId(id);
@@ -686,6 +795,7 @@
       state.inputEl.placeholder = t('ai.placeholder');
     }
     updateVoiceButton();
+    updateMicButton();
     buildChips();
   }
 
@@ -702,11 +812,11 @@
   ];
 
   var LIGHTNING_LIGHT = [
-    'rgba(18, 138, 12, 0.82)',
-    'rgba(30, 64, 175, 0.78)',
-    'rgba(122, 44, 255, 0.72)',
-    'rgba(180, 120, 0, 0.75)',
-    'rgba(0, 140, 120, 0.78)'
+    'rgba(18, 138, 12, 0.95)',
+    'rgba(30, 64, 175, 0.92)',
+    'rgba(122, 44, 255, 0.88)',
+    'rgba(180, 100, 0, 0.9)',
+    'rgba(0, 140, 120, 0.92)'
   ];
 
   function lightningColors() {
@@ -895,6 +1005,7 @@
     };
 
     initVoice();
+    initSpeechRecognition();
     initLightning();
     initSectionNavBridge();
     initChat();
