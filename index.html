@@ -43,14 +43,20 @@
   <canvas id="scene-bg" class="scene-bg" aria-hidden="true"></canvas>
   <div class="grid-overlay" aria-hidden="true"></div>
 
-  <header class="site-header glass-bar">
+  <header class="site-header glass-bar liquid-glass-host">
     <a href="#hero" class="logo" aria-label="Hyperlinks Space">
       <img class="logo-full logo-full-dark" src="assets/logo-full-dark.svg" alt="Hyperlinks Space" width="104" height="40" decoding="async">
       <img class="logo-full logo-full-light" src="assets/logo-full-light.svg" alt="Hyperlinks Space" width="104" height="40" decoding="async">
     </a>
 
+    <nav class="header-nav" aria-label="Site sections">
+      <button type="button" class="header-nav-link" data-hub="tech" data-i18n="nav.tech">Tech</button>
+      <button type="button" class="header-nav-link" data-hub="research" data-i18n="nav.research">Research</button>
+      <button type="button" class="header-nav-link" data-hub="products" data-i18n="nav.products">Products</button>
+    </nav>
+
     <div class="header-actions">
-      <a href="https://www.hyperlinks.space/" class="header-promo-link" target="_blank" rel="noopener noreferrer" data-i18n="promo.headerLink">Product</a>
+      <a href="https://www.hyperlinks.space/" class="header-promo-link" target="_blank" rel="noopener noreferrer" data-settings-href="promo.url" data-settings="promo.headerLink" data-i18n="promo.headerLink">Promo</a>
       <div class="lang-switch" role="group" aria-label="Language">
         <button type="button" data-lang="en" class="lang-btn" title="English">EN</button>
         <button type="button" data-lang="ru" class="lang-btn" title="Русский">RU</button>
@@ -73,6 +79,11 @@
     </div>
 
     <div class="header-panel" id="header-panel">
+      <nav class="nav-panel" aria-label="Site sections mobile">
+        <button type="button" class="nav-panel-link" data-hub="tech" data-i18n="nav.tech">Tech</button>
+        <button type="button" class="nav-panel-link" data-hub="research" data-i18n="nav.research">Research</button>
+        <button type="button" class="nav-panel-link" data-hub="products" data-i18n="nav.products">Products</button>
+      </nav>
       <div class="panel-prefs">
         <a href="https://www.hyperlinks.space/" class="panel-promo-link" target="_blank" rel="noopener noreferrer" data-i18n="promo.cta">Open hyperlinks.space</a>
         <div class="pref-group">
@@ -104,24 +115,14 @@
     </div>
   </header>
 
-  <nav class="section-strip glass" aria-label="Jump to section">
-    <a href="#vision" class="section-chip" data-section-id="vision"><span>01</span><span data-i18n="nav.vision">Vision</span></a>
-    <a href="#pillars" class="section-chip" data-section-id="pillars"><span>02</span><span data-i18n="nav.pillars">Pillars</span></a>
-    <a href="#earth-space" class="section-chip" data-section-id="earth-space"><span>03</span><span data-i18n="nav.earthSpace">Earth &amp; Space</span></a>
-    <a href="#roadmap" class="section-chip" data-section-id="roadmap"><span>04</span><span data-i18n="nav.roadmap">Roadmap</span></a>
-    <a href="#architecture" class="section-chip" data-section-id="architecture"><span>05</span><span data-i18n="nav.architecture">Architecture</span></a>
-    <a href="#revenue" class="section-chip" data-section-id="revenue"><span>06</span><span data-i18n="nav.revenue">Revenue</span></a>
-    <a href="#moats" class="section-chip" data-section-id="moats"><span>07</span><span data-i18n="nav.moats">Moats</span></a>
-    <a href="#north-star" class="section-chip" data-section-id="north-star"><span>08</span><span data-i18n="nav.northStar">North Star</span></a>
-  </nav>
-
   <main>
-    <section id="hero" class="hero">
-      <div class="hero-stage glass" data-lg-radius="20">
+    <section id="hero" class="hero hero--fullscreen">
+      <div class="hero-stage liquid-glass-host" data-lg-radius="20">
         <canvas id="hero-orb" class="hero-orb-canvas" aria-hidden="true"></canvas>
         <canvas id="hero-lightning" class="hero-lightning-canvas" aria-hidden="true"></canvas>
         <div class="ai-core-aurora" aria-hidden="true"></div>
-        <div class="ai-core-panel" role="region" aria-label="AI CORE navigator">
+        <div class="hero-stage-layout">
+        <div class="ai-core-panel glass" role="region" aria-label="AI CORE navigator">
           <header class="ai-core-header">
             <span class="ai-core-pulse" aria-hidden="true"></span>
             <div class="ai-core-header-text">
@@ -143,6 +144,11 @@
             <input type="text" id="ai-core-input" class="ai-core-input" autocomplete="off" maxlength="240" data-i18n-placeholder="ai.placeholder" placeholder="Ask AI CORE — type or use the microphone">
             <button type="submit" class="ai-core-send" data-i18n="ai.send">Send</button>
           </form>
+        </div>
+        <div class="ai-orb-zone" aria-hidden="true">
+          <div class="ai-orb-halo"></div>
+          <div class="ai-orb-label" data-i18n="ai.orbLabel">AI CORE</div>
+        </div>
         </div>
       </div>
 
@@ -168,27 +174,22 @@
             <span class="stat-label" data-i18n="hero.stat4">Protocol pillars</span>
           </div>
         </div>
-        <div class="hero-actions">
-          <a href="#roadmap" class="btn btn-primary" data-i18n="hero.cta1">Explore Roadmap</a>
-          <a href="https://www.hyperlinks.space/" class="btn btn-promo" target="_blank" rel="noopener noreferrer" data-i18n="promo.cta">Open hyperlinks.space</a>
-          <a href="https://github.com/HyperlinksSpace" class="btn btn-ghost" target="_blank" rel="noopener" data-i18n="hero.cta2">GitHub Organization</a>
+        <div class="action-dock glass" aria-label="Quick actions">
+          <a href="#roadmap" class="action-dock-btn action-dock-btn--primary" data-i18n="hero.cta1">Explore Roadmap</a>
+          <a href="https://www.hyperlinks.space/" class="action-dock-btn action-dock-btn--promo" target="_blank" rel="noopener noreferrer" data-settings-href="promo.url" data-i18n="promo.cta">Open hyperlinks.space</a>
+          <a href="https://github.com/HyperlinksSpace" class="action-dock-btn action-dock-btn--ghost" target="_blank" rel="noopener" data-i18n="hero.cta2">GitHub Organization</a>
         </div>
 
-        <aside class="promo-block glass" aria-labelledby="promo-title">
-          <div class="promo-block-shimmer" aria-hidden="true"></div>
+        <aside class="promo-block glass liquid-glass-host" aria-labelledby="promo-title">
           <div class="promo-block-inner">
             <div class="promo-block-head">
-              <span class="promo-badge" data-i18n="promo.badge">Live product</span>
-              <span class="promo-url">hyperlinks.space</span>
+              <span class="promo-badge" data-settings="promo.badge" data-i18n="promo.badge">Live · Promo</span>
+              <span class="promo-url" data-settings="promo.url">hyperlinks.space</span>
             </div>
-            <h2 class="promo-title" id="promo-title" data-i18n="promo.title">Hyperlinks Space Program</h2>
-            <p class="promo-desc" data-i18n="promo.desc">AI & blockchain multiplatform for managing, investing, and earning assets — recommendations, chats, swaps, trades, wallets, and deals. AI Transmitter reads chain data in real time.</p>
-            <ul class="promo-features" aria-label="Product highlights">
-              <li data-i18n="promo.f1">Wallets &amp; swaps</li>
-              <li data-i18n="promo.f2">AI Transmitter</li>
-              <li data-i18n="promo.f3">Cross-chain deals</li>
-            </ul>
-            <a href="https://www.hyperlinks.space/" class="promo-cta" target="_blank" rel="noopener noreferrer">
+            <h2 class="promo-title" id="promo-title" data-settings="promo.title" data-i18n="promo.title">Hyperlinks Space Program</h2>
+            <p class="promo-desc" data-settings="promo.desc" data-i18n="promo.desc">AI & blockchain multiplatform for managing, investing, and earning assets — recommendations, chats, swaps, trades, wallets, and deals. AI Transmitter reads chain data in real time.</p>
+            <ul class="promo-features" aria-label="Product highlights"></ul>
+            <a href="https://www.hyperlinks.space/" class="promo-cta" target="_blank" rel="noopener noreferrer" data-settings-href="promo.url">
               <span data-i18n="promo.cta">Open hyperlinks.space</span>
               <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M7 17L17 7M17 7H9M17 7v8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </a>
@@ -335,24 +336,31 @@
         <h2 data-i18n="matrix.title">Earth Pays Today · Space Wins Tomorrow</h2>
       </div>
       <div class="matrix-visual">
-        <svg viewBox="0 0 800 320" class="earth-space-diagram" aria-hidden="true">
-          <defs>
-            <linearGradient id="earthGrad" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stop-color="#22d3ee"/>
-              <stop offset="100%" stop-color="#0891b2"/>
-            </linearGradient>
-            <linearGradient id="spaceGrad" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stop-color="#a78bfa"/>
-              <stop offset="100%" stop-color="#7c3aed"/>
-            </linearGradient>
-          </defs>
-          <rect x="20" y="40" width="360" height="240" rx="16" fill="url(#earthGrad)" opacity="0.12" stroke="url(#earthGrad)" stroke-width="1"/>
-          <rect x="420" y="40" width="360" height="240" rx="16" fill="url(#spaceGrad)" opacity="0.12" stroke="url(#spaceGrad)" stroke-width="1"/>
-          <text x="200" y="70" text-anchor="middle" fill="var(--accent-cyan-display)" font-size="14" font-weight="600">EARTH</text>
-          <text x="600" y="70" text-anchor="middle" fill="var(--accent-violet)" font-size="14" font-weight="600">SPACE</text>
-          <path d="M380 160 H420" stroke="var(--text-muted)" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arrow)"/>
-          <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="var(--text-muted)"/></marker></defs>
-        </svg>
+        <div class="earth-space-diagram" role="img" aria-label="Earth to Space transition">
+          <div class="es-node es-node--earth">
+            <div class="es-node-glow"></div>
+            <span class="es-node-label">EARTH</span>
+            <ul class="es-node-items">
+              <li>Industry 4.0</li>
+              <li>Mining &amp; rigs</li>
+              <li>B2B SaaS</li>
+            </ul>
+          </div>
+          <div class="es-bridge">
+            <div class="es-bridge-line"></div>
+            <div class="es-bridge-pulse"></div>
+            <span class="es-bridge-icon">⇄</span>
+          </div>
+          <div class="es-node es-node--space">
+            <div class="es-node-glow"></div>
+            <span class="es-node-label">SPACE</span>
+            <ul class="es-node-items">
+              <li>Lunar ISRU</li>
+              <li>DTN relays</li>
+              <li>Freight monopoly</li>
+            </ul>
+          </div>
+        </div>
       </div>
       <div class="matrix-grid">
         <div class="matrix-col earth">
@@ -458,49 +466,35 @@
         <p class="section-desc" data-i18n="arch.desc">Critical infrastructure demands hard separation: autonomous core runtime vs. observation UI.</p>
       </div>
       <div class="arch-diagram">
-        <svg viewBox="0 0 900 420" class="stack-diagram">
-          <defs>
-            <linearGradient id="coreGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="#06b6d4"/>
-              <stop offset="100%" stop-color="#0284c7"/>
-            </linearGradient>
-            <linearGradient id="uiGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="#8b5cf6"/>
-              <stop offset="100%" stop-color="#6d28d9"/>
-            </linearGradient>
-          </defs>
-          <!-- UI Layer -->
-          <rect x="50" y="30" width="800" height="100" rx="12" fill="url(#uiGrad)" opacity="0.15" stroke="var(--accent-violet)" stroke-width="1"/>
-          <text x="450" y="65" text-anchor="middle" fill="var(--accent-violet)" font-size="13" font-weight="600">HIGH-LEVEL UI</text>
-          <text x="450" y="95" text-anchor="middle" fill="var(--text-secondary)" font-size="11">Web · TMA · Desktop · HSP Landing</text>
-          <text x="450" y="115" text-anchor="middle" fill="var(--text-muted)" font-size="10" data-i18n-svg="arch.uiNote">Observation only — never controls critical paths</text>
-          <!-- Arrow -->
-          <path d="M450 130 v30" stroke="var(--text-muted)" stroke-width="2" marker-end="url(#downArrow)"/>
-          <defs><marker id="downArrow" markerWidth="10" markerHeight="10" refX="5" refY="9" orient="auto"><path d="M0,0 L10,0 L5,9 z" fill="var(--text-muted)"/></marker></defs>
-          <!-- Core Layer -->
-          <rect x="50" y="170" width="800" height="220" rx="12" fill="url(#coreGrad)" opacity="0.12" stroke="var(--accent-cyan-display)" stroke-width="1"/>
-          <text x="450" y="200" text-anchor="middle" fill="var(--accent-cyan-display)" font-size="13" font-weight="600">LOW-LEVEL CORE (Rust / C++ / Zig)</text>
-          <g font-size="10" fill="var(--text-secondary)">
-            <rect x="80" y="220" width="150" height="50" rx="8" fill="var(--bg-card)" stroke="var(--border)" stroke-width="1"/>
-            <text x="155" y="250" text-anchor="middle">MQTT Broker</text>
-            <rect x="250" y="220" width="150" height="50" rx="8" fill="var(--bg-card)" stroke="var(--border)" stroke-width="1"/>
-            <text x="325" y="250" text-anchor="middle">OPC UA Bridge</text>
-            <rect x="420" y="220" width="150" height="50" rx="8" fill="var(--bg-card)" stroke="var(--border)" stroke-width="1"/>
-            <text x="495" y="250" text-anchor="middle">DTN Bundle</text>
-            <rect x="590" y="220" width="150" height="50" rx="8" fill="var(--bg-card)" stroke="var(--border)" stroke-width="1"/>
-            <text x="665" y="250" text-anchor="middle">CRDT Engine</text>
-            <rect x="170" y="290" width="200" height="50" rx="8" fill="var(--bg-card)" stroke="var(--border)" stroke-width="1"/>
-            <text x="270" y="320" text-anchor="middle">TinyModel Edge Runtime</text>
-            <rect x="390" y="290" width="200" height="50" rx="8" fill="var(--bg-card)" stroke="var(--border)" stroke-width="1"/>
-            <text x="490" y="320" text-anchor="middle">Task-Swap Protocol</text>
-            <rect x="610" y="290" width="200" height="50" rx="8" fill="var(--bg-card)" stroke="var(--border)" stroke-width="1"/>
-            <text x="710" y="320" text-anchor="middle">Asset Custody Graph</text>
-          </g>
-          <!-- Hardware -->
-          <path d="M450 390 v20" stroke="var(--text-muted)" stroke-width="2"/>
-          <rect x="100" y="400" width="700" height="15" rx="4" fill="var(--accent-amber)" opacity="0.3"/>
-          <text x="450" y="412" text-anchor="middle" fill="var(--text-muted)" font-size="9">ESP32 · PLCs · Routers · Rovers · Orbital Nodes</text>
-        </svg>
+        <div class="stack-diagram" role="img" aria-label="Two-layer system architecture">
+          <div class="stack-tier stack-tier--ui">
+            <div class="stack-tier-head">
+              <span class="stack-tier-badge stack-tier-badge--violet">HIGH-LEVEL UI</span>
+              <span class="stack-tier-sub">Web · TMA · Desktop · HSP Landing</span>
+            </div>
+            <p class="stack-tier-note" data-i18n="arch.uiNote">Observation only — never controls critical paths</p>
+          </div>
+          <div class="stack-connector"><span></span></div>
+          <div class="stack-tier stack-tier--core">
+            <div class="stack-tier-head">
+              <span class="stack-tier-badge stack-tier-badge--cyan">LOW-LEVEL CORE</span>
+              <span class="stack-tier-sub">Rust / C++ / Zig</span>
+            </div>
+            <div class="stack-modules">
+              <span class="stack-module">MQTT Broker</span>
+              <span class="stack-module">OPC UA Bridge</span>
+              <span class="stack-module">DTN Bundle</span>
+              <span class="stack-module">CRDT Engine</span>
+              <span class="stack-module">TinyModel Edge</span>
+              <span class="stack-module">Task-Swap Protocol</span>
+              <span class="stack-module">Asset Custody Graph</span>
+            </div>
+          </div>
+          <div class="stack-connector stack-connector--short"><span></span></div>
+          <div class="stack-tier stack-tier--hw">
+            <span class="stack-hw-label">ESP32 · PLCs · Routers · Rovers · Orbital Nodes</span>
+          </div>
+        </div>
       </div>
       <div class="product-pillars">
         <article class="product-card">
@@ -527,18 +521,21 @@
         <h2 data-i18n="revenue.title">Monetization Indexed to the Interplanetary Cycle</h2>
       </div>
       <div class="revenue-cycle">
-        <svg viewBox="0 0 500 500" class="cycle-diagram" aria-hidden="true">
-          <circle cx="250" cy="250" r="180" fill="none" stroke="var(--border)" stroke-width="1"/>
-          <circle cx="250" cy="250" r="120" fill="none" stroke="var(--border)" stroke-width="0.5" stroke-dasharray="4 4"/>
-          <text x="250" y="80" text-anchor="middle" fill="var(--accent-cyan-display)" font-size="10">Extraction</text>
-          <text x="400" y="180" text-anchor="middle" fill="var(--accent-violet)" font-size="10">Transport</text>
-          <text x="400" y="330" text-anchor="middle" fill="var(--accent-amber)" font-size="10">Processing</text>
-          <text x="250" y="430" text-anchor="middle" fill="var(--brand-green-display)" font-size="10">Inhabitation</text>
-          <text x="100" y="330" text-anchor="middle" fill="var(--accent-rose)" font-size="10">Supply</text>
-          <text x="100" y="180" text-anchor="middle" fill="var(--accent-cyan-display)" font-size="10">Comms</text>
-          <text x="250" y="250" text-anchor="middle" fill="var(--text-primary)" font-size="11" font-weight="600">CLOSED</text>
-          <text x="250" y="268" text-anchor="middle" fill="var(--text-muted)" font-size="9">LOOP</text>
-        </svg>
+        <div class="cycle-diagram" role="img" aria-label="Closed loop revenue cycle">
+          <div class="cycle-ring cycle-ring--outer"></div>
+          <div class="cycle-ring cycle-ring--inner"></div>
+          <div class="cycle-orbit"></div>
+          <div class="cycle-node" data-phase="extraction"><span>Extraction</span></div>
+          <div class="cycle-node" data-phase="transport"><span>Transport</span></div>
+          <div class="cycle-node" data-phase="processing"><span>Processing</span></div>
+          <div class="cycle-node" data-phase="inhabitation"><span>Inhabitation</span></div>
+          <div class="cycle-node" data-phase="supply"><span>Supply</span></div>
+          <div class="cycle-node" data-phase="comms"><span>Comms</span></div>
+          <div class="cycle-core">
+            <span class="cycle-core-title">CLOSED</span>
+            <span class="cycle-core-sub">LOOP</span>
+          </div>
+        </div>
       </div>
       <div class="revenue-grid">
         <div class="revenue-item"><strong data-i18n="revenue.r1t">Extraction</strong><span data-i18n="revenue.r1d">Clearing fees, provenance APIs, assay subscriptions</span></div>
@@ -595,6 +592,21 @@
     </section>
   </main>
 
+  <nav class="section-strip glass liquid-glass-host" aria-label="Jump to section">
+    <a href="#vision" class="section-chip" data-section-id="vision"><span>01</span><span data-i18n="nav.vision">Vision</span></a>
+    <a href="#pillars" class="section-chip" data-section-id="pillars"><span>02</span><span data-i18n="nav.pillars">Pillars</span></a>
+    <a href="#earth-space" class="section-chip" data-section-id="earth-space"><span>03</span><span data-i18n="nav.earthSpace">Earth &amp; Space</span></a>
+    <a href="#roadmap" class="section-chip" data-section-id="roadmap"><span>04</span><span data-i18n="nav.roadmap">Roadmap</span></a>
+    <a href="#architecture" class="section-chip" data-section-id="architecture"><span>05</span><span data-i18n="nav.architecture">Architecture</span></a>
+    <a href="#revenue" class="section-chip" data-section-id="revenue"><span>06</span><span data-i18n="nav.revenue">Revenue</span></a>
+    <a href="#moats" class="section-chip" data-section-id="moats"><span>07</span><span data-i18n="nav.moats">Moats</span></a>
+    <a href="#north-star" class="section-chip" data-section-id="north-star"><span>08</span><span data-i18n="nav.northStar">North Star</span></a>
+  </nav>
+
+  <div id="hub-overlay" class="hub-overlay" hidden>
+    <div id="hub-pages"></div>
+  </div>
+
   <footer class="site-footer">
     <p>© 2026 <a href="https://github.com/HyperlinksSpace" target="_blank" rel="noopener">Hyperlinks Space</a> · <span data-i18n="footer.tagline">The monopoly from hyperlinks to space and beyond</span></p>
     <p class="footer-links">
@@ -605,9 +617,12 @@
     </p>
   </footer>
 
+  <script src="js/settings.js"></script>
   <script src="js/i18n.js"></script>
   <script src="js/theme.js"></script>
   <script src="js/scene.js"></script>
+  <script src="js/liquid-glass.js"></script>
+  <script src="js/hub-pages.js"></script>
   <script src="js/ai-core.js"></script>
   <script src="js/app.js"></script>
 </body>

@@ -228,8 +228,7 @@
     if (!el) return;
 
     var header = document.querySelector('.site-header');
-    var strip = document.querySelector('.section-strip');
-    var offset = (header ? header.offsetHeight : 0) + (strip ? strip.offsetHeight : 0) + 16;
+    var offset = (header ? header.offsetHeight : 0) + 16;
     var y = el.getBoundingClientRect().top + window.pageYOffset - offset;
 
     window.scrollTo({

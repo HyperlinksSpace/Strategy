@@ -118,7 +118,7 @@
       toggle.setAttribute('aria-expanded', open);
     });
 
-    panel.querySelectorAll('.theme-btn, .lang-btn, .panel-promo-link').forEach(function (el) {
+    panel.querySelectorAll('.theme-btn, .lang-btn, .panel-promo-link, .nav-panel-link').forEach(function (el) {
       el.addEventListener('click', closeHeaderPanel);
     });
 
@@ -152,6 +152,7 @@
 
     function scrollStripToActive(id) {
       if (!strip || !id) return;
+      if (strip.classList.contains('is-centered')) return;
       if (strip.scrollWidth <= strip.clientWidth) return;
 
       var chip = strip.querySelector('.section-chip[data-section-id="' + id + '"]');
