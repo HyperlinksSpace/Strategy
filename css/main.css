@@ -316,6 +316,59 @@ textarea::placeholder {
   stroke: currentColor;
 }
 
+.ai-core-mic-visual {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 1.65rem;
+  height: 1rem;
+}
+
+.ai-core-mic-icon-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ai-core-mic-eq {
+  display: none;
+  align-items: flex-end;
+  gap: 2px;
+  height: 0.82rem;
+}
+
+.ai-core-mic.is-listening .ai-core-mic-eq,
+.ai-core-mic.is-enabled .ai-core-mic-eq {
+  display: inline-flex;
+}
+
+.ai-core-mic-eq-bar {
+  width: 2px;
+  height: var(--eq-level, 18%);
+  min-height: 2px;
+  border-radius: 999px;
+  background: currentColor;
+  transform-origin: bottom center;
+  transition: height 0.07s ease-out;
+  opacity: 0.92;
+}
+
+.ai-core-mic.is-enabled:not(.is-listening) .ai-core-mic-eq-bar {
+  animation: ai-mic-eq-idle 1.35s ease-in-out infinite;
+}
+
+.ai-core-mic.is-enabled:not(.is-listening) .ai-core-mic-eq--left .ai-core-mic-eq-bar:nth-child(1) { animation-delay: 0s; }
+.ai-core-mic.is-enabled:not(.is-listening) .ai-core-mic-eq--left .ai-core-mic-eq-bar:nth-child(2) { animation-delay: 0.18s; }
+.ai-core-mic.is-enabled:not(.is-listening) .ai-core-mic-eq--right .ai-core-mic-eq-bar:nth-child(1) { animation-delay: 0.09s; }
+.ai-core-mic.is-enabled:not(.is-listening) .ai-core-mic-eq--right .ai-core-mic-eq-bar:nth-child(2) { animation-delay: 0.27s; }
+
+@keyframes ai-mic-eq-idle {
+  0%, 100% { height: 18%; }
+  50% { height: 42%; }
+}
+
 .ai-core-mic-icon--off {
   display: none;
 }
@@ -3357,6 +3410,15 @@ main { position: relative; z-index: 1; padding-top: var(--header-stack); padding
   border: 1px solid var(--border);
   background: var(--undercover);
   color: var(--text-secondary);
+  padding: 0;
+}
+
+.ai-core-mic.is-listening,
+.ai-core-mic.is-enabled {
+  width: auto;
+  min-width: 2.65rem;
+  padding: 0 0.42rem;
+  border-radius: 999px;
 }
 
 [data-theme="light"] .ai-core-msg--bot {
@@ -3476,6 +3538,7 @@ main { position: relative; z-index: 1; padding-top: var(--header-stack); padding
 @media (prefers-reduced-motion: reduce) {
   .ai-core-pulse { animation: none; box-shadow: none; }
   .ai-core-mic.is-listening { animation: none; }
+  .ai-core-mic.is-enabled:not(.is-listening) .ai-core-mic-eq-bar { animation: none; height: 28%; }
   html { scroll-behavior: auto; }
 }
 

@@ -166,6 +166,15 @@
   var micWatchdog = 0;
   var micStartTimeout = 0;
   var recognitionFailCount = 0;
+  var micVis = {
+    bars: null,
+    ctx: null,
+    analyser: null,
+    source: null,
+    data: null,
+    raf: 0,
+    active: false
+  };
 
   function emitOrb(mode, detail) {
     if (window.HLS && window.HLS.setOrbReactive) {
@@ -1374,8 +1383,129 @@
       micLastInterim = '';
       pendingVoiceInput = '';
       stopListening(true);
+      stopMicStream();
     }
     updateMicButton();
+  }
+
+  function initMicVisualizer() {
+    if (!state.micBtn) return;
+    micVis.bars = state.micBtn.querySelectorAll('.ai-core-mic-eq-bar');
+  }
+
+  function resetMicEqBars() {
+    if (!micVis.bars) return;
+    micVis.bars.forEach(function (bar) {
+      bar.style.setProperty('--eq-level', '18%');
+    });
+  }
+
+  function teardownMicAudioGraph() {
+    if (micVis.raf) {
+      cancelAnimationFrame(micVis.raf);
+      micVis.raf = 0;
+    }
+    micVis.active = false;
+    if (micVis.source) {
+      try { micVis.source.disconnect(); } catch (e) { /* noop */ }
+      micVis.source = null;
+    }
+    if (micVis.ctx) {
+      var ctx = micVis.ctx;
+      micVis.ctx = null;
+      micVis.analyser = null;
+      micVis.data = null;
+      if (ctx.close) ctx.close().catch(function () { /* noop */ });
+    }
+    resetMicEqBars();
+  }
+
+  function setupMicAudioGraph(stream) {
+    teardownMicAudioGraph();
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC || !stream) return false;
+    try {
+      micVis.ctx = new AC();
+      micVis.analyser = micVis.ctx.createAnalyser();
+      micVis.analyser.fftSize = 128;
+      micVis.analyser.smoothingTimeConstant = 0.78;
+      micVis.analyser.minDecibels = -90;
+      micVis.analyser.maxDecibels = -10;
+      micVis.data = new Uint8Array(micVis.analyser.frequencyBinCount);
+      micVis.source = micVis.ctx.createMediaStreamSource(stream);
+      micVis.source.connect(micVis.analyser);
+      if (micVis.ctx.state === 'suspended') {
+        micVis.ctx.resume().catch(function () { /* noop */ });
+      }
+      return true;
+    } catch (e) {
+      teardownMicAudioGraph();
+      return false;
+    }
+  }
+
+  function tickMicVisualizer() {
+    if (!micVis.active || !micVis.bars || !micVis.bars.length) return;
+    if (!state.listening && !state.micStarting) {
+      stopMicVisualizer();
+      return;
+    }
+
+    if (micVis.analyser && micVis.data) {
+      micVis.analyser.getByteFrequencyData(micVis.data);
+      var bands = micVis.bars.length;
+      var slice = Math.max(1, Math.floor(micVis.data.length / bands));
+      for (var b = 0; b < bands; b++) {
+        var sum = 0;
+        var offset = b * slice;
+        for (var i = 0; i < slice; i++) sum += micVis.data[offset + i] || 0;
+        var avg = sum / slice;
+        var pct = Math.max(14, Math.min(100, Math.round((avg / 255) * 100)));
+        micVis.bars[b].style.setProperty('--eq-level', pct + '%');
+      }
+    }
+
+    micVis.raf = requestAnimationFrame(tickMicVisualizer);
+  }
+
+  function startMicVisualizer() {
+    if (!micVis.bars || !micVis.bars.length) return;
+    micVis.active = true;
+    if (micVis.raf) cancelAnimationFrame(micVis.raf);
+    micVis.raf = requestAnimationFrame(tickMicVisualizer);
+  }
+
+  function stopMicVisualizer() {
+    micVis.active = false;
+    if (micVis.raf) {
+      cancelAnimationFrame(micVis.raf);
+      micVis.raf = 0;
+    }
+    resetMicEqBars();
+  }
+
+  function ensureMicMonitorStream() {
+    if (state.micStream && state.micStream.active) {
+      return Promise.resolve(state.micStream);
+    }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      return Promise.resolve(null);
+    }
+    return navigator.mediaDevices.getUserMedia({ audio: true })
+      .then(function (stream) {
+        state.micStream = stream;
+        return stream;
+      })
+      .catch(function () {
+        return null;
+      });
+  }
+
+  function prepareMicMonitor() {
+    return ensureMicMonitorStream().then(function (stream) {
+      if (!stream) return false;
+      return setupMicAudioGraph(stream);
+    });
   }
 
   function micIsEnabled() {
@@ -1464,11 +1594,15 @@
       state.listening = true;
       state.micPermissionGranted = true;
       emitOrb('listening');
-      updateMicButton();
+      prepareMicMonitor().finally(function () {
+        startMicVisualizer();
+        updateMicButton();
+      });
     };
 
     recognition.onend = function () {
       clearMicStartTimeout();
+      stopMicVisualizer();
       state.listening = false;
       state.micStarting = false;
       updateMicButton();
@@ -1483,6 +1617,7 @@
 
     recognition.onerror = function (event) {
       clearMicStartTimeout();
+      stopMicVisualizer();
       state.listening = false;
       state.micStarting = false;
       updateMicButton();
@@ -1629,6 +1764,8 @@
   }
 
   function stopMicStream() {
+    stopMicVisualizer();
+    teardownMicAudioGraph();
     if (!state.micStream) return;
     state.micStream.getTracks().forEach(function (track) {
       track.stop();
@@ -1674,9 +1811,8 @@
 
       return navigator.mediaDevices.getUserMedia({ audio: true })
         .then(function (stream) {
-          stream.getTracks().forEach(function (track) {
-            track.stop();
-          });
+          stopMicStream();
+          state.micStream = stream;
           state.micPermissionGranted = true;
           updateMicButton();
           return true;
@@ -1710,7 +1846,22 @@
 
     try {
       state.recognition.lang = SPEECH_LANG[getLang()] || SPEECH_LANG.en;
-      state.recognition.start();
+      prepareMicMonitor().finally(function () {
+        if (!state.micStarting && !micIsEnabled()) return;
+        startMicVisualizer();
+        try {
+          state.recognition.start();
+        } catch (err) {
+          state.micStarting = false;
+          updateMicButton();
+          recognitionFailCount += 1;
+          if (recognitionFailCount >= 2) {
+            recognitionFailCount = 0;
+            rebuildRecognitionInstance();
+          }
+          scheduleMicRestart(600);
+        }
+      });
       micStartTimeout = window.setTimeout(function () {
         micStartTimeout = 0;
         if (!state.listening && state.micStarting) {
@@ -1773,6 +1924,7 @@
     }
 
     state.listening = false;
+    stopMicVisualizer();
     updateMicButton();
     if (!silent && !micBusy()) {
       releaseOrbIdle(700);
@@ -1784,6 +1936,8 @@
     state.recognitionSupported = !!SR;
     state.micBtn = document.getElementById('ai-core-mic');
     if (!state.micBtn) return;
+
+    initMicVisualizer();
 
     if (!state.recognitionSupported) {
       state.micBtn.hidden = true;
