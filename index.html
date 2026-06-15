@@ -12,7 +12,7 @@
   <title>Hyperlinks Space — $1T Strategy</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600&display=swap" rel="stylesheet">
   <link rel="icon" href="favicon.ico" sizes="any">
   <link rel="icon" href="assets/logo-mark.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
@@ -635,11 +635,32 @@
     </p>
   </footer>
 
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" crossorigin="anonymous"></script>
   <script src="js/i18n.js"></script>
-  <script src="js/scene.js"></script>
   <script src="js/ai-core.js"></script>
-  <script src="js/liquid-glass.js"></script>
   <script src="js/app.js"></script>
+  <script>
+    (function () {
+      function isLightTheme() {
+        var t = document.documentElement.getAttribute('data-theme');
+        if (t === 'light') return true;
+        if (t === 'dark') return false;
+        return window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+      }
+
+      function loadScene() {
+        if (document.querySelector('script[data-hls-scene]')) return;
+        var s = document.createElement('script');
+        s.src = 'js/scene.js';
+        s.setAttribute('data-hls-scene', '1');
+        document.body.appendChild(s);
+      }
+
+      if (!isLightTheme()) loadScene();
+
+      window.addEventListener('hls:theme-applied', function () {
+        if (!isLightTheme()) loadScene();
+      });
+    })();
+  </script>
 </body>
 </html>

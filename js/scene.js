@@ -201,11 +201,29 @@
     };
   }
 
+  var disposers = [];
+
+  function disposeAll() {
+    disposers.forEach(function (d) { d(); });
+    disposers = [];
+  }
+
+  function isLightTheme() {
+    var t = document.documentElement.getAttribute('data-theme');
+    if (t === 'light') return true;
+    if (t === 'dark') return false;
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+  }
+
   function init() {
+    disposeAll();
+    if (isLightTheme()) return;
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
     var bg = document.getElementById('scene-bg');
     var orb = document.getElementById('hero-orb');
 
-    if (bg) initGlCanvas(bg, BG_FS, false);
+    if (bg) disposers.push(initGlCanvas(bg, BG_FS, false));
 
     if (orb) {
       var gl = orb.getContext('webgl', { alpha: true, antialias: true, premultipliedAlpha: false });
@@ -213,7 +231,7 @@
         gl.enable(gl.BLEND);
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
       }
-      initGlCanvas(orb, ORB_FS, true);
+      disposers.push(initGlCanvas(orb, ORB_FS, true));
     }
   }
 
@@ -222,4 +240,6 @@
   } else {
     init();
   }
+
+  window.addEventListener('hls:theme-applied', init);
 })();

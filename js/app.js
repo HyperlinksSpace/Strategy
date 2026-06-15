@@ -56,6 +56,7 @@
     });
 
     if (persist) localStorage.setItem(THEME_KEY, theme);
+    window.dispatchEvent(new Event('hls:theme-applied'));
   }
 
   function initLangSwitch() {
@@ -206,16 +207,42 @@
       'architecture', 'revenue', 'moats', 'north-star'
     ];
     var links = document.querySelectorAll('[data-section-id]');
+    var strip = document.querySelector('.section-strip');
     var sections = sectionIds.map(function (id) {
       return document.getElementById(id);
     }).filter(Boolean);
 
     if (!sections.length) return;
 
+    var reducedMotion = window.matchMedia &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var scrollTimer;
+
+    function scrollStripToActive(id) {
+      if (!strip || !id) return;
+      if (strip.scrollWidth <= strip.clientWidth) return;
+
+      var chip = strip.querySelector('.section-chip[data-section-id="' + id + '"]');
+      if (!chip) return;
+
+      var target = chip.offsetLeft - (strip.clientWidth - chip.offsetWidth) / 2;
+      target = Math.max(0, Math.min(target, strip.scrollWidth - strip.clientWidth));
+
+      strip.scrollTo({
+        left: target,
+        behavior: reducedMotion ? 'auto' : 'smooth'
+      });
+    }
+
     function setActive(id) {
       links.forEach(function (link) {
         link.classList.toggle('is-active', link.getAttribute('data-section-id') === id);
       });
+
+      clearTimeout(scrollTimer);
+      scrollTimer = setTimeout(function () {
+        scrollStripToActive(id);
+      }, 50);
     }
 
     if ('IntersectionObserver' in window) {
@@ -239,7 +266,26 @@
     }
 
     links.forEach(function (link) {
-      link.addEventListener('click', closeHeaderPanel);
+      link.addEventListener('click', function () {
+        closeHeaderPanel();
+        if (link.classList.contains('section-chip')) {
+          scrollStripToActive(link.getAttribute('data-section-id'));
+        }
+      });
+    });
+
+    window.addEventListener('resize', function () {
+      var active = strip && strip.querySelector('.section-chip.is-active');
+      if (active) scrollStripToActive(active.getAttribute('data-section-id'));
+    });
+
+    window.addEventListener('hls:locale-change', function () {
+      var active = strip && strip.querySelector('.section-chip.is-active');
+      if (active) {
+        setTimeout(function () {
+          scrollStripToActive(active.getAttribute('data-section-id'));
+        }, 80);
+      }
     });
   }
 

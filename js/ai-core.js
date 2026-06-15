@@ -412,7 +412,21 @@
     buildChips();
   }
 
+  function isLightTheme() {
+    var theme = document.documentElement.getAttribute('data-theme');
+    if (theme === 'light') return true;
+    if (theme === 'dark') return false;
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+  }
+
+  var lightningDispose = null;
+
   function initLightning() {
+    if (lightningDispose) {
+      lightningDispose();
+      lightningDispose = null;
+    }
+    if (isLightTheme() || state.reducedMotion) return;
     var canvas = document.getElementById('hero-lightning');
     if (!canvas) return;
 
@@ -542,6 +556,12 @@
       if (!state.reducedMotion) randomBolt();
     });
     raf = requestAnimationFrame(draw);
+
+    lightningDispose = function () {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('resize', resize);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    };
   }
 
   function initChat() {
@@ -583,6 +603,7 @@
 
     initLightning();
     initChat();
+    window.addEventListener('hls:theme-applied', initLightning);
   }
 
   if (document.readyState === 'loading') {
