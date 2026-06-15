@@ -130,7 +130,8 @@
       mobileMq.addListener(syncMenuVisibility);
     }
 
-    toggle.addEventListener('click', function () {
+    toggle.addEventListener('click', function (e) {
+      e.stopPropagation();
       var open = panel.classList.toggle('open');
       toggle.setAttribute('aria-expanded', open);
     });

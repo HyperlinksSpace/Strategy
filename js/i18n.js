@@ -243,6 +243,10 @@ window.HLS_I18N = {
     'ai.voiceOffLabel': 'Enable spoken responses',
     'ai.micOnLabel': 'Start voice input',
     'ai.micOffLabel': 'Stop voice input',
+    'ai.micEnabledLabel': 'Voice input on — click to turn off',
+    'ai.micDisabledLabel': 'Voice input off — click to turn on',
+    'ai.micListeningLabel': 'Listening…',
+    'ai.micBlockedLabel': 'Microphone blocked — click to allow',
     'ai.micDenied': 'Microphone access is required for voice input. Please enable it in your browser settings.',
     'ai.micError': 'Voice input is temporarily unavailable. Please type your command instead.'
   },
@@ -491,6 +495,10 @@ window.HLS_I18N = {
     'ai.voiceOffLabel': 'Включить озвучку',
     'ai.micOnLabel': 'Начать голосовой ввод',
     'ai.micOffLabel': 'Остановить голосовой ввод',
+    'ai.micEnabledLabel': 'Голосовой ввод включён — нажмите, чтобы выключить',
+    'ai.micDisabledLabel': 'Голосовой ввод выключен — нажмите, чтобы включить',
+    'ai.micListeningLabel': 'Слушаю…',
+    'ai.micBlockedLabel': 'Микрофон заблокирован — нажмите, чтобы разрешить',
     'ai.micDenied': 'Для голосового ввода требуется доступ к микрофону. Разрешите его в настройках браузера.',
     'ai.micError': 'Голосовой ввод временно недоступен. Введите команду вручную.'
   },
@@ -739,6 +747,10 @@ window.HLS_I18N = {
     'ai.voiceOffLabel': '开启语音播报',
     'ai.micOnLabel': '开始语音输入',
     'ai.micOffLabel': '停止语音输入',
+    'ai.micEnabledLabel': '语音输入已开启 — 点击关闭',
+    'ai.micDisabledLabel': '语音输入已关闭 — 点击开启',
+    'ai.micListeningLabel': '正在聆听…',
+    'ai.micBlockedLabel': '麦克风被阻止 — 点击允许',
     'ai.micDenied': '语音输入需要麦克风权限。请在浏览器设置中启用。',
     'ai.micError': '语音输入暂时不可用。请改为输入命令。'
   }

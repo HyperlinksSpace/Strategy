@@ -175,6 +175,7 @@
   var TUMBLE_SPEED = 0.12;
   var BOTTOM_Y = -2.2;
   var BOTTOM_SPACING = 2 * LINK_MAJOR * ELONG * 0.7;
+  var ringRadii = [1.35, 1.58, 1.82];
 
   function seed(i) {
     var x = Math.sin(i * 12.9898) * 43758.5453;
@@ -240,13 +241,16 @@
 
   function boundsForCanvas(w, h) {
     var aspect = w / Math.max(h, 1);
+    if (h < 150 || aspect > 2.1) {
+      return { cx: 0, cy: 0, cz: 0, r: 0.62, tight: true, strip: true };
+    }
     if (aspect < 1.4 || w < 420) {
-      return { cx: 0, cy: -0.28, cz: 0, r: 1.02, tight: true };
+      return { cx: 0, cy: -0.12, cz: 0, r: 0.88, tight: true, strip: false };
     }
     if (aspect < 1.85) {
-      return { cx: 0, cy: -0.38, cz: 0, r: 1.35, tight: false };
+      return { cx: 0, cy: -0.38, cz: 0, r: 1.35, tight: false, strip: false };
     }
-    return { cx: 0, cy: -0.5, cz: 0, r: 1.78, tight: false };
+    return { cx: 0, cy: -0.5, cz: 0, r: 1.78, tight: false, strip: false };
   }
 
   function createHeroScene(deps, canvas) {
@@ -394,7 +398,7 @@
       content.add(orbit);
     }
 
-    var chainCount = bounds.tight ? Math.min(q.threeChainCount || 0, 16) : (q.threeChainCount || 0);
+    var chainCount = bounds.strip ? 0 : (bounds.tight ? Math.min(q.threeChainCount || 0, 16) : (q.threeChainCount || 0));
     var layout = chainCount > 0 ? buildGalaxyLayout(chainCount) : [];
     var chains = [];
     var tubeSeg = q.threeTubeSeg || 56;
@@ -584,7 +588,7 @@
           center.z + (ci & 4 ? r : -r)
         );
       }
-      chainGroup.visible = !bounds.tight || chainCount > 0;
+      chainGroup.visible = chainCount > 0 && !bounds.strip;
       var qq = getQ();
       var dpr = qq.lite ? 1 : Math.min(qq.dpr || 2, window.devicePixelRatio || 1, 2);
       var maxPx = qq.orbMaxPx || 1280;
@@ -612,6 +616,7 @@
       fitScale();
       var t0 = performance.now();
       renderer.render(scene, camera);
+      if (!canvas.dataset.live) canvas.dataset.live = '1';
       if (window.HLS && window.HLS.reportFrameTime) {
         window.HLS.reportFrameTime(performance.now() - t0);
       }

@@ -138,17 +138,24 @@
     micAutoStart: false,
     micStream: null,
     micPausedForTour: false,
+    micStarting: false,
     aiPending: false,
-    thinkingEl: null
+    thinkingEl: null,
+    tourActive: false
   };
 
   var VOICE_KEY = 'hls-ai-voice';
+  var MIC_AUTO_KEY = 'hls-ai-mic-auto';
   var SPEECH_LANG = { en: 'en-US', ru: 'ru-RU', zh: 'zh-CN' };
   var SPEECH_LANGS = ['en', 'ru', 'zh'];
   var speechVoices = [];
   var speechVoiceBundle = null;
   var speechVoiceBundleMode = 'per-lang';
   var speechQueueGen = 0;
+  var speechKeepalive = 0;
+  var speechVoicesReady = false;
+  var micRestartTimer = 0;
+  var micAutoStartTimer = 0;
 
   function emitOrb(mode, detail) {
     if (window.HLS && window.HLS.setOrbReactive) {
@@ -302,33 +309,68 @@
   }
 
   function scrollToHero() {
-    var hero = document.getElementById('hero');
-    if (!hero) return;
-
-    window.scrollTo({
-      top: 0,
-      behavior: state.reducedMotion ? 'auto' : 'smooth'
+    scrollToSectionWhenReady('hero').then(function () {
+      document.dispatchEvent(new CustomEvent('ai-core:navigate', { detail: { sectionId: 'hero' } }));
+      emitOrb('navigate', { sectionId: 'hero', impulse: 0.55 });
     });
+  }
 
-    document.dispatchEvent(new CustomEvent('ai-core:navigate', { detail: { sectionId: 'hero' } }));
-    emitOrb('navigate', { sectionId: 'hero', impulse: 0.55 });
+  function scrollTargetY(id) {
+    if (id === 'hero') return 0;
+    var el = document.getElementById(id);
+    if (!el) return null;
+    var header = document.querySelector('.site-header');
+    var offset = (header ? header.offsetHeight : 0) + 16;
+    return Math.max(0, el.getBoundingClientRect().top + window.pageYOffset - offset);
+  }
+
+  function scrollToSectionWhenReady(id) {
+    return new Promise(function (resolve) {
+      var y = scrollTargetY(id);
+      if (y == null) {
+        resolve();
+        return;
+      }
+
+      if (Math.abs(window.pageYOffset - y) < 6) {
+        resolve();
+        return;
+      }
+
+      var settled = false;
+      function finish() {
+        if (settled) return;
+        settled = true;
+        window.removeEventListener('scrollend', onScrollEnd);
+        clearTimeout(fallbackTimer);
+        resolve();
+      }
+      function onScrollEnd() {
+        finish();
+      }
+
+      window.scrollTo({
+        top: y,
+        behavior: state.reducedMotion ? 'auto' : 'smooth'
+      });
+
+      if (state.reducedMotion) {
+        finish();
+        return;
+      }
+
+      if ('onscrollend' in window) {
+        window.addEventListener('scrollend', onScrollEnd, { once: true });
+      }
+      var fallbackTimer = setTimeout(finish, 1100);
+    });
   }
 
   function scrollToSection(id) {
-    var el = document.getElementById(id);
-    if (!el) return;
-
-    var header = document.querySelector('.site-header');
-    var offset = (header ? header.offsetHeight : 0) + 16;
-    var y = el.getBoundingClientRect().top + window.pageYOffset - offset;
-
-    window.scrollTo({
-      top: Math.max(0, y),
-      behavior: state.reducedMotion ? 'auto' : 'smooth'
+    scrollToSectionWhenReady(id).then(function () {
+      document.dispatchEvent(new CustomEvent('ai-core:navigate', { detail: { sectionId: id } }));
+      emitOrb('navigate', { sectionId: id, impulse: 0.6 });
     });
-
-    document.dispatchEvent(new CustomEvent('ai-core:navigate', { detail: { sectionId: id } }));
-    emitOrb('navigate', { sectionId: id, impulse: 0.6 });
   }
 
   function appendBubble(text, role) {
@@ -945,15 +987,20 @@
       speakLine = null;
     }
 
+    function afterSpeech() {
+      if (opts.onDone) opts.onDone();
+      else if (micIsEnabled()) scheduleMicAutoStart(450);
+    }
+
     function finish() {
       if (speakLine) {
         speakAsync(speakLine).then(function () {
-          if (opts.onDone) opts.onDone();
+          afterSpeech();
         });
         return;
       }
       if (!state.speaking) releaseOrbIdle(450);
-      if (opts.onDone) opts.onDone();
+      afterSpeech();
     }
 
     if (state.reducedMotion || opts.instant) {
@@ -968,17 +1015,38 @@
   function sayBot(key, vars, done) {
     showBotMessage(t(key, vars), {
       speakText: tVoice(key, vars),
-      parallelSpeak: true,
       onDone: done
     });
+  }
+
+  function isSpeechInterruptError(event) {
+    var err = event && event.error;
+    return err === 'interrupted' || err === 'canceled' || err === 'cancelled';
+  }
+
+  function startSpeechKeepalive() {
+    if (speechKeepalive) return;
+    speechKeepalive = window.setInterval(function () {
+      if (!state.speaking || !window.speechSynthesis) return;
+      if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
+        try { window.speechSynthesis.resume(); } catch (e) { /* noop */ }
+      }
+    }, 7000);
+  }
+
+  function stopSpeechKeepalive() {
+    if (!speechKeepalive) return;
+    clearInterval(speechKeepalive);
+    speechKeepalive = 0;
   }
 
   function stopSpeech() {
     if (!state.speechSupported) return;
     speechQueueGen += 1;
+    stopSpeechKeepalive();
     window.speechSynthesis.cancel();
     if (state.speechResolve) {
-      state.speechResolve();
+      state.speechResolve(false);
       state.speechResolve = null;
     }
     state.speaking = false;
@@ -1000,50 +1068,73 @@
   function speakSegmentQueue(segments, resolve, gen) {
     var index = 0;
 
-    function speakNext() {
+    function finish(ok) {
+      state.speaking = false;
+      stopSpeechKeepalive();
+      if (state.speechResolve === resolve) state.speechResolve = null;
+      if (!state.typing) releaseOrbIdle(650);
+      resolve(!!ok);
+    }
+
+    function speakCurrent(retrying) {
       if (gen !== speechQueueGen) return;
 
       while (index < segments.length && !segments[index].text.trim()) index += 1;
       if (index >= segments.length) {
-        state.speaking = false;
-        if (state.speechResolve === resolve) state.speechResolve = null;
-        if (!state.typing) releaseOrbIdle(650);
-        resolve();
+        finish(true);
         return;
       }
 
       var seg = segments[index];
-      index += 1;
       var utterance = buildUtterance(seg.text, seg.lang);
       if (!utterance) {
-        speakNext();
+        index += 1;
+        speakCurrent(false);
         return;
       }
 
-      utterance.onend = speakNext;
-      utterance.onerror = speakNext;
+      utterance.onend = function () {
+        if (gen !== speechQueueGen) return;
+        index += 1;
+        speakCurrent(false);
+      };
+      utterance.onerror = function (event) {
+        if (gen !== speechQueueGen) return;
+        if (!retrying && isSpeechInterruptError(event)) {
+          window.setTimeout(function () { speakCurrent(true); }, 160);
+          return;
+        }
+        index += 1;
+        speakCurrent(false);
+      };
       window.speechSynthesis.speak(utterance);
     }
 
-    speakNext();
+    speakCurrent(false);
   }
 
   function refreshSpeechVoices() {
     if (!state.speechSupported) return;
     speechVoices = window.speechSynthesis.getVoices() || [];
+    if (speechVoices.length) speechVoicesReady = true;
     rebuildSpeechVoiceBundle();
+  }
+
+  function ensureSpeechVoices() {
+    if (speechVoicesReady && speechVoices.length) return;
+    refreshSpeechVoices();
   }
 
   function speakAsync(text, opts) {
     opts = opts || {};
     return new Promise(function (resolve) {
       if (!state.voiceEnabled || !state.speechSupported || !text) {
-        resolve();
+        resolve(true);
         return;
       }
 
       stopSpeech();
-      refreshSpeechVoices();
+      ensureSpeechVoices();
 
       var uiLang = opts.lang || getLang();
       var segments = textHasMixedSpeechScripts(text)
@@ -1053,32 +1144,49 @@
 
       state.speechResolve = resolve;
       state.speaking = true;
+      startSpeechKeepalive();
       emitOrb('speaking');
 
       if (segments.length <= 1) {
         var singleLang = segments[0] ? segments[0].lang : uiLang;
-        var utterance = buildUtterance(segments[0] ? segments[0].text : text, singleLang);
-        if (!utterance) {
-          state.speaking = false;
-          state.speechResolve = null;
-          resolve();
-          return;
+        var line = segments[0] ? segments[0].text : text;
+        var retried = false;
+
+        function speakSingle(retrying) {
+          if (gen !== speechQueueGen) return;
+          var utterance = buildUtterance(line, singleLang);
+          if (!utterance) {
+            state.speaking = false;
+            stopSpeechKeepalive();
+            state.speechResolve = null;
+            resolve(true);
+            return;
+          }
+          utterance.onend = function () {
+            if (gen !== speechQueueGen) return;
+            state.speaking = false;
+            stopSpeechKeepalive();
+            if (state.speechResolve === resolve) state.speechResolve = null;
+            if (!state.typing) releaseOrbIdle(650);
+            resolve(true);
+          };
+          utterance.onerror = function (event) {
+            if (gen !== speechQueueGen) return;
+            if (!retrying && !retried && isSpeechInterruptError(event)) {
+              retried = true;
+              window.setTimeout(function () { speakSingle(true); }, 160);
+              return;
+            }
+            state.speaking = false;
+            stopSpeechKeepalive();
+            if (state.speechResolve === resolve) state.speechResolve = null;
+            if (!state.typing) releaseOrbIdle(400);
+            resolve(false);
+          };
+          window.speechSynthesis.speak(utterance);
         }
-        utterance.onend = function () {
-          if (gen !== speechQueueGen) return;
-          state.speaking = false;
-          if (state.speechResolve === resolve) state.speechResolve = null;
-          if (!state.typing) releaseOrbIdle(650);
-          resolve();
-        };
-        utterance.onerror = function () {
-          if (gen !== speechQueueGen) return;
-          state.speaking = false;
-          if (state.speechResolve === resolve) state.speechResolve = null;
-          if (!state.typing) releaseOrbIdle(400);
-          resolve();
-        };
-        window.speechSynthesis.speak(utterance);
+
+        speakSingle(false);
         return;
       }
 
@@ -1137,19 +1245,80 @@
     document.addEventListener('visibilitychange', function () {
       if (document.hidden) {
         stopSpeech();
-        stopListening();
+        stopListening(true);
+        return;
       }
+      if (micIsEnabled()) scheduleMicAutoStart(500);
     });
+  }
+
+  function clearMicRestartTimer() {
+    if (!micRestartTimer) return;
+    clearTimeout(micRestartTimer);
+    micRestartTimer = 0;
+  }
+
+  function clearMicAutoStartTimer() {
+    if (!micAutoStartTimer) return;
+    clearTimeout(micAutoStartTimer);
+    micAutoStartTimer = 0;
+  }
+
+  function scheduleMicRestart(delay) {
+    clearMicRestartTimer();
+    if (!micIsEnabled()) return;
+    micRestartTimer = window.setTimeout(function () {
+      micRestartTimer = 0;
+      maybeAutoStartMic();
+    }, delay == null ? 900 : delay);
+  }
+
+  function scheduleMicAutoStart(delay) {
+    clearMicAutoStartTimer();
+    if (!micIsEnabled()) return;
+    micAutoStartTimer = window.setTimeout(function () {
+      micAutoStartTimer = 0;
+      maybeAutoStartMic();
+    }, delay == null ? 500 : delay);
+  }
+
+  function setMicAutoStart(enabled, persist) {
+    state.micAutoStart = !!enabled;
+    if (persist !== false) {
+      localStorage.setItem(MIC_AUTO_KEY, state.micAutoStart ? '1' : '0');
+    }
+    if (!state.micAutoStart) {
+      clearMicRestartTimer();
+      clearMicAutoStartTimer();
+      stopListening(true);
+    }
+    updateMicButton();
+  }
+
+  function micIsEnabled() {
+    return !!(state.micAutoStart && state.micPermissionGranted === true);
   }
 
   function updateMicButton() {
     if (!state.micBtn) return;
-    var listening = state.listening;
     var denied = state.micPermissionGranted === false;
-    state.micBtn.setAttribute('aria-pressed', listening ? 'true' : 'false');
-    state.micBtn.classList.toggle('is-disabled', denied && !listening);
-    state.micBtn.setAttribute('aria-label', t(listening ? 'ai.micOffLabel' : 'ai.micOnLabel'));
-    state.micBtn.title = t(listening ? 'ai.micOffLabel' : 'ai.micOnLabel');
+    var enabled = micIsEnabled();
+    var listening = state.listening;
+
+    state.micBtn.setAttribute('aria-pressed', enabled ? 'true' : 'false');
+    state.micBtn.classList.toggle('is-listening', listening);
+    state.micBtn.classList.toggle('is-enabled', enabled && !listening);
+    state.micBtn.classList.toggle('is-off', !enabled && !denied);
+    state.micBtn.classList.toggle('is-denied', denied);
+    state.micBtn.classList.toggle('is-disabled', denied);
+
+    var labelKey = 'ai.micDisabledLabel';
+    if (denied) labelKey = 'ai.micBlockedLabel';
+    else if (listening) labelKey = 'ai.micListeningLabel';
+    else if (enabled) labelKey = 'ai.micEnabledLabel';
+
+    state.micBtn.setAttribute('aria-label', t(labelKey));
+    state.micBtn.title = t(labelKey);
   }
 
   function stopMicStream() {
@@ -1158,6 +1327,25 @@
       track.stop();
     });
     state.micStream = null;
+  }
+
+  function probeMicPermission() {
+    if (!navigator.permissions || !navigator.permissions.query) {
+      return Promise.resolve(null);
+    }
+    return navigator.permissions.query({ name: 'microphone' }).then(function (status) {
+      if (status.state === 'granted') {
+        state.micPermissionGranted = true;
+        return true;
+      }
+      if (status.state === 'denied') {
+        state.micPermissionGranted = false;
+        return false;
+      }
+      return null;
+    }).catch(function () {
+      return null;
+    });
   }
 
   function requestMicPermission() {
@@ -1169,77 +1357,107 @@
       return Promise.resolve(true);
     }
 
-    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+    return probeMicPermission().then(function (known) {
+      if (known === true) return true;
+      if (known === false) return false;
+
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        return null;
+      }
+
       return navigator.mediaDevices.getUserMedia({ audio: true })
         .then(function (stream) {
-          stopMicStream();
-          state.micStream = stream;
           stream.getTracks().forEach(function (track) {
             track.stop();
           });
-          state.micStream = null;
           state.micPermissionGranted = true;
-          state.micAutoStart = true;
           updateMicButton();
-          if (state.ready) maybeAutoStartMic();
           return true;
         })
         .catch(function () {
           state.micPermissionGranted = false;
-          state.micAutoStart = false;
           updateMicButton();
           return false;
         });
-    }
-
-    return Promise.resolve(null);
+    });
   }
 
   function startListening() {
     if (!state.recognitionSupported || !state.recognition) return;
+    if (!micIsEnabled()) return;
+    if (state.listening || state.micStarting) return;
 
-    stopTour();
-    stopSpeech();
+    if (state.speaking || state.typing || state.aiPending) {
+      scheduleMicAutoStart(state.speaking ? 900 : 500);
+      return;
+    }
+    if (state.tourActive && (state.speaking || state.tourTimer)) {
+      scheduleMicAutoStart(700);
+      return;
+    }
+
+    clearMicRestartTimer();
+    clearMicAutoStartTimer();
+    state.micStarting = true;
+    updateMicButton();
 
     try {
       state.recognition.lang = SPEECH_LANG[getLang()] || SPEECH_LANG.en;
       state.recognition.start();
     } catch (err) {
-      try {
-        state.recognition.stop();
-        state.recognition.lang = SPEECH_LANG[getLang()] || SPEECH_LANG.en;
-        state.recognition.start();
-      } catch (retryErr) {
-        sayBot('ai.micError');
-      }
+      state.micStarting = false;
+      updateMicButton();
+      scheduleMicRestart(1200);
     }
   }
 
   function maybeAutoStartMic() {
-    if (!state.micAutoStart || state.micPermissionGranted !== true || state.listening) return;
+    if (!micIsEnabled()) return;
+    if (state.listening || state.micStarting) return;
+    if (state.speaking || state.typing || state.aiPending) {
+      scheduleMicAutoStart(state.speaking ? 900 : 500);
+      return;
+    }
+    if (state.tourActive && state.speaking) {
+      scheduleMicAutoStart(900);
+      return;
+    }
     startListening();
   }
 
   function requestMicAccessOnLoad() {
     if (!state.recognitionSupported) return;
 
+    var storedMic = localStorage.getItem(MIC_AUTO_KEY);
+    state.micAutoStart = storedMic === null ? true : storedMic === '1';
+    updateMicButton();
+
     requestMicPermission().then(function (granted) {
-      if (granted === false) {
-        state.micAutoStart = false;
-      }
       updateMicButton();
+      if (granted === true && state.micAutoStart && state.ready) {
+        scheduleMicAutoStart(300);
+      }
     });
   }
 
-  function stopListening() {
-    if (!state.recognition || !state.listening) return;
-    try {
-      state.recognition.stop();
-    } catch (err) {
-      /* already stopped */
+  function stopListening(silent) {
+    clearMicRestartTimer();
+    state.micStarting = false;
+    if (!state.recognition) return;
+
+    if (state.listening) {
+      try {
+        state.recognition.stop();
+      } catch (err) {
+        /* already stopped */
+      }
     }
+
     state.listening = false;
     updateMicButton();
+    if (!silent && !state.typing && !state.speaking && !state.aiPending) {
+      releaseOrbIdle(700);
+    }
   }
 
   function initSpeechRecognition() {
@@ -1254,11 +1472,12 @@
     }
 
     state.recognition = new SR();
-    state.recognition.continuous = false;
+    state.recognition.continuous = true;
     state.recognition.interimResults = true;
     state.recognition.maxAlternatives = 1;
 
     state.recognition.onstart = function () {
+      state.micStarting = false;
       state.listening = true;
       emitOrb('listening');
       updateMicButton();
@@ -1266,29 +1485,38 @@
 
     state.recognition.onend = function () {
       state.listening = false;
+      state.micStarting = false;
       updateMicButton();
       if (!state.typing && !state.speaking && !state.aiPending) releaseOrbIdle(700);
-      if (!state.micAutoStart || state.micPermissionGranted !== true) return;
-      if (state.tourTimer || state.typing || state.speaking) return;
-      window.setTimeout(function () {
-        if (state.micAutoStart && state.micPermissionGranted && !state.listening &&
-            !state.typing && !state.tourTimer && !state.speaking) {
-          startListening();
-        }
-      }, 600);
+      if (!micIsEnabled()) return;
+      if (state.tourActive && state.speaking) {
+        scheduleMicAutoStart(900);
+        return;
+      }
+      if (state.speaking || state.typing || state.aiPending) {
+        scheduleMicAutoStart(state.speaking ? 900 : 500);
+        return;
+      }
+      scheduleMicRestart(900);
     };
 
     state.recognition.onerror = function (event) {
       state.listening = false;
+      state.micStarting = false;
       updateMicButton();
       if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
         state.micPermissionGranted = false;
-        state.micAutoStart = false;
+        clearMicRestartTimer();
+        clearMicAutoStartTimer();
         updateMicButton();
         sayBot('ai.micDenied');
-      } else if (event.error !== 'aborted' && event.error !== 'no-speech') {
-        sayBot('ai.micError');
+        return;
       }
+      if (event.error === 'aborted' || event.error === 'no-speech') {
+        if (micIsEnabled()) scheduleMicRestart(900);
+        return;
+      }
+      if (micIsEnabled()) scheduleMicRestart(1400);
     };
 
     state.recognition.onresult = function (event) {
@@ -1305,7 +1533,7 @@
       if (state.inputEl) state.inputEl.value = transcript;
 
       if (isFinal && transcript) {
-        stopListening();
+        stopListening(true);
         handleInput(transcript);
         if (state.inputEl) state.inputEl.value = '';
       }
@@ -1314,40 +1542,27 @@
     updateMicButton();
 
     state.micBtn.addEventListener('click', function () {
-      if (state.listening) {
-        state.micAutoStart = false;
-        stopListening();
+      if (micIsEnabled()) {
+        setMicAutoStart(false);
         return;
       }
 
-      state.micAutoStart = true;
-
-      function beginListening() {
-        if (state.micPermissionGranted === false) {
-          sayBot('ai.micDenied');
-          return;
-        }
-        startListening();
-      }
-
-      if (state.micPermissionGranted === true) {
-        beginListening();
-        return;
-      }
+      setMicAutoStart(true);
 
       requestMicPermission().then(function (granted) {
-        if (granted) {
-          beginListening();
-        } else if (granted === false) {
-          sayBot('ai.micDenied');
-        } else {
-          beginListening();
+        if (granted === true) {
+          startListening();
+          return;
         }
+        if (granted === false) {
+          sayBot('ai.micDenied');
+        }
+        updateMicButton();
       });
     });
 
     window.addEventListener('hls:locale-change', function () {
-      if (state.listening) stopListening();
+      if (state.listening) stopListening(true);
       updateMicButton();
     });
   }
@@ -1358,6 +1573,7 @@
   }
 
   function stopTour() {
+    state.tourActive = false;
     if (state.tourTimer) {
       clearTimeout(state.tourTimer);
       state.tourTimer = null;
@@ -1365,6 +1581,27 @@
     state.tourIndex = 0;
     stopSpeech();
     releaseOrbIdle(400);
+  }
+
+  function pauseMicForTour() {
+    state.micPausedForTour = micIsEnabled() || state.micAutoStart;
+    clearMicRestartTimer();
+    clearMicAutoStartTimer();
+    stopListening(true);
+    state.micAutoStart = false;
+    updateMicButton();
+  }
+
+  function resumeMicAfterTour() {
+    if (!state.micPausedForTour) {
+      state.micPausedForTour = false;
+      return;
+    }
+    state.micPausedForTour = false;
+    var storedMic = localStorage.getItem(MIC_AUTO_KEY);
+    if (storedMic === '0') return;
+    setMicAutoStart(true, false);
+    maybeAutoStartMic();
   }
 
   function presentSection(sec, opts) {
@@ -1376,12 +1613,14 @@
     var displayText = t('ai.sectionLead', meta);
     var voiceText = t('ai.navigatingVoice', { name: meta.name }) + ' ' + t('ai.sectionVoice', meta);
 
-    scrollToSection(sec.id);
+    scrollToSectionWhenReady(sec.id).then(function () {
+      document.dispatchEvent(new CustomEvent('ai-core:navigate', { detail: { sectionId: sec.id } }));
+      emitOrb('navigate', { sectionId: sec.id, impulse: 0.6 });
 
-    showBotMessage(displayText, {
-      speakText: voiceText,
-      parallelSpeak: true,
-      onDone: opts.onDone
+      showBotMessage(displayText, {
+        speakText: voiceText,
+        onDone: opts.onDone
+      });
     });
   }
 
@@ -1389,18 +1628,26 @@
     presentSection(sec, { userText: userText });
   }
 
+  function scheduleTourStep(delay) {
+    state.tourTimer = window.setTimeout(tourStep, delay == null ? 1200 : delay);
+  }
+
   function tourStep() {
+    state.tourTimer = null;
+    if (!state.tourActive) return;
+
     if (state.tourIndex >= SECTIONS.length) {
-      scrollToHero();
-      showBotMessage(t('ai.tourDone'), {
-        speakText: tVoice('ai.tourDone'),
-        onDone: function () {
-          if (state.micPausedForTour) {
-            state.micAutoStart = true;
-            maybeAutoStartMic();
+      scrollToSectionWhenReady('hero').then(function () {
+        if (!state.tourActive) return;
+        document.dispatchEvent(new CustomEvent('ai-core:navigate', { detail: { sectionId: 'hero' } }));
+        emitOrb('navigate', { sectionId: 'hero', impulse: 0.55 });
+        showBotMessage(t('ai.tourDone'), {
+          speakText: tVoice('ai.tourDone'),
+          onDone: function () {
+            state.tourActive = false;
+            resumeMicAfterTour();
           }
-          state.micPausedForTour = false;
-        }
+        });
       });
       state.tourIndex = 0;
       return;
@@ -1410,37 +1657,56 @@
     var meta = sectionMeta(sec.id);
     var displayText = t('ai.sectionLead', meta);
     var voiceText = t('ai.sectionVoice', meta);
-
-    scrollToSection(sec.id);
+    var stepIndex = state.tourIndex;
     state.tourIndex += 1;
 
-    showBotMessage(displayText, { speak: false });
+    scrollToSectionWhenReady(sec.id).then(function () {
+      if (!state.tourActive) return;
 
-    speakAsync(voiceText).then(function () {
-      state.tourTimer = setTimeout(tourStep, state.reducedMotion ? 500 : 900);
+      document.dispatchEvent(new CustomEvent('ai-core:navigate', { detail: { sectionId: sec.id } }));
+      emitOrb('navigate', { sectionId: sec.id, impulse: 0.6 });
+
+      showBotMessage(displayText, {
+        speak: false,
+        onDone: function () {
+          speakAsync(voiceText).then(function (ok) {
+            if (!state.tourActive) return;
+            if (!ok) {
+              state.tourIndex = stepIndex;
+              scheduleTourStep(600);
+              return;
+            }
+            scheduleTourStep(state.reducedMotion ? 700 : 1200);
+          });
+        }
+      });
     });
   }
 
   function startTour(userText) {
     stopTour();
+    state.tourActive = true;
     emitOrb('tour');
-    state.micPausedForTour = state.micAutoStart;
-    state.micAutoStart = false;
-    stopListening();
+    pauseMicForTour();
     if (userText) sayUser(userText);
 
     state.tourIndex = 0;
-    showBotMessage(t('ai.tourStart'), { speak: false });
-
-    speakAsync(tVoice('ai.tourStart')).then(tourStep);
+    showBotMessage(t('ai.tourStart'), {
+      speakText: tVoice('ai.tourStart'),
+      onDone: function () {
+        if (!state.tourActive) return;
+        tourStep();
+      }
+    });
   }
 
   function handleInput(raw) {
     var text = normalize(raw);
     if (!text || state.typing) return;
+    if (state.tourActive && state.speaking) return;
 
     stopTour();
-    stopListening();
+    stopListening(true);
     sayUser(raw);
 
     var lang = getLang();
@@ -1466,8 +1732,7 @@
       if (hereId) {
         var hereMeta = sectionMeta(hereId);
         showBotMessage(t('ai.here', hereMeta), {
-          speakText: tVoice('ai.here', hereMeta),
-          parallelSpeak: true
+          speakText: tVoice('ai.here', hereMeta)
         });
       } else {
         sayBot('ai.hereUnknown');
@@ -1793,11 +2058,12 @@
     });
 
     setTimeout(function () {
+      state.ready = true;
       showBotMessage(t('ai.greeting'), {
         speakText: tVoice('ai.greeting'),
         onDone: maybeAutoStartMic
       });
-      state.ready = true;
+      if (micIsEnabled()) scheduleMicAutoStart(400);
     }, state.reducedMotion ? 100 : 600);
 
     window.addEventListener('hls:locale-change', function () {
