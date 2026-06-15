@@ -28,6 +28,89 @@
     return program;
   }
 
+  function buildOrbFs(steps, light) {
+    var body = light ? [
+      '    col = vec3(0.72, 0.78, 0.92) + vec3(0.18, 0.42, 0.95) * diff * 0.75;',
+      '    col += vec3(0.08, 0.58, 0.12) * rim * 0.85;',
+      '    col += vec3(0.42, 0.18, 0.92) * rim * 0.9;',
+      '    col += vec3(0.95, 0.22, 0.72) * rim * 0.55;',
+      '    col += vec3(0.0, 0.72, 0.95) * bolt * 1.05;',
+      '    col += vec3(0.95, 0.72, 0.08) * bolt * rim * 0.75;',
+      '    alpha = 0.94 + rim * 0.06;'
+    ] : [
+      '    col = vec3(0.05, 0.08, 0.18) + vec3(0.12, 0.35, 1.0) * diff * 0.6;',
+      '    col += vec3(0.10, 0.67, 0.07) * rim * 0.55;',
+      '    col += vec3(0.55, 0.18, 1.0) * rim * 0.75;',
+      '    col += vec3(1.0, 0.25, 0.85) * rim * 0.45;',
+      '    col += vec3(0.0, 0.95, 1.0) * bolt * 0.95;',
+      '    col += vec3(1.0, 0.88, 0.15) * bolt * rim * 0.65;',
+      '    alpha = 0.88 + rim * 0.12;'
+    ];
+
+    return [
+      'precision mediump float;',
+      'varying vec2 vUv;',
+      'uniform float uTime;',
+      'uniform vec2 uResolution;',
+      'float hash(vec2 p){ return fract(sin(dot(p, vec2(41.0, 289.0))) * 1031.0); }',
+      'float noise(vec3 p){',
+      '  vec3 i = floor(p); vec3 f = fract(p);',
+      '  float n = dot(i, vec3(1.0, 57.0, 113.0));',
+      '  vec3 u = f * f * (3.0 - 2.0 * f);',
+      '  return mix(mix(mix(hash(vec2(n)), hash(vec2(n + 1.0)), u.x),',
+      '    mix(hash(vec2(n + 57.0)), hash(vec2(n + 58.0)), u.x), u.y),',
+      '    mix(mix(hash(vec2(n + 113.0)), hash(vec2(n + 114.0)), u.x),',
+      '    mix(hash(vec2(n + 170.0)), hash(vec2(n + 171.0)), u.x), u.y), u.z);',
+      '}',
+      'float map(vec3 p){',
+      '  float d = length(p) - 0.68;',
+      '  float n = noise(p * 3.2 + uTime * 0.22) * 0.14;',
+      '  n += noise(p * 6.0 - uTime * 0.35) * 0.06;',
+      '  return d + n;',
+      '}',
+      'vec3 calcNormal(vec3 p){',
+      '  vec2 e = vec2(0.001, 0.0);',
+      '  return normalize(vec3(',
+      '    map(p + e.xyy) - map(p - e.xyy),',
+      '    map(p + e.yxy) - map(p - e.yxy),',
+      '    map(p + e.yyx) - map(p - e.yyx)));',
+      '}',
+      'float lightning(vec3 p, float t){',
+      '  float arc = sin(p.x * 18.0 + t * 6.0) * sin(p.y * 14.0 - t * 5.0) * sin(p.z * 16.0 + t * 4.5);',
+      '  arc = pow(abs(arc), 0.22);',
+      '  float bolt = smoothstep(0.55, 0.95, arc) * smoothstep(0.85, 0.2, length(p));',
+      '  return bolt;',
+      '}',
+      'void main(){',
+      '  vec2 uv = (vUv - 0.5) * vec2(uResolution.x / uResolution.y, 1.0);',
+      '  vec3 ro = vec3(0.0, 0.0, 2.8);',
+      '  vec3 rd = normalize(vec3(uv, -1.6));',
+      '  float t = 0.0; float hit = 0.0; vec3 p;',
+      '  for (int i = 0; i < ' + steps + '; i++) {',
+      '    p = ro + rd * t;',
+      '    float d = map(p);',
+      '    if (d < 0.001) { hit = 1.0; break; }',
+      '    t += d;',
+      '    if (t > 6.0) break;',
+      '  }',
+      '  vec3 col = vec3(0.0);',
+      '  float alpha = 0.0;',
+      '  if (hit > 0.5) {',
+      '    vec3 n = calcNormal(p);',
+      '    vec3 lightDir = normalize(vec3(0.5, 0.9, 1.0));',
+      '    float diff = max(dot(n, lightDir), 0.0);',
+      '    float rim = pow(1.0 - max(dot(n, -rd), 0.0), 2.4);',
+      '    float bolt = lightning(p, uTime);',
+      body.join('\n'),
+      '  }',
+      '  float halo = smoothstep(0.95, 0.15, length(uv));',
+      '  col += vec3(0.10, 0.67, 0.07) * halo * 0.08;',
+      '  alpha = max(alpha, halo * 0.35);',
+      '  gl_FragColor = vec4(col, alpha);',
+      '}'
+    ].join('\n');
+  }
+
   var BG_VS = [
     'attribute vec2 aPos;',
     'varying vec2 vUv;',
@@ -35,7 +118,7 @@
   ].join('\n');
 
   var BG_FS = [
-    'precision highp float;',
+    'precision mediump float;',
     'varying vec2 vUv;',
     'uniform float uTime;',
     'uniform vec2 uResolution;',
@@ -49,7 +132,7 @@
     '}',
     'float fbm(vec2 p){',
     '  float v = 0.0; float a = 0.5;',
-    '  for (int i = 0; i < 5; i++) { v += a * noise(p); p *= 2.0; a *= 0.5; }',
+    '  for (int i = 0; i < 4; i++) { v += a * noise(p); p *= 2.0; a *= 0.5; }',
     '  return v;',
     '}',
     'void main(){',
@@ -64,95 +147,15 @@
     '  col += vec3(0.04, 0.05, 0.12) * n;',
     '  col += vec3(0.10, 0.18, 1.0) * glow * 0.35;',
     '  col += vec3(0.48, 0.17, 1.0) * glow * sphere * 0.25;',
-    '  col += vec3(1.0, 0.16, 0.83) * glow * sphere * 0.12;',
     '  col += vec3(0.10, 0.67, 0.07) * glow * sphere * 0.08;',
-    '  float stars = step(0.992, hash(floor(uv * uResolution * 0.5)));',
-    '  col += vec3(1.0) * stars * 0.15;',
     '  float vig = smoothstep(1.2, 0.2, length(p));',
     '  col *= vig;',
     '  gl_FragColor = vec4(col, 1.0);',
     '}'
   ].join('\n');
 
-  var ORB_VS = BG_VS;
-
-  var ORB_FS = [
-    'precision highp float;',
-    'varying vec2 vUv;',
-    'uniform float uTime;',
-    'uniform vec2 uResolution;',
-    'float hash(vec2 p){ return fract(sin(dot(p, vec2(41.0, 289.0))) * 1031.0); }',
-    'float hash3(vec3 p){ return fract(sin(dot(p, vec3(41.0, 289.0, 157.0))) * 1031.0); }',
-    'float noise(vec3 p){',
-    '  vec3 i = floor(p); vec3 f = fract(p);',
-    '  float n = dot(i, vec3(1.0, 57.0, 113.0));',
-    '  vec3 u = f * f * (3.0 - 2.0 * f);',
-    '  return mix(mix(mix(hash(vec2(n)), hash(vec2(n + 1.0)), u.x),',
-    '    mix(hash(vec2(n + 57.0)), hash(vec2(n + 58.0)), u.x), u.y),',
-    '    mix(mix(hash(vec2(n + 113.0)), hash(vec2(n + 114.0)), u.x),',
-    '    mix(hash(vec2(n + 170.0)), hash(vec2(n + 171.0)), u.x), u.y), u.z);',
-    '}',
-    'float map(vec3 p){',
-    '  float d = length(p) - 0.68;',
-    '  float n = noise(p * 3.2 + uTime * 0.22) * 0.14;',
-    '  n += noise(p * 6.0 - uTime * 0.35) * 0.06;',
-    '  return d + n;',
-    '}',
-    'vec3 calcNormal(vec3 p){',
-    '  vec2 e = vec2(0.001, 0.0);',
-    '  return normalize(vec3(',
-    '    map(p + e.xyy) - map(p - e.xyy),',
-    '    map(p + e.yxy) - map(p - e.yxy),',
-    '    map(p + e.yyx) - map(p - e.yyx)));',
-    '}',
-    'float lightning(vec3 p, float t){',
-    '  float arc = sin(p.x * 18.0 + t * 6.0) * sin(p.y * 14.0 - t * 5.0) * sin(p.z * 16.0 + t * 4.5);',
-    '  arc = pow(abs(arc), 0.22);',
-    '  float bolt = smoothstep(0.55, 0.95, arc) * smoothstep(0.85, 0.2, length(p));',
-    '  bolt += pow(max(0.0, sin(length(p) * 12.0 - t * 8.0)), 8.0) * 0.35;',
-    '  return bolt;',
-    '}',
-    'void main(){',
-    '  vec2 uv = (vUv - 0.5) * vec2(uResolution.x / uResolution.y, 1.0);',
-    '  vec3 ro = vec3(0.0, 0.0, 2.8);',
-    '  vec3 rd = normalize(vec3(uv, -1.6));',
-    '  float t = 0.0; float hit = 0.0; vec3 p;',
-    '  for (int i = 0; i < 72; i++) {',
-    '    p = ro + rd * t;',
-    '    float d = map(p);',
-    '    if (d < 0.001) { hit = 1.0; break; }',
-    '    t += d;',
-    '    if (t > 6.0) break;',
-    '  }',
-    '  vec3 col = vec3(0.0);',
-    '  float alpha = 0.0;',
-    '  if (hit > 0.5) {',
-    '    vec3 n = calcNormal(p);',
-    '    vec3 light = normalize(vec3(0.5, 0.9, 1.0));',
-    '    float diff = max(dot(n, light), 0.0);',
-    '    float rim = pow(1.0 - max(dot(n, -rd), 0.0), 2.4);',
-    '    float bolt = lightning(p, uTime);',
-    '    float band = sin(atan(p.y, p.x) * 5.0 + uTime * 1.2 + length(p) * 6.0);',
-    '    col = vec3(0.05, 0.08, 0.18) + vec3(0.12, 0.35, 1.0) * diff * 0.6;',
-    '    col += vec3(0.10, 0.67, 0.07) * rim * 0.55;',
-    '    col += vec3(0.55, 0.18, 1.0) * rim * 0.75;',
-    '    col += vec3(1.0, 0.25, 0.85) * rim * 0.45;',
-    '    col += vec3(0.0, 0.95, 1.0) * bolt * 0.95;',
-    '    col += vec3(1.0, 0.88, 0.15) * bolt * rim * 0.65;',
-    '    col += vec3(1.0, 0.35, 0.2) * max(band, 0.0) * 0.22;',
-    '    col += vec3(0.15, 1.0, 0.45) * max(-band, 0.0) * 0.18;',
-    '    alpha = 0.88 + rim * 0.12;',
-    '  }',
-    '  float halo = smoothstep(0.95, 0.15, length(uv));',
-    '  col += vec3(0.10, 0.67, 0.07) * halo * 0.08;',
-    '  col += vec3(0.45, 0.2, 1.0) * halo * 0.06 * sin(uTime + uv.x * 10.0);',
-    '  alpha = max(alpha, halo * 0.35);',
-    '  gl_FragColor = vec4(col, alpha);',
-    '}'
-  ].join('\n');
-
   var BG_FS_LIGHT = [
-    'precision highp float;',
+    'precision mediump float;',
     'varying vec2 vUv;',
     'uniform float uTime;',
     'uniform vec2 uResolution;',
@@ -166,7 +169,7 @@
     '}',
     'float fbm(vec2 p){',
     '  float v = 0.0; float a = 0.5;',
-    '  for (int i = 0; i < 5; i++) { v += a * noise(p); p *= 2.0; a *= 0.5; }',
+    '  for (int i = 0; i < 4; i++) { v += a * noise(p); p *= 2.0; a *= 0.5; }',
     '  return v;',
     '}',
     'void main(){',
@@ -177,94 +180,24 @@
     '  float orb = length(p - vec2(0.28, -0.05));',
     '  float sphere = smoothstep(0.55, 0.0, orb);',
     '  float glow = sphere * (0.28 + 0.18 * sin(uTime * 0.5 + n * 5.0));',
-    '  vec3 col = vec3(0.94, 0.95, 0.98);',
-    '  col += vec3(0.55, 0.72, 0.98) * n * 0.22;',
-    '  col += vec3(0.72, 0.55, 0.95) * glow * 0.38;',
-    '  col += vec3(0.15, 0.62, 0.12) * glow * sphere * 0.28;',
-    '  col += vec3(0.95, 0.55, 0.72) * glow * sphere * 0.12;',
+    '  vec3 col = vec3(0.96, 0.97, 0.99);',
+    '  col += vec3(0.55, 0.72, 0.98) * n * 0.18;',
+    '  col += vec3(0.72, 0.55, 0.95) * glow * 0.28;',
+    '  col += vec3(0.15, 0.62, 0.12) * glow * sphere * 0.2;',
     '  float vig = smoothstep(1.1, 0.35, length(p));',
     '  col = mix(vec3(0.995), col, vig);',
     '  gl_FragColor = vec4(col, 1.0);',
     '}'
   ].join('\n');
 
-  var ORB_FS_LIGHT = [
-    'precision highp float;',
-    'varying vec2 vUv;',
-    'uniform float uTime;',
-    'uniform vec2 uResolution;',
-    'float hash(vec2 p){ return fract(sin(dot(p, vec2(41.0, 289.0))) * 1031.0); }',
-    'float hash3(vec3 p){ return fract(sin(dot(p, vec3(41.0, 289.0, 157.0))) * 1031.0); }',
-    'float noise(vec3 p){',
-    '  vec3 i = floor(p); vec3 f = fract(p);',
-    '  float n = dot(i, vec3(1.0, 57.0, 113.0));',
-    '  vec3 u = f * f * (3.0 - 2.0 * f);',
-    '  return mix(mix(mix(hash(vec2(n)), hash(vec2(n + 1.0)), u.x),',
-    '    mix(hash(vec2(n + 57.0)), hash(vec2(n + 58.0)), u.x), u.y),',
-    '    mix(mix(hash(vec2(n + 113.0)), hash(vec2(n + 114.0)), u.x),',
-    '    mix(hash(vec2(n + 170.0)), hash(vec2(n + 171.0)), u.x), u.y), u.z);',
-    '}',
-    'float map(vec3 p){',
-    '  float d = length(p) - 0.68;',
-    '  float n = noise(p * 3.2 + uTime * 0.22) * 0.14;',
-    '  n += noise(p * 6.0 - uTime * 0.35) * 0.06;',
-    '  return d + n;',
-    '}',
-    'vec3 calcNormal(vec3 p){',
-    '  vec2 e = vec2(0.001, 0.0);',
-    '  return normalize(vec3(',
-    '    map(p + e.xyy) - map(p - e.xyy),',
-    '    map(p + e.yxy) - map(p - e.yxy),',
-    '    map(p + e.yyx) - map(p - e.yyx)));',
-    '}',
-    'float lightning(vec3 p, float t){',
-    '  float arc = sin(p.x * 18.0 + t * 6.0) * sin(p.y * 14.0 - t * 5.0) * sin(p.z * 16.0 + t * 4.5);',
-    '  arc = pow(abs(arc), 0.22);',
-    '  float bolt = smoothstep(0.55, 0.95, arc) * smoothstep(0.85, 0.2, length(p));',
-    '  bolt += pow(max(0.0, sin(length(p) * 12.0 - t * 8.0)), 8.0) * 0.35;',
-    '  return bolt;',
-    '}',
-    'void main(){',
-    '  vec2 uv = (vUv - 0.5) * vec2(uResolution.x / uResolution.y, 1.0);',
-    '  vec3 ro = vec3(0.0, 0.0, 2.8);',
-    '  vec3 rd = normalize(vec3(uv, -1.6));',
-    '  float t = 0.0; float hit = 0.0; vec3 p;',
-    '  for (int i = 0; i < 72; i++) {',
-    '    p = ro + rd * t;',
-    '    float d = map(p);',
-    '    if (d < 0.001) { hit = 1.0; break; }',
-    '    t += d;',
-    '    if (t > 6.0) break;',
-    '  }',
-    '  vec3 col = vec3(0.0);',
-    '  float alpha = 0.0;',
-    '  if (hit > 0.5) {',
-    '    vec3 n = calcNormal(p);',
-    '    vec3 light = normalize(vec3(0.5, 0.9, 1.0));',
-    '    float diff = max(dot(n, light), 0.0);',
-    '    float rim = pow(1.0 - max(dot(n, -rd), 0.0), 2.4);',
-    '    float bolt = lightning(p, uTime);',
-    '    float band = sin(atan(p.y, p.x) * 5.0 + uTime * 1.2 + length(p) * 6.0);',
-    '    col = vec3(0.72, 0.78, 0.92) + vec3(0.18, 0.42, 0.95) * diff * 0.75;',
-    '    col += vec3(0.08, 0.58, 0.12) * rim * 0.85;',
-    '    col += vec3(0.42, 0.18, 0.92) * rim * 0.9;',
-    '    col += vec3(0.95, 0.22, 0.72) * rim * 0.55;',
-    '    col += vec3(0.0, 0.72, 0.95) * bolt * 1.05;',
-    '    col += vec3(0.95, 0.72, 0.08) * bolt * rim * 0.75;',
-    '    col += vec3(0.92, 0.28, 0.12) * max(band, 0.0) * 0.28;',
-    '    col += vec3(0.12, 0.82, 0.42) * max(-band, 0.0) * 0.22;',
-    '    alpha = 0.94 + rim * 0.06;',
-    '  }',
-    '  float halo = smoothstep(0.95, 0.12, length(uv));',
-    '  col += vec3(0.08, 0.58, 0.12) * halo * 0.18;',
-    '  col += vec3(0.35, 0.18, 0.92) * halo * 0.14 * sin(uTime + uv.x * 10.0);',
-    '  alpha = max(alpha, halo * 0.55);',
-    '  gl_FragColor = vec4(col, alpha);',
-    '}'
-  ].join('\n');
-
-  function initGlCanvas(canvas, fragmentSource, alpha, light) {
-    var gl = canvas.getContext('webgl', { alpha: alpha, antialias: true, premultipliedAlpha: false });
+  function initGlCanvas(canvas, fragmentSource, opts) {
+    opts = opts || {};
+    var gl = canvas.getContext('webgl', {
+      alpha: !!opts.alpha,
+      antialias: false,
+      premultipliedAlpha: false,
+      powerPreference: 'high-performance'
+    });
     if (!gl) return null;
 
     var program = createProgram(gl, BG_VS, fragmentSource);
@@ -282,38 +215,71 @@
     var uTime = gl.getUniformLocation(program, 'uTime');
     var uResolution = gl.getUniformLocation(program, 'uResolution');
 
+    var quality = window.HLS && window.HLS.getQuality ? window.HLS.getQuality() : { dpr: 1 };
+    var dpr = quality.dpr;
+    var sizeDirty = true;
+    var raf = 0;
+    var start = performance.now();
+    var running = true;
+
     function resize() {
-      var dpr = Math.min(window.devicePixelRatio || 1, 2);
       var w = canvas.clientWidth;
       var h = canvas.clientHeight;
       if (w < 1 || h < 1) return;
-      canvas.width = w * dpr;
-      canvas.height = h * dpr;
-      gl.viewport(0, 0, canvas.width, canvas.height);
+      var nextDpr = window.HLS && window.HLS.getQuality ? window.HLS.getQuality().dpr : dpr;
+      if (canvas.width !== Math.round(w * nextDpr) || canvas.height !== Math.round(h * nextDpr)) {
+        dpr = nextDpr;
+        canvas.width = Math.round(w * nextDpr);
+        canvas.height = Math.round(h * nextDpr);
+        gl.viewport(0, 0, canvas.width, canvas.height);
+      }
     }
 
-    var raf = 0;
-    var start = performance.now();
+    function shouldRun() {
+      if (opts.heroOnly) {
+        return window.HLS && window.HLS.shouldAnimateHero ? window.HLS.shouldAnimateHero() : true;
+      }
+      return !(document.hidden);
+    }
 
     function draw(now) {
-      resize();
-      if (light) {
-        gl.clearColor(0.96, 0.97, 0.99, alpha ? 0 : 1);
+      raf = requestAnimationFrame(draw);
+      if (!running) return;
+      if (!shouldRun()) return;
+
+      if (sizeDirty) {
+        resize();
+        sizeDirty = false;
+      }
+
+      if (opts.light) {
+        gl.clearColor(0.96, 0.97, 0.99, opts.alpha ? 0 : 1);
       } else {
-        gl.clearColor(0, 0, 0, alpha ? 0 : 1);
+        gl.clearColor(0, 0, 0, opts.alpha ? 0 : 1);
       }
       gl.clear(gl.COLOR_BUFFER_BIT);
       gl.uniform1f(uTime, (now - start) * 0.001);
       gl.uniform2f(uResolution, canvas.width, canvas.height);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-      raf = requestAnimationFrame(draw);
     }
+
+    function onResize() {
+      sizeDirty = true;
+    }
+
+    window.addEventListener('resize', onResize, { passive: true });
+    window.addEventListener('hls:visibility', onResize);
+    window.addEventListener('hls:hero-visibility', onResize);
 
     resize();
     raf = requestAnimationFrame(draw);
 
     return function dispose() {
+      running = false;
       cancelAnimationFrame(raf);
+      window.removeEventListener('resize', onResize);
+      window.removeEventListener('hls:visibility', onResize);
+      window.removeEventListener('hls:hero-visibility', onResize);
     };
   }
 
@@ -333,18 +299,25 @@
     if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
     var light = isLightTheme();
+    var quality = window.HLS && window.HLS.getQuality ? window.HLS.getQuality() : { orbSteps: 56 };
     var bg = document.getElementById('scene-bg');
     var orb = document.getElementById('hero-orb');
 
-    if (bg) disposers.push(initGlCanvas(bg, light ? BG_FS_LIGHT : BG_FS, false, light));
+    if (bg) {
+      disposers.push(initGlCanvas(bg, light ? BG_FS_LIGHT : BG_FS, { alpha: false, light: light }));
+    }
 
     if (orb) {
-      var gl = orb.getContext('webgl', { alpha: true, antialias: true, premultipliedAlpha: false });
+      var gl = orb.getContext('webgl', { alpha: true, antialias: false, premultipliedAlpha: false });
       if (gl) {
         gl.enable(gl.BLEND);
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
       }
-      disposers.push(initGlCanvas(orb, light ? ORB_FS_LIGHT : ORB_FS, true, light));
+      disposers.push(initGlCanvas(
+        orb,
+        buildOrbFs(quality.orbSteps || 56, light),
+        { alpha: true, light: light, heroOnly: true }
+      ));
     }
   }
 

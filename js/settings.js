@@ -215,6 +215,12 @@
       { label: 'Explore Roadmap', href: '#roadmap', style: 'primary', i18n: 'hero.cta1' },
       { label: 'Open hyperlinks.space', href: 'https://www.hyperlinks.space/', style: 'promo', external: true, i18n: 'promo.cta' },
       { label: 'GitHub Organization', href: 'https://github.com/HyperlinksSpace', style: 'ghost', external: true, i18n: 'hero.cta2' }
-    ]
+    ],
+
+    dropdownIntros: {
+      products: 'Live platforms funding Earth operations while we harden the interplanetary protocol stack.',
+      research: 'R&D mapped to our $1T strategy — blockchain rails, edge AI, agentic automation, and deep-space networking.',
+      tech: 'What we ship in production today and the hardened protocols we are building for industrial and orbital scale.'
+    }
   };
 })();

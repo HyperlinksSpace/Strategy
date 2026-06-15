@@ -830,6 +830,10 @@
       lightningDispose = null;
     }
     if (state.reducedMotion) return;
+
+    var quality = window.HLS && window.HLS.getQuality ? window.HLS.getQuality() : { lightning: true };
+    if (!quality.lightning) return;
+
     var canvas = document.getElementById('hero-lightning');
     if (!canvas) return;
 
@@ -837,19 +841,26 @@
     if (!ctx) return;
 
     var bolts = [];
-    var sparks = [];
     var raf = 0;
     var lastFlash = 0;
+    var frame = 0;
     var COLORS = lightningColors();
+    var dpr = quality.dpr || 1;
+    var sizeDirty = true;
 
     function resize() {
-      var dpr = Math.min(window.devicePixelRatio || 1, 2);
       var w = canvas.clientWidth;
       var h = canvas.clientHeight;
       if (w < 1 || h < 1) return;
-      canvas.width = w * dpr;
-      canvas.height = h * dpr;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      var nextDpr = window.HLS && window.HLS.getQuality ? window.HLS.getQuality().dpr : dpr;
+      canvas.width = Math.round(w * nextDpr);
+      canvas.height = Math.round(h * nextDpr);
+      ctx.setTransform(nextDpr, 0, 0, nextDpr, 0, 0);
+      dpr = nextDpr;
+    }
+
+    function shouldRun() {
+      return window.HLS && window.HLS.shouldAnimateHero ? window.HLS.shouldAnimateHero() : !document.hidden;
     }
 
     function randomBolt() {
@@ -860,11 +871,11 @@
       var points = [{ x: sx, y: sy }];
       var x = sx;
       var y = sy;
-      var segments = 6 + Math.floor(Math.random() * 8);
+      var segments = 5 + Math.floor(Math.random() * 5);
 
       for (var i = 0; i < segments; i++) {
-        x += (Math.random() - 0.5) * w * 0.18;
-        y += h / segments + (Math.random() - 0.5) * 24;
+        x += (Math.random() - 0.5) * w * 0.16;
+        y += h / segments + (Math.random() - 0.5) * 20;
         points.push({ x: x, y: y });
       }
 
@@ -872,19 +883,8 @@
         points: points,
         color: COLORS[Math.floor(Math.random() * COLORS.length)],
         life: 1,
-        width: 1.5 + Math.random() * 2.5
+        width: 1.2 + Math.random() * 1.8
       });
-
-      for (var s = 0; s < 12; s++) {
-        sparks.push({
-          x: x,
-          y: y,
-          vx: (Math.random() - 0.5) * 4,
-          vy: (Math.random() - 0.5) * 4,
-          life: 0.6 + Math.random() * 0.4,
-          color: COLORS[Math.floor(Math.random() * COLORS.length)]
-        });
-      }
     }
 
     function drawBolt(bolt) {
@@ -892,70 +892,60 @@
       ctx.save();
       ctx.strokeStyle = bolt.color;
       ctx.lineWidth = bolt.width;
-      ctx.shadowColor = bolt.color;
-      ctx.shadowBlur = 16;
-      ctx.globalAlpha = bolt.life;
+      ctx.globalAlpha = bolt.life * 0.85;
       ctx.beginPath();
       ctx.moveTo(bolt.points[0].x, bolt.points[0].y);
       for (var i = 1; i < bolt.points.length; i++) {
-        var p = bolt.points[i];
-        var prev = bolt.points[i - 1];
-        var mx = (prev.x + p.x) * 0.5 + (Math.random() - 0.5) * 8;
-        var my = (prev.y + p.y) * 0.5 + (Math.random() - 0.5) * 8;
-        ctx.lineTo(mx, my);
-        ctx.lineTo(p.x, p.y);
+        ctx.lineTo(bolt.points[i].x, bolt.points[i].y);
       }
       ctx.stroke();
       ctx.restore();
     }
 
     function draw(now) {
-      resize();
+      raf = requestAnimationFrame(draw);
+      if (!shouldRun()) return;
+
+      frame += 1;
+      if (frame % 2 !== 0) return;
+
+      if (sizeDirty) {
+        resize();
+        sizeDirty = false;
+      }
+
       var w = canvas.clientWidth;
       var h = canvas.clientHeight;
-
       ctx.clearRect(0, 0, w, h);
 
-      if (!state.reducedMotion && now - lastFlash > 400 + Math.random() * 900) {
+      if (now - lastFlash > 700 + Math.random() * 1200) {
         randomBolt();
-        if (Math.random() > 0.5) randomBolt();
         lastFlash = now;
       }
 
       bolts = bolts.filter(function (b) {
-        b.life -= 0.045;
+        b.life -= 0.06;
         if (b.life > 0) drawBolt(b);
         return b.life > 0;
       });
-
-      sparks.forEach(function (sp) {
-        sp.x += sp.vx;
-        sp.y += sp.vy;
-        sp.life -= 0.03;
-        if (sp.life <= 0) return;
-        ctx.fillStyle = sp.color;
-        ctx.globalAlpha = sp.life;
-        ctx.shadowColor = sp.color;
-        ctx.shadowBlur = 8;
-        ctx.beginPath();
-        ctx.arc(sp.x, sp.y, 1.5, 0, Math.PI * 2);
-        ctx.fill();
-      });
-      sparks = sparks.filter(function (s) { return s.life > 0; });
-
-      ctx.globalAlpha = 1;
-      raf = requestAnimationFrame(draw);
     }
 
-    window.addEventListener('resize', resize);
+    function onResize() {
+      sizeDirty = true;
+    }
+
+    window.addEventListener('resize', onResize, { passive: true });
+    window.addEventListener('hls:hero-visibility', onResize);
     document.addEventListener('ai-core:navigate', function () {
-      if (!state.reducedMotion) randomBolt();
+      if (shouldRun()) randomBolt();
     });
+
     raf = requestAnimationFrame(draw);
 
     lightningDispose = function () {
       cancelAnimationFrame(raf);
-      window.removeEventListener('resize', resize);
+      window.removeEventListener('resize', onResize);
+      window.removeEventListener('hls:hero-visibility', onResize);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
     };
   }

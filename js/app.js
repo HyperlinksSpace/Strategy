@@ -118,7 +118,7 @@
       toggle.setAttribute('aria-expanded', open);
     });
 
-    panel.querySelectorAll('.theme-btn, .lang-btn, .panel-promo-link, .nav-panel-link').forEach(function (el) {
+    panel.querySelectorAll('.theme-btn, .lang-btn, .panel-promo-link').forEach(function (el) {
       el.addEventListener('click', closeHeaderPanel);
     });
 
