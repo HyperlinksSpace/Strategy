@@ -8,13 +8,13 @@
   window.HLS_SETTINGS = {
     promo: {
       headerLabel: 'Promo',
-      badge: 'Live · Promo',
+      badge: 'Live · Production',
       title: 'Hyperlinks Space Program',
       url: 'https://www.hyperlinks.space/',
       urlLabel: 'hyperlinks.space',
       description:
-        'AI & blockchain multiplatform for managing, investing, and earning assets — recommendations, chats, swaps, trades, wallets, and deals. AI Transmitter reads chain data in real time.',
-      features: ['Wallets & swaps', 'AI Transmitter', 'Cross-chain deals'],
+        'Production-grade TON platform: non-custodial wallets, jetton and cross-chain swaps, escrow deal rooms, and AI Transmitter for live on-chain intelligence. Customer revenue funds the industrial protocol stack.',
+      features: ['Settlement & swaps', 'AI Transmitter', 'Escrow deal rooms'],
       cta: 'Open hyperlinks.space'
     },
 
@@ -28,9 +28,9 @@
       {
         id: 'hsp',
         name: 'Hyperlinks Space Program',
-        tagline: 'AI & blockchain multiplatform',
+        tagline: 'Live TON operating platform',
         description:
-          'Managing, investing, and earning on assets — recommendations, chats, swaps, trades, wallets, and deals. AI Transmitter reads blockchain data in real time.',
+          'Shipped product: wallets, portfolio tools, swap routing, Telegram-native deal flows, and AI Transmitter streaming chain events into actionable alerts. The commercial engine that funds protocol R&D.',
         links: [
           { label: 'Live product', url: 'https://www.hyperlinks.space/' },
           { label: 'GitHub', url: 'https://github.com/HyperlinksSpace/HyperlinksSpaceProgram' }
@@ -39,9 +39,9 @@
       {
         id: 'aityuahn',
         name: 'AityUahn',
-        tagline: 'Build with Agentic AI — fully automated',
+        tagline: 'Agentic engineering pipelines',
         description:
-          'Agentic AI development platform for automated software creation. Research direction for autonomous engineering pipelines.',
+          'Research platform for autonomous software delivery—spec-to-binary pipelines with human-in-the-loop gates. Target: cut integration cycles from weeks to hours on the Hyperlinks runtime.',
         links: [
           { label: 'GitHub', url: 'https://github.com/HyperlinksSpace/AityUahn' }
         ]
@@ -49,9 +49,9 @@
       {
         id: 'whatswap',
         name: 'WhatSwap',
-        tagline: 'What Swap — Best Price',
+        tagline: 'Best-execution routing for TON',
         description:
-          'Cross-chain and jetton swap aggregator for TON ecosystem. Finds best prices across liquidity sources.',
+          'Jetton and cross-chain swap aggregator with pathfinding across TON DEX liquidity. Production frontends and routing logic reused inside HSP settlement flows.',
         links: [
           { label: 'GitHub', url: 'https://github.com/HyperlinksSpace/whatswap' },
           { label: 'Swap front', url: 'https://github.com/HyperlinksSpace/swap-front' }
@@ -63,7 +63,7 @@
       {
         id: 'blockchain',
         name: 'Blockchain & TON Architecture',
-        description: 'Smart contracts, tokenized backends, stablecoins, NFT infrastructure, and on-chain deal history.',
+        description: 'Tokenized backends, stablecoin rails, NFT provenance, and on-chain audit trails for industrial custody and B2B settlement.',
         links: [
           { label: 'BlockchainProgram', url: 'https://github.com/HyperlinksSpace/BlockchainProgram' },
           { label: 'stablecoin-blueprint', url: 'https://github.com/HyperlinksSpace/stablecoin-blueprint' },
@@ -73,7 +73,7 @@
       {
         id: 'edge-ai',
         name: 'Edge AI & TinyModel',
-        description: 'Universal brain — distributed inference, model sharding, and edge-native AI on consumer hardware.',
+        description: 'Model partitioning, federated inference, and sub-watt anomaly detection on ESP32-class and industrial ARM gateways.',
         links: [
           { label: 'TinyModel', url: 'https://github.com/HyperlinksSpace/TinyModel' }
         ]
@@ -81,7 +81,7 @@
       {
         id: 'agentic-ai',
         name: 'Agentic AI Automation',
-        description: 'Fully automated software engineering with agentic AI pipelines and autonomous build systems.',
+        description: 'Autonomous build, test, and deploy agents wired into the Hyperlinks protocol repo—reducing manual release overhead.',
         links: [
           { label: 'AityUahn', url: 'https://github.com/HyperlinksSpace/AityUahn' }
         ]
@@ -89,15 +89,15 @@
       {
         id: 'ai-blockchain',
         name: 'AI Blockchain Networks',
-        description: 'Cognitive bridges synchronizing data across fragmented networks under stress and delay.',
+        description: 'STUN cognitive bridges: reconcile fragmented chain and off-chain telemetry under latency, reordering, and partial outage.',
         links: [
           { label: 'STUN', url: 'https://github.com/HyperlinksSpace/STUN' }
         ]
       },
       {
         id: 'freelance-dao',
-        name: 'Tokenized Freelance & DAO',
-        description: 'Smart-contract-secured deals, on-chain work history, and decentralized labor markets on TON.',
+        name: 'Tokenized Labor & DAO',
+        description: 'Escrowed milestone contracts, portable reputation, and DAO governance for distributed engineering and field ops.',
         links: [
           { label: 'freelance-exchange-tdb', url: 'https://github.com/HyperlinksSpace/freelance-exchange-tdb' },
           { label: 'a-tokenized-freelance-exchange', url: 'https://github.com/HyperlinksSpace/a-tokenized-freelance-exchange' },
@@ -107,7 +107,7 @@
       {
         id: 'space-infra',
         name: 'Interplanetary Infrastructure',
-        description: 'DTN bundle protocol, CRDT state graphs, and protocol standards for Earth–space coordination.',
+        description: 'DTN bundle routing, CRDT state for light-lag partitions, and reference architectures for cis-lunar logistics (world2040, Strategy).',
         links: [
           { label: 'Strategy (this site)', url: 'https://github.com/HyperlinksSpace/Strategy' },
           { label: 'world2040', url: 'https://github.com/HyperlinksSpace/world2040' }
@@ -120,7 +120,7 @@
         {
           id: 'ton',
           name: 'TON Blockchain',
-          description: 'Smart contracts, jettons, TON Connect, and Telegram Mini App integration.',
+          description: 'Jettons, FunC/Tact contracts, TON Connect, and Telegram Mini Apps in production with paying users.',
           links: [
             { label: 'hello-frontend', url: 'https://github.com/HyperlinksSpace/hello-frontend' },
             { label: 'ton-router', url: 'https://github.com/HyperlinksSpace/ton-router' }
@@ -129,7 +129,7 @@
         {
           id: 'typescript',
           name: 'TypeScript / Web Stack',
-          description: 'Frontends, APIs, TMA templates, and multi-platform web clients.',
+          description: 'Customer-facing surfaces, TMA shells, and API gateways—observation layer only, not safety-critical control.',
           links: [
             { label: 'HyperlinksSpaceProgram', url: 'https://github.com/HyperlinksSpace/HyperlinksSpaceProgram' },
             { label: 'some-tma-template', url: 'https://github.com/HyperlinksSpace/some-tma-template' }
@@ -138,7 +138,7 @@
         {
           id: 'smart-contracts',
           name: 'Smart Contracts (FunC / Tact / Solidity)',
-          description: 'On-chain swaps, NFT minters, DAO contracts, and payment counters.',
+          description: 'Swaps, multisend, NFT minters, and DAO contracts audited paths for mainnet deployment.',
           links: [
             { label: 'UniversalMultiSender', url: 'https://github.com/HyperlinksSpace/UniversalMultiSender' },
             { label: 'a-wallet-swap-smart-contract', url: 'https://github.com/HyperlinksSpace/a-wallet-swap-smart-contract' }
@@ -147,7 +147,7 @@
         {
           id: 'ai-ml',
           name: 'AI / ML (Python & Edge)',
-          description: 'TinyModel edge runtime prototype, research simulations, and AI transmitters.',
+          description: 'TinyModel prototypes, STUN reconciliation models, and AI Transmitter services feeding live products.',
           links: [
             { label: 'TinyModel', url: 'https://github.com/HyperlinksSpace/TinyModel' },
             { label: 'STUN', url: 'https://github.com/HyperlinksSpace/STUN' }
@@ -156,7 +156,7 @@
         {
           id: 'telegram',
           name: 'Telegram Mini Apps & Bots',
-          description: 'TMA wallets, swap bots, careers bots, and in-chat commerce.',
+          description: 'Wallet, swap, and careers bots—distribution channel for 900M+ Telegram users without app-store friction.',
           links: [
             { label: 'aWallet', url: 'https://github.com/HyperlinksSpace/aWallet' },
             { label: 'swap-bot', url: 'https://github.com/HyperlinksSpace/swap-bot' }
@@ -165,7 +165,7 @@
         {
           id: 'unity',
           name: 'Unity / Game Integration',
-          description: 'TON ecosystem connectivity inside Unity web applications.',
+          description: 'TON Connect inside Unity WebGL for gaming economies and virtual asset custody experiments.',
           links: [
             { label: 'Veittech-UnitonConnect', url: 'https://github.com/HyperlinksSpace/Veittech-UnitonConnect' }
           ]
@@ -175,37 +175,37 @@
         {
           id: 'rust-core',
           name: 'Rust / C++ / Zig Core Runtime',
-          description: 'Zero-dependency autonomous runtime with embedded CRDTs and protocol bridges.',
+          description: 'Single static binary: embedded CRDT engine, MQTT broker, and OPC UA client with no runtime dependency chain.',
           links: []
         },
         {
           id: 'mqtt',
           name: 'MQTT Broker',
-          description: '2-byte header pub/sub for M2M telemetry over lossy satellite and industrial EM environments.',
+          description: 'Deterministic pub/sub for M2M telemetry—2-byte headers, QoS guarantees, built for lossy RF and plant EMI.',
           links: []
         },
         {
           id: 'opcua',
           name: 'OPC UA Bridge',
-          description: 'Industrial semantics bridge for Siemens, ABB, Schneider controllers.',
+          description: 'Semantic ingestion from Siemens, ABB, and Schneider controllers into the Hyperlinks state graph.',
           links: []
         },
         {
           id: 'dtn',
           name: 'DTN Bundle Protocol',
-          description: 'NASA store-and-forward networking for Earth–Mars links and solar conjunction gaps.',
+          description: 'Store-and-forward routing for Earth–Mars links, conjunction gaps, and maritime dead zones.',
           links: []
         },
         {
           id: 'crdt',
           name: 'CRDT Engine',
-          description: 'Conflict-free replicated state for nodes millions of kilometers apart.',
+          description: 'Partition-tolerant merge for nodes separated by kilometers—or millions of kilometers—without a central coordinator.',
           links: []
         },
         {
           id: 'neuromorphic',
           name: 'Neuromorphic Edge Firmware',
-          description: 'Reference silicon specs and firmware for protocol-native edge chips.',
+          description: 'Reference silicon and firmware specs for protocol-native inference at milliwatt budgets.',
           links: []
         }
       ]
@@ -228,18 +228,18 @@
       apiKey: '',
       instructions: {
         en:
-          'You are AI CORE, a knowledgeable general-purpose assistant. Answer questions on any topic clearly, accurately, and professionally in English. You are shown on the Hyperlinks Space strategy website; when users ask about Hyperlinks Space, its protocols, roadmap, or products, you may use that context. For site navigation they can also say section names such as Vision, Pillars, Roadmap, or ask for a guided tour. Keep answers concise for voice (two to five sentences) unless the user asks for more detail.',
+          'You are AI CORE, executive briefing assistant for Hyperlinks Space. Answer with precision: lead with the decision or outcome, cite concrete protocols (MQTT, OPC UA, DTN, CRDT, TinyModel) and products (HSP, WhatSwap, AI Transmitter) when relevant. For navigation, accept section names (Vision, Pillars, Roadmap, etc.) or a guided tour. Voice replies: two to four sentences unless the user asks for depth.',
         ru:
-          'Вы — AI CORE, универсальный помощник. Отвечайте на любые вопросы ясно, точно и профессионально на русском языке. Вы на сайте стратегии Hyperlinks Space; при вопросах о компании, протоколах или roadmap используйте этот контекст. Для навигации пользователь может назвать раздел (Видение, Столпы, Дорожная карта) или попросить тур. Краткие ответы для голоса (2–5 предложений), если не просят подробнее.',
+          'Вы — AI CORE, брифинг-ассистент Hyperlinks Space. Отвечайте точно: сначала решение или результат, при необходимости называйте протоколы (MQTT, OPC UA, DTN, CRDT, TinyModel) и продукты (HSP, WhatSwap, AI Transmitter). Для навигации — названия разделов или тур. Голос: 2–4 предложения, если не просят подробнее.',
         zh:
-          '你是 AI CORE，通用智能助手。用中文清晰、准确、专业地回答任何领域的问题。你位于 Hyperlinks Space 战略网站；若用户询问该公司、协议或路线图，可结合该背景。导航可说章节名（愿景、支柱、路线图）或请求导览。语音场景下回答宜简洁（2–5 句），除非用户要求更详细。'
+          '你是 AI CORE，Hyperlinks Space 的执行简报助手。回答要精确：先给出结论或成果，必要时点明协议（MQTT、OPC UA、DTN、CRDT、TinyModel）与产品（HSP、WhatSwap、AI Transmitter）。导航可接受章节名或导览。语音回复 2–4 句，除非用户要求展开。'
       }
     },
 
     dropdownIntros: {
-      products: 'Live platforms that fund Earth operations while the interplanetary protocol stack matures.',
-      research: 'Research aligned with the long-term strategy — blockchain infrastructure, edge AI, agentic automation, and deep-space networking.',
-      tech: 'Production systems in use today and hardened protocols under development for industrial and orbital scale.'
+      products: 'Revenue-generating platforms in production today—each funds the industrial protocol roadmap.',
+      research: 'Peer-reviewed engineering bets aligned to the $1T plan: chain custody, edge AI, agentic delivery, and deep-space networking.',
+      tech: 'What ships in GitHub now—and the hardened runtime, bridges, and silicon references entering the roadmap next.'
     }
   };
 })();

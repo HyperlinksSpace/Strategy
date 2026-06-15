@@ -328,18 +328,35 @@
       if (mobileOpenId) collapseMobileAccordion();
     });
 
-    window.addEventListener('resize', function () {
-      if (isMobile()) {
-        closeDropdowns();
-      } else {
-        collapseMobileAccordion();
-        if (openId) positionDropdown(openId);
-      }
-    }, { passive: true });
+    if (window.HLS && window.HLS.onResize) {
+      window.HLS.onResize(function () {
+        if (isMobile()) {
+          closeDropdowns();
+        } else {
+          collapseMobileAccordion();
+          if (openId) positionDropdown(openId);
+        }
+      });
+    } else {
+      window.addEventListener('resize', function () {
+        if (isMobile()) {
+          closeDropdowns();
+        } else {
+          collapseMobileAccordion();
+          if (openId) positionDropdown(openId);
+        }
+      }, { passive: true });
+    }
 
-    window.addEventListener('scroll', function () {
-      if (openId && !isMobile()) positionDropdown(openId);
-    }, { passive: true });
+    var reposition = window.HLS && window.HLS.throttleRaf
+      ? window.HLS.throttleRaf(function () {
+        if (openId && !isMobile()) positionDropdown(openId);
+      })
+      : function () {
+        if (openId && !isMobile()) positionDropdown(openId);
+      };
+
+    window.addEventListener('scroll', reposition, { passive: true });
 
     if (mobileMq.addEventListener) {
       mobileMq.addEventListener('change', function () {

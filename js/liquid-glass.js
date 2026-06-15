@@ -2,12 +2,12 @@
   'use strict';
 
   var hosts = [];
-  var raf = 0;
-  var shimmer = 0;
   var reducedMotion = false;
+  var pointerBound = false;
+  var pendingPointer = null;
 
   function getQuality() {
-    return window.HLS && window.HLS.getQuality ? window.HLS.getQuality() : { lite: false };
+    return window.HLS && window.HLS.getQuality ? window.HLS.getQuality() : { lite: true };
   }
 
   function ensureLayers(el) {
@@ -21,6 +21,7 @@
     var rim = document.createElement('div');
     rim.className = 'liquid-glass-rim';
     rim.setAttribute('aria-hidden', 'true');
+    el.classList.add('liquid-glass-host');
     el.insertBefore(rim, el.firstChild);
     el.insertBefore(sheen, el.firstChild);
     el.insertBefore(lens, el.firstChild);
@@ -34,30 +35,48 @@
   }
 
   function initAllHosts() {
-    document.querySelectorAll('.liquid-glass-host, .liquid-glass-pill, .nav-dropdown-panel.liquid-glass-pillow').forEach(initHost);
+    document.querySelectorAll('.nav-dropdown-panel.liquid-glass-pillow, .liquid-glass-pill').forEach(initHost);
+    syncPointerBinding();
   }
 
-  function setPointer(el, clientX, clientY) {
-    var rect = el.getBoundingClientRect();
-    if (clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) {
-      return;
-    }
-    var x = ((clientX - rect.left) / rect.width) * 100;
-    var y = ((clientY - rect.top) / rect.height) * 100;
-    el.style.setProperty('--lg-x', x.toFixed(1) + '%');
-    el.style.setProperty('--lg-y', y.toFixed(1) + '%');
-    el.style.setProperty('--lg-intensity', '1');
-  }
-
-  function onPointerMove(e) {
-    var x = e.clientX;
-    var y = e.clientY;
+  function applyPointer(clientX, clientY) {
     hosts.forEach(function (host) {
-      setPointer(host, x, y);
+      if (!host.offsetParent && !host.classList.contains('is-open')) return;
+      var rect = host.getBoundingClientRect();
+      if (clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) {
+        return;
+      }
+      var x = ((clientX - rect.left) / rect.width) * 100;
+      var y = ((clientY - rect.top) / rect.height) * 100;
+      host.style.setProperty('--lg-x', x.toFixed(1) + '%');
+      host.style.setProperty('--lg-y', y.toFixed(1) + '%');
+      host.style.setProperty('--lg-intensity', '1');
     });
   }
 
+  function flushPointer() {
+    if (!pendingPointer) return;
+    applyPointer(pendingPointer.x, pendingPointer.y);
+    pendingPointer = null;
+  }
+
+  function onPointerMove(e) {
+    pendingPointer = { x: e.clientX, y: e.clientY };
+    if (window.HLS && window.HLS.throttleRaf) {
+      if (!onPointerMove._scheduled) {
+        onPointerMove._scheduled = true;
+        requestAnimationFrame(function () {
+          onPointerMove._scheduled = false;
+          flushPointer();
+        });
+      }
+    } else {
+      flushPointer();
+    }
+  }
+
   function onPointerLeave() {
+    pendingPointer = null;
     hosts.forEach(function (host) {
       host.style.setProperty('--lg-intensity', '0.35');
       host.style.setProperty('--lg-x', '50%');
@@ -65,25 +84,13 @@
     });
   }
 
-  function tick() {
-    if (!reducedMotion && !getQuality().lite) {
-      shimmer += 0.0035;
-      hosts.forEach(function (host) {
-        host.style.setProperty('--lg-shimmer', String(shimmer));
-      });
+  function syncPointerBinding() {
+    var enable = hosts.length && !getQuality().lite && !reducedMotion;
+    if (enable && !pointerBound) {
+      window.addEventListener('pointermove', onPointerMove, { passive: true });
+      document.documentElement.addEventListener('pointerleave', onPointerLeave);
+      pointerBound = true;
     }
-    raf = requestAnimationFrame(tick);
-  }
-
-  function startLoop() {
-    if (raf || reducedMotion) return;
-    raf = requestAnimationFrame(tick);
-  }
-
-  function stopLoop() {
-    if (!raf) return;
-    cancelAnimationFrame(raf);
-    raf = 0;
   }
 
   function initStripCenter() {
@@ -99,7 +106,11 @@
     }
 
     sync();
-    window.addEventListener('resize', sync, { passive: true });
+    if (window.HLS && window.HLS.onResize) {
+      window.HLS.onResize(sync);
+    } else {
+      window.addEventListener('resize', sync, { passive: true });
+    }
     window.addEventListener('hls:locale-change', function () {
       setTimeout(sync, 80);
     });
@@ -112,15 +123,10 @@
     initAllHosts();
     initStripCenter();
 
-    window.addEventListener('pointermove', onPointerMove, { passive: true });
-    document.documentElement.addEventListener('pointerleave', onPointerLeave);
-
     window.addEventListener('hls:theme-applied', initAllHosts);
     window.addEventListener('hls:locale-change', function () {
       setTimeout(initAllHosts, 50);
     });
-
-    if (!reducedMotion) startLoop();
 
     window.HLS = window.HLS || {};
     window.HLS.refreshLiquidGlass = initAllHosts;

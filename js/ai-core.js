@@ -345,7 +345,10 @@
     ['protocol bootstrap', 'протокольный бутстрап'],
     ['lean bootstrap', 'лин бутстрап'],
     ['Task-Swapping Protocol', 'протокол Task-Swapping'],
-    ['Asset Custody Graph', 'граф Asset Custody']
+    ['Asset Custody Graph', 'граф Asset Custody'],
+    ['чужое железо', 'железо'],
+    ['third-party hardware', 'hardware'],
+    ['someone else\'s hardware', 'hardware']
   ];
 
   var RU_SPEECH_WORDS = {
@@ -528,7 +531,8 @@
         .replace(/\$2\b/g, 'два доллара')
         .replace(/→/g, ', затем ')
         .replace(/·/g, ', ')
-        .replace(/&/g, ' и ');
+        .replace(/&/g, ' и ')
+        .replace(/чужое железо/gi, 'железо');
 
       out = russianizeLatinTokens(out);
     } else if (lang === 'zh') {
@@ -546,6 +550,8 @@
         .replace(/·/g, '、');
     } else {
       out = out
+        .replace(/\bthird-party hardware\b/gi, 'hardware')
+        .replace(/\bsomeone else['']s hardware\b/gi, 'hardware')
         .replace(/\bAI\s*CORE\b/gi, 'Artificial Intelligence Core')
         .replace(/\bESP32s?\b/gi, 'E S P thirty two')
         .replace(/\bMQTT\b/g, 'M Q T T')
