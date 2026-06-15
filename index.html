@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="system">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Hyperlinks Space — Strategic Master Plan for a $1T+ interplanetary infrastructure layer">
+  <title>Hyperlinks Space — $1T Strategy</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/main.css">
+  <script>
+    (function () {
+      var t = localStorage.getItem('hls-theme') || 'system';
+      var l = localStorage.getItem('hls-lang') || 'en';
+      document.documentElement.setAttribute('data-theme', t);
+      document.documentElement.lang = l;
+    })();
+  </script>
+</head>
+<body>
+  <div class="stars" aria-hidden="true"></div>
+  <div class="grid-overlay" aria-hidden="true"></div>
+
+  <header class="site-header">
+    <a href="#hero" class="logo">
+      <svg class="logo-mark" viewBox="0 0 40 40" aria-hidden="true">
+        <circle cx="20" cy="20" r="18" fill="none" stroke="currentColor" stroke-width="1.5"/>
+        <path d="M8 20h24M20 8l12 12-12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      <span>Hyperlinks Space</span>
+    </a>
+    <nav class="nav-main" aria-label="Main">
+      <a href="#vision" data-i18n="nav.vision">Vision</a>
+      <a href="#pillars" data-i18n="nav.pillars">Pillars</a>
+      <a href="#roadmap" data-i18n="nav.roadmap">Roadmap</a>
+      <a href="#architecture" data-i18n="nav.architecture">Architecture</a>
+      <a href="#revenue" data-i18n="nav.revenue">Revenue</a>
+      <a href="#north-star" data-i18n="nav.northStar">North Star</a>
+    </nav>
+    <div class="controls">
+      <div class="lang-switch" role="group" aria-label="Language">
+        <button type="button" data-lang="en" class="lang-btn active" title="English">EN</button>
+        <button type="button" data-lang="ru" class="lang-btn" title="Русский">RU</button>
+        <button type="button" data-lang="zh" class="lang-btn" title="中文">中文</button>
+      </div>
+      <div class="theme-switch" role="group" aria-label="Theme">
+        <button type="button" data-theme="light" class="theme-btn" title="Light">
+          <svg viewBox="0 0 24 24" width="18" height="18"><circle cx="12" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+        <button type="button" data-theme="dark" class="theme-btn" title="Dark">
+          <svg viewBox="0 0 24 24" width="18" height="18"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+        </button>
+        <button type="button" data-theme="system" class="theme-btn active" title="System">
+          <svg viewBox="0 0 24 24" width="18" height="18"><rect x="2" y="3" width="20" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 21h8M12 17v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+    </div>
+    <button class="menu-toggle" aria-label="Menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </header>
+
+  <main>
+    <section id="hero" class="hero">
+      <div class="hero-content">
+        <p class="eyebrow" data-i18n="hero.eyebrow">Strategic Master Plan · 2026–2040</p>
+        <h1 data-i18n="hero.title">The Interplanetary Nervous System</h1>
+        <p class="hero-lead" data-i18n="hero.lead">From $0 at 30 to a $1T+ infrastructure monopoly — orchestrating Earth's industry today and humanity's expansion beyond.</p>
+        <div class="hero-stats">
+          <div class="stat">
+            <span class="stat-value">$1T+</span>
+            <span class="stat-label" data-i18n="hero.stat1">Target valuation</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value">93</span>
+            <span class="stat-label" data-i18n="hero.stat2">Open repositories</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value">4</span>
+            <span class="stat-label" data-i18n="hero.stat3">Execution phases</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value">5</span>
+            <span class="stat-label" data-i18n="hero.stat4">Protocol pillars</span>
+          </div>
+        </div>
+        <div class="hero-actions">
+          <a href="#roadmap" class="btn btn-primary" data-i18n="hero.cta1">Explore Roadmap</a>
+          <a href="https://github.com/HyperlinksSpace" class="btn btn-ghost" target="_blank" rel="noopener" data-i18n="hero.cta2">GitHub Organization</a>
+        </div>
+      </div>
+      <div class="hero-visual">
+        <svg class="orbit-diagram" viewBox="0 0 500 500" aria-labelledby="orbit-title">
+          <title id="orbit-title">Hyperlinks Space orbital architecture</title>
+          <defs>
+            <linearGradient id="glow" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="var(--accent-cyan)"/>
+              <stop offset="100%" stop-color="var(--accent-violet)"/>
+            </linearGradient>
+            <filter id="blur"><feGaussianBlur stdDeviation="3"/></filter>
+          </defs>
+          <circle cx="250" cy="250" r="200" fill="none" stroke="url(#glow)" stroke-width="0.5" opacity="0.3"/>
+          <circle cx="250" cy="250" r="150" fill="none" stroke="url(#glow)" stroke-width="0.5" opacity="0.4" stroke-dasharray="4 8"/>
+          <circle cx="250" cy="250" r="100" fill="none" stroke="url(#glow)" stroke-width="0.5" opacity="0.5"/>
+          <circle cx="250" cy="250" r="40" fill="url(#glow)" opacity="0.15"/>
+          <circle cx="250" cy="250" r="20" fill="url(#glow)" filter="url(#blur)"/>
+          <text x="250" y="255" text-anchor="middle" fill="var(--text-primary)" font-size="11" font-family="Orbitron,sans-serif">CORE</text>
+          <g class="orbit-nodes">
+            <circle cx="250" cy="50" r="8" fill="var(--accent-cyan)"><title>LEO</title></circle>
+            <circle cx="450" cy="250" r="8" fill="var(--accent-violet)"><title>Moon</title></circle>
+            <circle cx="250" cy="450" r="8" fill="var(--accent-amber)"><title>Earth Edge</title></circle>
+            <circle cx="50" cy="250" r="8" fill="var(--accent-green)"><title>Mars</title></circle>
+          </g>
+          <path d="M250 50 Q350 150 450 250" fill="none" stroke="var(--accent-cyan)" stroke-width="1" opacity="0.5"/>
+          <path d="M450 250 Q350 350 250 450" fill="none" stroke="var(--accent-violet)" stroke-width="1" opacity="0.5"/>
+          <path d="M250 450 Q150 350 50 250" fill="none" stroke="var(--accent-amber)" stroke-width="1" opacity="0.5"/>
+          <path d="M50 250 Q150 150 250 50" fill="none" stroke="var(--accent-green)" stroke-width="1" opacity="0.5"/>
+        </svg>
+      </div>
+    </section>
+
+    <section id="vision" class="section">
+      <div class="section-header">
+        <span class="section-tag" data-i18n="vision.tag">01 · Executive Summary</span>
+        <h2 data-i18n="vision.title">The Paradigm Shift</h2>
+        <p class="section-desc" data-i18n="vision.desc">Hyperlinks Space transitions from web-centric abstractions to a hardened system-software infrastructure layer — the non-negotiable protocol standard that binds third-party hardware across Earth and space.</p>
+      </div>
+      <div class="card-grid three">
+        <article class="card card-glow">
+          <div class="card-icon">⚡</div>
+          <h3 data-i18n="vision.c1.title">Bootstrap Reality</h3>
+          <p data-i18n="vision.c1.text">Zero capital at 30 is a constraint, not a verdict. Own the protocol layer — not factories. Turn $2 ESP32s and legacy industrial controllers into an unkillable mesh.</p>
+        </article>
+        <article class="card card-glow">
+          <div class="card-icon">🛡</div>
+          <h3 data-i18n="vision.c2.title">Anti-NVIDIA Vector</h3>
+          <p data-i18n="vision.c2.text">Bypass centralized, energy-hungry data centers. Build a hyper-decentralized edge-native compute network on consumer and industrial hardware the world already owns.</p>
+        </article>
+        <article class="card card-glow">
+          <div class="card-icon">🌐</div>
+          <h3 data-i18n="vision.c3.title">Virtual Dispatcher</h3>
+          <p data-i18n="vision.c3.text">Become the software standard factories cannot operate without. Orchestrate heterogeneous hardware into one coherent, autonomous super-network.</p>
+        </article>
+      </div>
+
+      <div class="gap-analysis">
+        <h3 data-i18n="vision.gap.title">Current State vs. $1T Criteria</h3>
+        <div class="comparison-table-wrap">
+          <table class="comparison-table">
+            <thead>
+              <tr>
+                <th data-i18n="vision.gap.col1">Dimension</th>
+                <th data-i18n="vision.gap.col2">Today (GitHub)</th>
+                <th data-i18n="vision.gap.col3">Target State</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td data-i18n="vision.gap.r1d">Platform Layer</td>
+                <td class="status-warn" data-i18n="vision.gap.r1t">TypeScript, TMA, Web UI</td>
+                <td class="status-ok" data-i18n="vision.gap.r1g">Rust/Zig runtime, MQTT/OPC UA/DTN</td>
+              </tr>
+              <tr>
+                <td data-i18n="vision.gap.r2d">Deep Tech</td>
+                <td class="status-warn" data-i18n="vision.gap.r2t">TinyModel Python prototype</td>
+                <td class="status-ok" data-i18n="vision.gap.r2g">Edge-native firmware, neuromorphic specs</td>
+              </tr>
+              <tr>
+                <td data-i18n="vision.gap.r3d">Lock-In</td>
+                <td class="status-warn" data-i18n="vision.gap.r3t">Blockchain smart contracts</td>
+                <td class="status-ok" data-i18n="vision.gap.r3g">CRDT state graphs, physical asset custody</td>
+              </tr>
+              <tr>
+                <td data-i18n="vision.gap.r4d">Revenue Anchor</td>
+                <td class="status-warn" data-i18n="vision.gap.r4t">Crypto swaps, wallets</td>
+                <td class="status-ok" data-i18n="vision.gap.r4g">Industry 4.0 SaaS, freight, edge compute rent</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="pillars" class="section section-alt">
+      <div class="section-header">
+        <span class="section-tag" data-i18n="pillars.tag">02 · Architecture Pillars</span>
+        <h2 data-i18n="pillars.title">Five Protocols of a Trillion-Dollar Stack</h2>
+        <p class="section-desc" data-i18n="pillars.desc">Every component natively integrates these foundations — from Siberian mining rigs to lunar ISRU processors.</p>
+      </div>
+      <div class="pillars-grid">
+        <article class="pillar-card" data-pillar="mqtt">
+          <div class="pillar-header">
+            <span class="pillar-abbr">MQTT</span>
+            <h3 data-i18n="pillars.mqtt.title">Message Queuing Telemetry</h3>
+          </div>
+          <p data-i18n="pillars.mqtt.text">2-byte header pub/sub protocol. Resilient M2M telemetry over lossy satellite and industrial EM environments with guaranteed QoS delivery.</p>
+          <ul class="pillar-use">
+            <li data-i18n="pillars.mqtt.u1">Drone fleet telemetry</li>
+            <li data-i18n="pillars.mqtt.u2">Off-grid sensor arrays</li>
+            <li data-i18n="pillars.mqtt.u3">Orbital relay handoffs</li>
+          </ul>
+        </article>
+        <article class="pillar-card" data-pillar="opcua">
+          <div class="pillar-header">
+            <span class="pillar-abbr">OPC UA</span>
+            <h3 data-i18n="pillars.opcua.title">Industrial Semantics</h3>
+          </div>
+          <p data-i18n="pillars.opcua.text">Global automation standard for semantic data modeling. Instant interpretation of state, variables, and errors from Siemens, ABB, Schneider — certified and encrypted.</p>
+          <ul class="pillar-use">
+            <li data-i18n="pillars.opcua.u1">Factory floor integration</li>
+            <li data-i18n="pillars.opcua.u2">Legacy machinery bridges</li>
+            <li data-i18n="pillars.opcua.u3">Regulated environments</li>
+          </ul>
+        </article>
+        <article class="pillar-card" data-pillar="dtn">
+          <div class="pillar-header">
+            <span class="pillar-abbr">DTN</span>
+            <h3 data-i18n="pillars.dtn.title">Delay-Tolerant Networking</h3>
+          </div>
+          <p data-i18n="pillars.dtn.text">NASA Bundle Protocol with store-and-forward persistence. Survives 4–24 minute light-lag and intermittent connections when TCP/IP dies completely.</p>
+          <ul class="pillar-use">
+            <li data-i18n="pillars.dtn.u1">Earth–Mars links</li>
+            <li data-i18n="pillars.dtn.u2">Deep-space probes</li>
+            <li data-i18n="pillars.dtn.u3">Solar conjunction gaps</li>
+          </ul>
+        </article>
+        <article class="pillar-card" data-pillar="crdt">
+          <div class="pillar-header">
+            <span class="pillar-abbr">CRDT</span>
+            <h3 data-i18n="pillars.crdt.title">Conflict-Free State</h3>
+          </div>
+          <p data-i18n="pillars.crdt.text">Mathematically proven merge semantics. Nodes millions of kilometers apart mutate state concurrently — zero race conditions, zero master dependencies.</p>
+          <ul class="pillar-use">
+            <li data-i18n="pillars.crdt.u1">Autonomous rovers</li>
+            <li data-i18n="pillars.crdt.u2">Distributed ledgers</li>
+            <li data-i18n="pillars.crdt.u3">Offline-first warehouses</li>
+          </ul>
+        </article>
+        <article class="pillar-card pillar-wide" data-pillar="edgeai">
+          <div class="pillar-header">
+            <span class="pillar-abbr">Edge AI</span>
+            <h3 data-i18n="pillars.edgeai.title">TinyModel Distributed Partition</h3>
+          </div>
+          <p data-i18n="pillars.edgeai.text">Fracture heavy AI models into micro-inferences on ESP32s, routers, and smartphones. A mesh supercomputer without NVIDIA's gigawatt bills — users donate compute for free.</p>
+          <ul class="pillar-use inline">
+            <li data-i18n="pillars.edgeai.u1">Model sharding</li>
+            <li data-i18n="pillars.edgeai.u2">Task-swapping protocol</li>
+            <li data-i18n="pillars.edgeai.u3">Neuromorphic firmware</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section id="earth-space" class="section">
+      <div class="section-header">
+        <span class="section-tag" data-i18n="matrix.tag">03 · Dual Market</span>
+        <h2 data-i18n="matrix.title">Earth Pays Today · Space Wins Tomorrow</h2>
+      </div>
+      <div class="matrix-visual">
+        <svg viewBox="0 0 800 320" class="earth-space-diagram" aria-hidden="true">
+          <defs>
+            <linearGradient id="earthGrad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#22d3ee"/>
+              <stop offset="100%" stop-color="#0891b2"/>
+            </linearGradient>
+            <linearGradient id="spaceGrad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#a78bfa"/>
+              <stop offset="100%" stop-color="#7c3aed"/>
+            </linearGradient>
+          </defs>
+          <rect x="20" y="40" width="360" height="240" rx="16" fill="url(#earthGrad)" opacity="0.12" stroke="url(#earthGrad)" stroke-width="1"/>
+          <rect x="420" y="40" width="360" height="240" rx="16" fill="url(#spaceGrad)" opacity="0.12" stroke="url(#spaceGrad)" stroke-width="1"/>
+          <text x="200" y="70" text-anchor="middle" fill="var(--accent-cyan)" font-size="14" font-weight="600" font-family="Orbitron">EARTH</text>
+          <text x="600" y="70" text-anchor="middle" fill="var(--accent-violet)" font-size="14" font-weight="600" font-family="Orbitron">SPACE</text>
+          <path d="M380 160 H420" stroke="var(--text-muted)" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arrow)"/>
+          <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="var(--text-muted)"/></marker></defs>
+        </svg>
+      </div>
+      <div class="matrix-grid">
+        <div class="matrix-col earth">
+          <h3 data-i18n="matrix.earth.title">Immediate Cash Engine</h3>
+          <ul>
+            <li data-i18n="matrix.earth.i1">Deep-sea rigs, autonomous mining, Industry 4.0</li>
+            <li data-i18n="matrix.earth.i2">High bandwidth, EM interference, legacy controllers</li>
+            <li data-i18n="matrix.earth.i3">B2B SaaS licenses, operational efficiency fees</li>
+          </ul>
+        </div>
+        <div class="matrix-bridge">
+          <span data-i18n="matrix.bridge">Same protocol stack · Same CRDT state · Same TinyModel runtime</span>
+        </div>
+        <div class="matrix-col space">
+          <h3 data-i18n="matrix.space.title">Visionary End-Game</h3>
+          <ul>
+            <li data-i18n="matrix.space.i1">Lunar ISRU, Von Neumann probes, life-support nets</li>
+            <li data-i18n="matrix.space.i2">Light-lag, radiation corruption, zero continuous paths</li>
+            <li data-i18n="matrix.space.i3">Sovereign contracts, freight monopolies, resource distribution</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="roadmap" class="section section-alt">
+      <div class="section-header">
+        <span class="section-tag" data-i18n="roadmap.tag">04 · Execution Roadmap</span>
+        <h2 data-i18n="roadmap.title">Four Phases to $1 Trillion</h2>
+        <p class="section-desc" data-i18n="roadmap.desc">Strict prioritization: monetize Earth's deep pockets while architecting for interplanetary constraints from day one.</p>
+      </div>
+      <div class="timeline">
+        <article class="phase" data-phase="1">
+          <div class="phase-marker"><span>1</span></div>
+          <div class="phase-content">
+            <div class="phase-meta">
+              <span class="phase-time" data-i18n="roadmap.p1.time">Months 1–6</span>
+              <span class="phase-focus" data-i18n="roadmap.p1.focus">Earth · $0 Budget</span>
+            </div>
+            <h3 data-i18n="roadmap.p1.title">Zero-Dollar Bootstrapping</h3>
+            <p data-i18n="roadmap.p1.desc">Build a working case study with no capital. Rust/Zig zero-dependency runtime with embedded CRDTs and MQTT/OPC UA bridges. Deploy free to local businesses for operational data.</p>
+            <ul class="phase-actions">
+              <li data-i18n="roadmap.p1.a1">Deprecate web-frontends as critical paths</li>
+              <li data-i18n="roadmap.p1.a2">Console utilities &amp; native binaries only</li>
+              <li data-i18n="roadmap.p1.a3">50-node offline-first pilot (drones, warehouses)</li>
+            </ul>
+          </div>
+        </article>
+        <article class="phase" data-phase="2">
+          <div class="phase-marker"><span>2</span></div>
+          <div class="phase-content">
+            <div class="phase-meta">
+              <span class="phase-time" data-i18n="roadmap.p2.time">Months 6–18</span>
+              <span class="phase-focus" data-i18n="roadmap.p2.focus">Anti-NVIDIA · Edge AI</span>
+            </div>
+            <h3 data-i18n="roadmap.p2.title">Computational Scale &amp; Lock-In</h3>
+            <p data-i18n="roadmap.p2.desc">Optimize TinyModel for edge-native execution. Decentralized model fragmentation turns idle client hardware into a distributed supercomputer. Monetize compute network via Phase 1 enterprise connections.</p>
+            <ul class="phase-actions">
+              <li data-i18n="roadmap.p2.a1">Task-Swapping Protocol — autonomous workload handoff</li>
+              <li data-i18n="roadmap.p2.a2">Inference metering &amp; fleet deployment tooling</li>
+              <li data-i18n="roadmap.p2.a3">First revenue: edge compute rent</li>
+            </ul>
+          </div>
+        </article>
+        <article class="phase" data-phase="3">
+          <div class="phase-marker"><span>3</span></div>
+          <div class="phase-content">
+            <div class="phase-meta">
+              <span class="phase-time" data-i18n="roadmap.p3.time">Years 2–5</span>
+              <span class="phase-focus" data-i18n="roadmap.p3.focus">Global · Standards</span>
+            </div>
+            <h3 data-i18n="roadmap.p3.title">Hardware-Software Synergy</h3>
+            <p data-i18n="roadmap.p3.desc">Transition from pure software to reference physical specifications. License neuromorphic edge chip blueprints. Enforce protocol moat — third-party robotics must use Hyperlinks to join the global mesh.</p>
+            <ul class="phase-actions">
+              <li data-i18n="roadmap.p3.a1">Open connector &amp; power bus specifications</li>
+              <li data-i18n="roadmap.p3.a2">Patent portfolio on protocol-native silicon</li>
+              <li data-i18n="roadmap.p3.a3">Venture-scale industrial partnerships</li>
+            </ul>
+          </div>
+        </article>
+        <article class="phase" data-phase="4">
+          <div class="phase-marker"><span>4</span></div>
+          <div class="phase-content">
+            <div class="phase-meta">
+              <span class="phase-time" data-i18n="roadmap.p4.time">Year 5+</span>
+              <span class="phase-focus" data-i18n="roadmap.p4.focus">Space · DTN Active</span>
+            </div>
+            <h3 data-i18n="roadmap.p4.title">Interplanetary Infrastructure Layer</h3>
+            <p data-i18n="roadmap.p4.desc">Activate dormant DTN Bundle Protocol layers. Deploy to LEO constellations, lunar bases, Martian transport chains. Monopolize the ledger of physical assets across cis-lunar and Martian economic spheres.</p>
+            <ul class="phase-actions">
+              <li data-i18n="roadmap.p4.a1">AI Transmitter orbital testing at scale</li>
+              <li data-i18n="roadmap.p4.a2">HSP node packages — Earth &amp; Moon</li>
+              <li data-i18n="roadmap.p4.a3">Freight, compute &amp; provenance monopoly</li>
+            </ul>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section id="architecture" class="section">
+      <div class="section-header">
+        <span class="section-tag" data-i18n="arch.tag">05 · System Architecture</span>
+        <h2 data-i18n="arch.title">Two-Layer Stack</h2>
+        <p class="section-desc" data-i18n="arch.desc">Critical infrastructure demands hard separation: autonomous core runtime vs. observation UI.</p>
+      </div>
+      <div class="arch-diagram">
+        <svg viewBox="0 0 900 420" class="stack-diagram">
+          <defs>
+            <linearGradient id="coreGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#06b6d4"/>
+              <stop offset="100%" stop-color="#0284c7"/>
+            </linearGradient>
+            <linearGradient id="uiGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#8b5cf6"/>
+              <stop offset="100%" stop-color="#6d28d9"/>
+            </linearGradient>
+          </defs>
+          <!-- UI Layer -->
+          <rect x="50" y="30" width="800" height="100" rx="12" fill="url(#uiGrad)" opacity="0.15" stroke="#8b5cf6" stroke-width="1"/>
+          <text x="450" y="65" text-anchor="middle" fill="#a78bfa" font-size="13" font-weight="600" font-family="Orbitron">HIGH-LEVEL UI</text>
+          <text x="450" y="95" text-anchor="middle" fill="var(--text-secondary)" font-size="11">Web · TMA · Desktop · HSP Landing</text>
+          <text x="450" y="115" text-anchor="middle" fill="var(--text-muted)" font-size="10" data-i18n-svg="arch.uiNote">Observation only — never controls critical paths</text>
+          <!-- Arrow -->
+          <path d="M450 130 v30" stroke="var(--text-muted)" stroke-width="2" marker-end="url(#downArrow)"/>
+          <defs><marker id="downArrow" markerWidth="10" markerHeight="10" refX="5" refY="9" orient="auto"><path d="M0,0 L10,0 L5,9 z" fill="var(--text-muted)"/></marker></defs>
+          <!-- Core Layer -->
+          <rect x="50" y="170" width="800" height="220" rx="12" fill="url(#coreGrad)" opacity="0.12" stroke="#06b6d4" stroke-width="1"/>
+          <text x="450" y="200" text-anchor="middle" fill="#22d3ee" font-size="13" font-weight="600" font-family="Orbitron">LOW-LEVEL CORE (Rust / C++ / Zig)</text>
+          <g font-size="10" fill="var(--text-secondary)">
+            <rect x="80" y="220" width="150" height="50" rx="8" fill="var(--bg-card)" stroke="var(--border)" stroke-width="1"/>
+            <text x="155" y="250" text-anchor="middle">MQTT Broker</text>
+            <rect x="250" y="220" width="150" height="50" rx="8" fill="var(--bg-card)" stroke="var(--border)" stroke-width="1"/>
+            <text x="325" y="250" text-anchor="middle">OPC UA Bridge</text>
+            <rect x="420" y="220" width="150" height="50" rx="8" fill="var(--bg-card)" stroke="var(--border)" stroke-width="1"/>
+            <text x="495" y="250" text-anchor="middle">DTN Bundle</text>
+            <rect x="590" y="220" width="150" height="50" rx="8" fill="var(--bg-card)" stroke="var(--border)" stroke-width="1"/>
+            <text x="665" y="250" text-anchor="middle">CRDT Engine</text>
+            <rect x="170" y="290" width="200" height="50" rx="8" fill="var(--bg-card)" stroke="var(--border)" stroke-width="1"/>
+            <text x="270" y="320" text-anchor="middle">TinyModel Edge Runtime</text>
+            <rect x="390" y="290" width="200" height="50" rx="8" fill="var(--bg-card)" stroke="var(--border)" stroke-width="1"/>
+            <text x="490" y="320" text-anchor="middle">Task-Swap Protocol</text>
+            <rect x="610" y="290" width="200" height="50" rx="8" fill="var(--bg-card)" stroke="var(--border)" stroke-width="1"/>
+            <text x="710" y="320" text-anchor="middle">Asset Custody Graph</text>
+          </g>
+          <!-- Hardware -->
+          <path d="M450 390 v20" stroke="var(--text-muted)" stroke-width="2"/>
+          <rect x="100" y="400" width="700" height="15" rx="4" fill="var(--accent-amber)" opacity="0.3"/>
+          <text x="450" y="412" text-anchor="middle" fill="var(--text-muted)" font-size="9">ESP32 · PLCs · Routers · Rovers · Orbital Nodes</text>
+        </svg>
+      </div>
+      <div class="product-pillars">
+        <article class="product-card">
+          <h4>TinyModel</h4>
+          <p data-i18n="arch.tiny">Edge intelligence brain. High-performance inference on any hardware — village server to Martian rover. Processing &amp; automatic expansion layers.</p>
+          <span class="badge" data-i18n="arch.tinyStatus">Deploying global decentralization</span>
+        </article>
+        <article class="product-card">
+          <h4>AI Transmitter</h4>
+          <p data-i18n="arch.transmitter">Cognitive bridge synchronizing data across fragmented networks. Communication &amp; self-rebuilding under stress. Scaling for orbital testing.</p>
+          <span class="badge" data-i18n="arch.transmitterStatus">Orbital testing phase</span>
+        </article>
+        <article class="product-card">
+          <h4>HSP</h4>
+          <p data-i18n="arch.hsp">Hyperlinks Space Program — localized nodes across Earth and solar system. Inhabitation, supply, and resource programs on executable rails.</p>
+          <span class="badge" data-i18n="arch.hspStatus">Terrestrial &amp; lunar rollout</span>
+        </article>
+      </div>
+    </section>
+
+    <section id="revenue" class="section section-alt">
+      <div class="section-header">
+        <span class="section-tag" data-i18n="revenue.tag">06 · Revenue Engines</span>
+        <h2 data-i18n="revenue.title">Monetization Indexed to the Interplanetary Cycle</h2>
+      </div>
+      <div class="revenue-cycle">
+        <svg viewBox="0 0 500 500" class="cycle-diagram" aria-hidden="true">
+          <circle cx="250" cy="250" r="180" fill="none" stroke="var(--border)" stroke-width="1"/>
+          <circle cx="250" cy="250" r="120" fill="none" stroke="var(--border)" stroke-width="0.5" stroke-dasharray="4 4"/>
+          <text x="250" y="80" text-anchor="middle" fill="var(--accent-cyan)" font-size="10">Extraction</text>
+          <text x="400" y="180" text-anchor="middle" fill="var(--accent-violet)" font-size="10">Transport</text>
+          <text x="400" y="330" text-anchor="middle" fill="var(--accent-amber)" font-size="10">Processing</text>
+          <text x="250" y="430" text-anchor="middle" fill="var(--accent-green)" font-size="10">Inhabitation</text>
+          <text x="100" y="330" text-anchor="middle" fill="var(--accent-rose)" font-size="10">Supply</text>
+          <text x="100" y="180" text-anchor="middle" fill="var(--accent-cyan)" font-size="10">Comms</text>
+          <text x="250" y="250" text-anchor="middle" fill="var(--text-primary)" font-size="11" font-weight="600">CLOSED</text>
+          <text x="250" y="268" text-anchor="middle" fill="var(--text-muted)" font-size="9">LOOP</text>
+        </svg>
+      </div>
+      <div class="revenue-grid">
+        <div class="revenue-item"><strong data-i18n="revenue.r1t">Extraction</strong><span data-i18n="revenue.r1d">Clearing fees, provenance APIs, assay subscriptions</span></div>
+        <div class="revenue-item"><strong data-i18n="revenue.r2t">Transport</strong><span data-i18n="revenue.r2d">Slot products, custody handoffs, escrow on delayed delivery</span></div>
+        <div class="revenue-item"><strong data-i18n="revenue.r3t">Communication</strong><span data-i18n="revenue.r3d">AI Transmitter metering, coherence services, private meshes</span></div>
+        <div class="revenue-item"><strong data-i18n="revenue.r4t">Processing</strong><span data-i18n="revenue.r4d">TinyModel licenses, inference metering, automation triggers</span></div>
+        <div class="revenue-item"><strong data-i18n="revenue.r5t">Inhabitation</strong><span data-i18n="revenue.r5d">Digital twin hosting, HSP program software, governance-as-a-service</span></div>
+        <div class="revenue-item"><strong data-i18n="revenue.r6t">Expansion &amp; Repair</strong><span data-i18n="revenue.r6d">Replication playbooks, diagnostics subscriptions, uptime retainers</span></div>
+      </div>
+    </section>
+
+    <section id="moats" class="section">
+      <div class="section-header">
+        <span class="section-tag" data-i18n="moats.tag">07 · Trillion-Dollar Moats</span>
+        <h2 data-i18n="moats.title">How We Win Where Others Cannot</h2>
+      </div>
+      <div class="card-grid four">
+        <article class="moat-card">
+          <h4 data-i18n="moats.m1t">Own the Foundational Layer</h4>
+          <p data-i18n="moats.m1d">Become the protocol OS — not an app on someone else's platform. Control how hardware speaks, syncs, and thinks.</p>
+        </article>
+        <article class="moat-card">
+          <h4 data-i18n="moats.m2t">Deep Tech &amp; Unreplicable IP</h4>
+          <p data-i18n="moats.m2d">CRDT merge algorithms, DTN routing, edge model partitioning — decades of patents, not forkable TypeScript wrappers.</p>
+        </article>
+        <article class="moat-card">
+          <h4 data-i18n="moats.m3t">Ecosystem Lock-In</h4>
+          <p data-i18n="moats.m3d">Enterprise dependency so deep that removal bankrupts the client. Data flywheels across billions of edge nodes.</p>
+        </article>
+        <article class="moat-card">
+          <h4 data-i18n="moats.m4t">Infinite Margin Scale</h4>
+          <p data-i18n="moats.m4d">Global deployment with near-zero variable cost. B2B industrial contracts + B2C edge compute mesh simultaneously.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="north-star" class="section section-north-star">
+      <div class="north-star-content">
+        <span class="section-tag" data-i18n="north.tag">08 · Founder's North Star</span>
+        <h2 data-i18n="north.title">The Future We're Building</h2>
+        <blockquote data-i18n="north.quote">You started at 30 with zero capital in the heart of Eurasia. This strategy is the straight line from today to the day Hyperlinks Space owns the interplanetary nervous system — and you own the outcome: generational wealth, global influence, and the freedom to live exactly as you envisioned.</blockquote>
+        <div class="north-milestones">
+          <div class="milestone"><span class="year">2026</span><span data-i18n="north.y2026">First 50-node offline pilot · Rust core MVP</span></div>
+          <div class="milestone"><span class="year">2028</span><span data-i18n="north.y2028">$10M ARR from edge compute · Series A</span></div>
+          <div class="milestone"><span class="year">2032</span><span data-i18n="north.y2032">Industry protocol standard · $1B valuation</span></div>
+          <div class="milestone"><span class="year">2038</span><span data-i18n="north.y2038">Lunar node live · cis-lunar freight monopoly</span></div>
+          <div class="milestone highlight"><span class="year">2040+</span><span data-i18n="north.y2040">$1T infrastructure layer · yacht optional, impact mandatory</span></div>
+        </div>
+        <div class="north-actions">
+          <a href="https://www.hyperlinks.space/" class="btn btn-primary" target="_blank" rel="noopener" data-i18n="north.cta1">hyperlinks.space</a>
+          <a href="mailto:founder@hyperlinks.space" class="btn btn-ghost" data-i18n="north.cta2">founder@hyperlinks.space</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>© 2026 <a href="https://github.com/HyperlinksSpace" target="_blank" rel="noopener">Hyperlinks Space</a> · <span data-i18n="footer.tagline">The monopoly from hyperlinks to space and beyond</span></p>
+    <p class="footer-links">
+      <a href="https://github.com/HyperlinksSpace/Strategy" target="_blank" rel="noopener">Strategy Repo</a>
+      · <a href="https://huggingface.co/HyperlinksSpace" target="_blank" rel="noopener">HuggingFace</a>
+      · <a href="https://t.me/anriltine" target="_blank" rel="noopener">Telegram</a>
+    </p>
+  </footer>
+
+  <script src="js/i18n.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
