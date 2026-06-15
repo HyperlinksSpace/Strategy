@@ -163,6 +163,9 @@
   var micLastInterim = '';
   var pendingVoiceInput = '';
   var aiRequestGen = 0;
+  var micWatchdog = 0;
+  var micStartTimeout = 0;
+  var recognitionFailCount = 0;
 
   function emitOrb(mode, detail) {
     if (window.HLS && window.HLS.setOrbReactive) {
@@ -1380,9 +1383,150 @@
   }
 
   function speechActive() {
-    if (state.speaking) return true;
-    if (!window.speechSynthesis) return false;
-    return !!(window.speechSynthesis.speaking || window.speechSynthesis.pending);
+    return !!state.speaking;
+  }
+
+  function prepareForVoiceInput() {
+    cancelGeneration();
+    stopSpeech();
+    if (state.tourActive) stopTour();
+  }
+
+  function syncMicWatchdog() {
+    if (micIsEnabled() && state.recognitionSupported) {
+      if (!micWatchdog) {
+        micWatchdog = window.setInterval(function () {
+          if (!micIsEnabled() || state.listening || state.micStarting || micBusy()) return;
+          startListening(false);
+        }, 2000);
+      }
+      return;
+    }
+    if (micWatchdog) {
+      clearInterval(micWatchdog);
+      micWatchdog = 0;
+    }
+  }
+
+  function clearMicStartTimeout() {
+    if (!micStartTimeout) return;
+    clearTimeout(micStartTimeout);
+    micStartTimeout = 0;
+  }
+
+  function parseRecognitionEvent(event) {
+    var finalText = '';
+    var interimText = '';
+    var i;
+
+    for (i = event.resultIndex; i < event.results.length; i++) {
+      var chunk = event.results[i] && event.results[i][0]
+        ? event.results[i][0].transcript
+        : '';
+      if (event.results[i].isFinal) {
+        finalText += chunk;
+      } else {
+        interimText += chunk;
+      }
+    }
+
+    if (!finalText && !interimText && event.results.length) {
+      var last = event.results[event.results.length - 1];
+      var lastChunk = last && last[0] ? last[0].transcript : '';
+      if (last && last.isFinal) finalText = lastChunk;
+      else interimText = lastChunk;
+    }
+
+    return {
+      final: String(finalText || '').trim(),
+      interim: String(interimText || '').trim()
+    };
+  }
+
+  function handleRecognitionResult(event) {
+    var parsed = parseRecognitionEvent(event);
+    if (parsed.final) {
+      processVoiceTranscript(parsed.final, true);
+      return;
+    }
+    if (parsed.interim) {
+      micLastInterim = parsed.interim;
+      if (state.inputEl) state.inputEl.value = parsed.interim;
+      scheduleInterimCommit(1200);
+    }
+  }
+
+  function attachRecognitionHandlers(recognition) {
+    recognition.onstart = function () {
+      clearMicStartTimeout();
+      recognitionFailCount = 0;
+      state.micStarting = false;
+      state.listening = true;
+      state.micPermissionGranted = true;
+      emitOrb('listening');
+      updateMicButton();
+    };
+
+    recognition.onend = function () {
+      clearMicStartTimeout();
+      state.listening = false;
+      state.micStarting = false;
+      updateMicButton();
+      if (!micBusy()) releaseOrbIdle(700);
+      if (!micIsEnabled()) return;
+      if (micBusy()) {
+        scheduleMicAutoStart(500);
+        return;
+      }
+      scheduleMicRestart(450);
+    };
+
+    recognition.onerror = function (event) {
+      clearMicStartTimeout();
+      state.listening = false;
+      state.micStarting = false;
+      updateMicButton();
+
+      if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+        state.micPermissionGranted = false;
+        clearMicRestartTimer();
+        clearMicAutoStartTimer();
+        clearMicInterimTimer();
+        updateMicButton();
+        sayBot('ai.micDenied');
+        return;
+      }
+
+      if (event.error === 'aborted' || event.error === 'no-speech') {
+        if (micIsEnabled()) scheduleMicRestart(event.error === 'no-speech' ? 350 : 700);
+        return;
+      }
+
+      recognitionFailCount += 1;
+      if (recognitionFailCount >= 3) {
+        recognitionFailCount = 0;
+        rebuildRecognitionInstance();
+      }
+      if (micIsEnabled()) scheduleMicRestart(900);
+    };
+
+    recognition.onresult = handleRecognitionResult;
+  }
+
+  function createRecognitionInstance() {
+    var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) return null;
+    var recognition = new SR();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.maxAlternatives = 1;
+    attachRecognitionHandlers(recognition);
+    return recognition;
+  }
+
+  function rebuildRecognitionInstance() {
+    stopListening(true);
+    state.recognition = createRecognitionInstance();
   }
 
   function micBusy() {
@@ -1415,7 +1559,7 @@
     if (!text) return;
 
     stopListening(true);
-    var handled = handleInput(text);
+    var handled = handleInput(text, { fromVoice: true });
     if (handled) {
       if (state.inputEl) state.inputEl.value = '';
     } else if (state.inputEl) {
@@ -1439,7 +1583,7 @@
 
     if (isFinal) {
       stopListening(true);
-      var handled = handleInput(text);
+      var handled = handleInput(text, { fromVoice: true });
       if (handled) {
         if (state.inputEl) state.inputEl.value = '';
       }
@@ -1468,8 +1612,8 @@
     var listening = state.listening;
 
     state.micBtn.setAttribute('aria-pressed', enabled ? 'true' : 'false');
-    state.micBtn.classList.toggle('is-listening', listening);
-    state.micBtn.classList.toggle('is-enabled', enabled && !listening);
+    state.micBtn.classList.toggle('is-listening', listening || state.micStarting);
+    state.micBtn.classList.toggle('is-enabled', enabled && !listening && !state.micStarting);
     state.micBtn.classList.toggle('is-off', !enabled && !denied);
     state.micBtn.classList.toggle('is-denied', denied);
     state.micBtn.classList.toggle('is-disabled', denied);
@@ -1481,6 +1625,7 @@
 
     state.micBtn.setAttribute('aria-label', t(labelKey));
     state.micBtn.title = t(labelKey);
+    syncMicWatchdog();
   }
 
   function stopMicStream() {
@@ -1544,28 +1689,46 @@
     });
   }
 
-  function startListening() {
+  function startListening(force) {
     if (!state.recognitionSupported || !state.recognition) return;
     if (!micIsEnabled()) return;
     if (state.listening || state.micStarting) return;
 
     if (micBusy()) {
-      scheduleMicAutoStart(speechActive() ? 900 : 500);
-      return;
+      if (!force) {
+        scheduleMicAutoStart(500);
+        return;
+      }
+      prepareForVoiceInput();
     }
 
     clearMicRestartTimer();
     clearMicAutoStartTimer();
+    clearMicStartTimeout();
     state.micStarting = true;
     updateMicButton();
 
     try {
       state.recognition.lang = SPEECH_LANG[getLang()] || SPEECH_LANG.en;
       state.recognition.start();
+      micStartTimeout = window.setTimeout(function () {
+        micStartTimeout = 0;
+        if (!state.listening && state.micStarting) {
+          state.micStarting = false;
+          updateMicButton();
+          rebuildRecognitionInstance();
+          if (micIsEnabled()) scheduleMicRestart(500);
+        }
+      }, 4500);
     } catch (err) {
       state.micStarting = false;
       updateMicButton();
-      scheduleMicRestart(1200);
+      recognitionFailCount += 1;
+      if (recognitionFailCount >= 2) {
+        recognitionFailCount = 0;
+        rebuildRecognitionInstance();
+      }
+      scheduleMicRestart(600);
     }
   }
 
@@ -1597,6 +1760,7 @@
   function stopListening(silent) {
     clearMicRestartTimer();
     clearMicInterimTimer();
+    clearMicStartTimeout();
     state.micStarting = false;
     if (!state.recognition) return;
 
@@ -1626,82 +1790,11 @@
       return;
     }
 
-    state.recognition = new SR();
-    state.recognition.continuous = !(window.matchMedia && window.matchMedia('(max-width: 768px)').matches);
-    state.recognition.interimResults = true;
-    state.recognition.maxAlternatives = 1;
-
-    state.recognition.onstart = function () {
-      state.micStarting = false;
-      state.listening = true;
-      state.micPermissionGranted = true;
-      emitOrb('listening');
-      updateMicButton();
-    };
-
-    state.recognition.onend = function () {
-      state.listening = false;
-      state.micStarting = false;
-      updateMicButton();
-      if (!micBusy()) releaseOrbIdle(700);
-      if (!micIsEnabled()) return;
-      if (micBusy()) {
-        scheduleMicAutoStart(speechActive() ? 900 : 500);
-        return;
-      }
-      scheduleMicRestart(900);
-    };
-
-    state.recognition.onerror = function (event) {
-      state.listening = false;
-      state.micStarting = false;
-      updateMicButton();
-      if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-        state.micPermissionGranted = false;
-        clearMicRestartTimer();
-        clearMicAutoStartTimer();
-        clearMicInterimTimer();
-        updateMicButton();
-        sayBot('ai.micDenied');
-        return;
-      }
-      if (event.error === 'aborted' || event.error === 'no-speech') {
-        if (micIsEnabled()) scheduleMicRestart(900);
-        return;
-      }
-      if (micIsEnabled()) scheduleMicRestart(1400);
-    };
-
-    state.recognition.onresult = function (event) {
-      var finalText = '';
-      var interimText = '';
-      var i;
-
-      for (i = event.resultIndex; i < event.results.length; i++) {
-        var chunk = event.results[i] && event.results[i][0]
-          ? event.results[i][0].transcript
-          : '';
-        if (event.results[i].isFinal) {
-          finalText += chunk;
-        } else {
-          interimText += chunk;
-        }
-      }
-
-      finalText = finalText.trim();
-      interimText = interimText.trim();
-
-      if (finalText) {
-        processVoiceTranscript(finalText, true);
-        return;
-      }
-
-      if (interimText) {
-        micLastInterim = interimText;
-        if (state.inputEl) state.inputEl.value = interimText;
-        scheduleInterimCommit(1500);
-      }
-    };
+    state.recognition = createRecognitionInstance();
+    if (!state.recognition) {
+      state.micBtn.hidden = true;
+      return;
+    }
 
     updateMicButton();
 
@@ -1715,7 +1808,7 @@
 
       requestMicPermission().then(function (granted) {
         if (granted !== false) {
-          startListening();
+          startListening(true);
           return;
         }
         sayBot('ai.micDenied');
@@ -1866,7 +1959,10 @@
     opts = opts || {};
     var text = normalize(raw);
     if (!text) return false;
-    if (micBusy() || (state.tourActive && state.speaking)) {
+
+    if (opts.fromVoice) {
+      prepareForVoiceInput();
+    } else if (micBusy() || (state.tourActive && state.speaking)) {
       if (!opts.fromQueue) queueVoiceInput(raw);
       return false;
     }
