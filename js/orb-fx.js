@@ -16,6 +16,10 @@
     return window.HLS && window.HLS.shouldAnimateHero ? window.HLS.shouldAnimateHero() : !document.hidden;
   }
 
+  function isLightOrbViewport() {
+    return window.HLS && window.HLS.isLightTheme && window.HLS.isLightTheme();
+  }
+
   function getQ() {
     return window.HLS && window.HLS.getQuality ? window.HLS.getQuality() : { lite: false, dpr: 2 };
   }
@@ -86,7 +90,10 @@
       var tw = 0.45 + 0.55 * Math.sin(t * (1.2 + s.z * 2) + s.phase);
       var sx = s.x * w + Math.sin(t * 0.15 + s.phase) * 4 * s.z;
       var sy = s.y * h + Math.cos(t * 0.12 + s.phase) * 3 * s.z;
-      ctx.fillStyle = 'hsla(' + s.hue + ',85%,72%,' + (tw * 0.55 * s.z) + ')';
+      var lightOrb = isLightOrbViewport();
+      var starLight = lightOrb ? 48 : 72;
+      var starAlpha = lightOrb ? 0.82 : 0.55;
+      ctx.fillStyle = 'hsla(' + s.hue + ',88%,' + starLight + '%,' + (tw * starAlpha * s.z) + ')';
       ctx.beginPath();
       ctx.arc(sx, sy, (0.6 + s.z * 1.4) * tw, 0, Math.PI * 2);
       ctx.fill();
@@ -108,7 +115,7 @@
     });
 
     var pulse = 0.5 + 0.5 * Math.sin(t * 0.9);
-    var bloom = 0.14 + energy * 0.18;
+    var bloom = (isLightOrbViewport() ? 0.22 : 0.14) + energy * 0.18;
     var grd = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.min(w, h) * (0.38 + energy * 0.08));
     grd.addColorStop(0, 'hsla(' + (rx.hue || 220) + ',72%,58%,' + (bloom * pulse) + ')');
     grd.addColorStop(0.35, 'hsla(' + ((rx.hue || 220) + 24) + ',68%,52%,' + (bloom * 0.55 * pulse) + ')');
@@ -145,6 +152,7 @@
     window.addEventListener('hls:visibility', wake);
     window.addEventListener('hls:hero-visibility', wake);
     window.addEventListener('hls:quality-change', wake);
+    window.addEventListener('hls:theme-applied', wake);
     schedule();
   }
 

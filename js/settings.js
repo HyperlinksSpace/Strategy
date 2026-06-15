@@ -13,7 +13,7 @@
       url: 'https://www.hyperlinks.space/',
       urlLabel: 'hyperlinks.space',
       description:
-        'Production-grade TON platform: non-custodial wallets, jetton and cross-chain swaps, escrow deal rooms, and AI Transmitter for live on-chain intelligence. Customer revenue funds the industrial protocol stack.',
+        'Shipped multi-ledger platform: non-custodial wallets, settlement and swap routing across integrated networks, escrow deal rooms, and AI Transmitter streaming on-chain events into operator-grade alerts. Revenue funds the industrial protocol stack.',
       features: ['Settlement & swaps', 'AI Transmitter', 'Escrow deal rooms'],
       cta: 'Open hyperlinks.space'
     },
@@ -28,9 +28,9 @@
       {
         id: 'hsp',
         name: 'Hyperlinks Space Program',
-        tagline: 'Live TON operating platform',
+        tagline: 'Live multi-ledger operating platform',
         description:
-          'Shipped product: wallets, portfolio tools, swap routing, Telegram-native deal flows, and AI Transmitter streaming chain events into actionable alerts. The commercial engine that funds protocol R&D.',
+          'Shipped product: wallets, portfolio tools, swap routing, messenger-native deal flows, and AI Transmitter streaming ledger events into actionable alerts. The commercial engine that funds protocol R&D.',
         links: [
           { label: 'Live product', url: 'https://www.hyperlinks.space/' },
           { label: 'GitHub', url: 'https://github.com/HyperlinksSpace/HyperlinksSpaceProgram' }
@@ -49,9 +49,9 @@
       {
         id: 'whatswap',
         name: 'WhatSwap',
-        tagline: 'Best-execution routing for TON',
+        tagline: 'Best-execution swap routing',
         description:
-          'Jetton and cross-chain swap aggregator with pathfinding across TON DEX liquidity. Production frontends and routing logic reused inside HSP settlement flows.',
+          'Multi-ledger swap aggregator with pathfinding and best-execution routing across integrated networks. Production frontends and routing logic reused inside HSP settlement flows.',
         links: [
           { label: 'GitHub', url: 'https://github.com/HyperlinksSpace/whatswap' },
           { label: 'Swap front', url: 'https://github.com/HyperlinksSpace/swap-front' }
@@ -62,7 +62,7 @@
     research: [
       {
         id: 'blockchain',
-        name: 'Blockchain & TON Architecture',
+        name: 'Ledger Integration Layer',
         description: 'Tokenized backends, stablecoin rails, NFT provenance, and on-chain audit trails for industrial custody and B2B settlement.',
         links: [
           { label: 'BlockchainProgram', url: 'https://github.com/HyperlinksSpace/BlockchainProgram' },
@@ -88,8 +88,8 @@
       },
       {
         id: 'ai-blockchain',
-        name: 'AI Blockchain Networks',
-        description: 'STUN cognitive bridges: reconcile fragmented chain and off-chain telemetry under latency, reordering, and partial outage.',
+        name: 'AI Ledger Networks',
+        description: 'Cognitive bridges: reconcile fragmented ledger and off-chain telemetry under latency, reordering, and partial outage.',
         links: [
           { label: 'STUN', url: 'https://github.com/HyperlinksSpace/STUN' }
         ]
@@ -97,7 +97,7 @@
       {
         id: 'freelance-dao',
         name: 'Tokenized Labor & DAO',
-        description: 'Escrowed milestone contracts, portable reputation, and DAO governance for distributed engineering and field ops.',
+        description: 'Escrowed milestone contracts, portable reputation, and DAO governance for distributed engineering and field ops on integrated ledgers.',
         links: [
           { label: 'freelance-exchange-tdb', url: 'https://github.com/HyperlinksSpace/freelance-exchange-tdb' },
           { label: 'a-tokenized-freelance-exchange', url: 'https://github.com/HyperlinksSpace/a-tokenized-freelance-exchange' },
@@ -118,9 +118,9 @@
     tech: {
       existing: [
         {
-          id: 'ton',
-          name: 'TON Blockchain',
-          description: 'Jettons, FunC/Tact contracts, TON Connect, and Telegram Mini Apps in production with paying users.',
+          id: 'ledger-integration',
+          name: 'Multi-Ledger Integration',
+          description: 'Smart contracts, wallet connectivity, and messenger mini-app integration across integrated networks.',
           links: [
             { label: 'hello-frontend', url: 'https://github.com/HyperlinksSpace/hello-frontend' },
             { label: 'ton-router', url: 'https://github.com/HyperlinksSpace/ton-router' }
@@ -137,8 +137,8 @@
         },
         {
           id: 'smart-contracts',
-          name: 'Smart Contracts (FunC / Tact / Solidity)',
-          description: 'Swaps, multisend, NFT minters, and DAO contracts audited paths for mainnet deployment.',
+          name: 'Smart Contract Layer',
+          description: 'Swaps, multisend, NFT minters, and DAO contracts on audited paths for production deployment.',
           links: [
             { label: 'UniversalMultiSender', url: 'https://github.com/HyperlinksSpace/UniversalMultiSender' },
             { label: 'a-wallet-swap-smart-contract', url: 'https://github.com/HyperlinksSpace/a-wallet-swap-smart-contract' }
@@ -155,8 +155,8 @@
         },
         {
           id: 'telegram',
-          name: 'Telegram Mini Apps & Bots',
-          description: 'Wallet, swap, and careers bots—distribution channel for 900M+ Telegram users without app-store friction.',
+          name: 'Messenger Mini Apps & Bots',
+          description: 'Wallet, swap, and careers bots—distribution channel for messenger users without app-store friction.',
           links: [
             { label: 'aWallet', url: 'https://github.com/HyperlinksSpace/aWallet' },
             { label: 'swap-bot', url: 'https://github.com/HyperlinksSpace/swap-bot' }
@@ -165,7 +165,7 @@
         {
           id: 'unity',
           name: 'Unity / Game Integration',
-          description: 'TON Connect inside Unity WebGL for gaming economies and virtual asset custody experiments.',
+          description: 'Wallet connectivity inside Unity WebGL for gaming economies and virtual asset custody experiments.',
           links: [
             { label: 'Veittech-UnitonConnect', url: 'https://github.com/HyperlinksSpace/Veittech-UnitonConnect' }
           ]
@@ -238,7 +238,7 @@
 
     dropdownIntros: {
       products: 'Revenue-generating platforms in production today—each funds the industrial protocol roadmap.',
-      research: 'Peer-reviewed engineering bets aligned to the $1T plan: chain custody, edge AI, agentic delivery, and deep-space networking.',
+      research: 'Peer-reviewed engineering bets aligned to the $1T plan: ledger integration, edge AI, agentic delivery, and deep-space networking.',
       tech: 'What ships in GitHub now—and the hardened runtime, bridges, and silicon references entering the roadmap next.'
     }
   };

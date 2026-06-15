@@ -234,6 +234,10 @@
     return window.HLS && window.HLS.shouldAnimateHero ? window.HLS.shouldAnimateHero() : !document.hidden;
   }
 
+  function isLightOrbViewport() {
+    return window.HLS && window.HLS.isLightTheme && window.HLS.isLightTheme();
+  }
+
   function boundsForCanvas(w, h) {
     var aspect = w / Math.max(h, 1);
     if (aspect < 1.4 || w < 420) {
@@ -266,7 +270,8 @@
     renderer.setPixelRatio(1);
     renderer.setClearColor(0x000000, 0);
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.22;
+    var lightOrb = isLightOrbViewport();
+    renderer.toneMappingExposure = lightOrb ? 1.05 : 1.22;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
 
     var scene = new THREE.Scene();
@@ -276,14 +281,14 @@
 
     var camera = new THREE.PerspectiveCamera(50, 1, 0.1, 100);
 
-    scene.add(new THREE.AmbientLight(0xffffff, 0.4));
-    var dirLight = new THREE.DirectionalLight(0xffffff, 1.8);
+    scene.add(new THREE.AmbientLight(0xffffff, lightOrb ? 0.55 : 0.4));
+    var dirLight = new THREE.DirectionalLight(0xffffff, lightOrb ? 2.05 : 1.8);
     dirLight.position.set(3, 4, 2);
     scene.add(dirLight);
-    var ptCore = new THREE.PointLight(0x7a2cff, 2.5, 4);
+    var ptCore = new THREE.PointLight(0x7a2cff, lightOrb ? 3.2 : 2.5, 4);
     ptCore.position.set(0, 0, 0);
     scene.add(ptCore);
-    var ptBlue = new THREE.PointLight(0x4a6cf7, 0.8, 8);
+    var ptBlue = new THREE.PointLight(0x4a6cf7, lightOrb ? 1.05 : 0.8, 8);
     ptBlue.position.set(-2, 2, -3);
     scene.add(ptBlue);
     var ptDeep = new THREE.PointLight(0x2a2aff, 0.5, 8);
@@ -305,7 +310,7 @@
       uNoiseScale: { value: 3.2 },
       uDisplacement: { value: 0.28 },
       uSpeed: { value: 0.28 },
-      uEmission: { value: 3.0 }
+      uEmission: { value: lightOrb ? 4.4 : 3.0 }
     };
     var outer = new THREE.Mesh(
       new THREE.SphereGeometry(1.2, sphereSeg, sphereSeg),

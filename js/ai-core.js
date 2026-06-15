@@ -148,6 +148,7 @@
   var speechVoices = [];
   var speechVoiceBundle = null;
   var speechVoiceBundleMode = 'per-lang';
+  var speechQueueGen = 0;
 
   function emitOrb(mode, detail) {
     if (window.HLS && window.HLS.setOrbReactive) {
@@ -439,7 +440,6 @@
     dtn: 'ди ти эн',
     isru: 'ай эс ар ю',
     hsp: 'аш эс пэ',
-    ton: 'тон',
     b2b: 'би ту би',
     b2c: 'би ту си',
     esp32: 'эс пэ тридцать два',
@@ -518,7 +518,8 @@
     });
   }
 
-  function prepareSpeechText(text, lang) {
+  function prepareSpeechText(text, lang, opts) {
+    opts = opts || {};
     lang = lang || getLang();
     var out = String(text);
     var i;
@@ -534,18 +535,6 @@
         .replace(/\bHyperlinks Space\b/gi, 'Хайперлинкс Спейс')
         .replace(/\bAI Transmitter\b/gi, 'Эй-Ай Передатчик')
         .replace(/\bTinyModel\b/g, 'Тайни Модел')
-        .replace(/\bESP32s?\b/gi, 'ЭСП тридцать два')
-        .replace(/\bMQTT\b/g, 'эм кью ти ти')
-        .replace(/\bOPC UA\b/g, 'о пэ цэ ю эй')
-        .replace(/\bCRDTs?\b/g, 'си ар ди ти')
-        .replace(/\bDTN\b/g, 'ди ти эн')
-        .replace(/\bISRU\b/g, 'ай эс ар ю')
-        .replace(/\bSaaS\b/g, 'эс аа эс')
-        .replace(/\bB2B\b/g, 'би ту би')
-        .replace(/\bB2C\b/g, 'би ту си')
-        .replace(/\bTON\b/g, 'тон')
-        .replace(/\bHSP\b/g, 'аш эс пэ')
-        .replace(/\bGitHub\b/g, 'ГитХаб')
         .replace(/\$1T\+?/gi, 'один триллион долларов')
         .replace(/\$1B/gi, 'один миллиард долларов')
         .replace(/\$10M/gi, 'десять миллионов долларов')
@@ -554,8 +543,6 @@
         .replace(/·/g, ', ')
         .replace(/&/g, ' и ')
         .replace(/чужое железо/gi, 'железо');
-
-      out = russianizeLatinTokens(out);
     } else if (lang === 'zh') {
       out = out
         .replace(/\bAI\s*CORE\b/gi, '人工智能核心')
@@ -569,7 +556,7 @@
         .replace(/\$2\b/g, '两美元')
         .replace(/→/g, '，然后')
         .replace(/·/g, '、');
-    } else {
+    } else if (lang === 'en') {
       out = out
         .replace(/\bthird-party hardware\b/gi, 'hardware')
         .replace(/\bsomeone else['']s hardware\b/gi, 'hardware')
@@ -583,7 +570,6 @@
         .replace(/\bSaaS\b/g, 'software as a service')
         .replace(/\bB2B\b/g, 'B to B')
         .replace(/\bB2C\b/g, 'B to C')
-        .replace(/\bTON\b/g, 'T O N')
         .replace(/\bHSP\b/g, 'H S P')
         .replace(/\bcis-lunar\b/gi, 'sis lunar')
         .replace(/\bTinyModel\b/g, 'Tiny Model')
@@ -602,8 +588,89 @@
   }
 
   function isExcludedVoice(name) {
+    var n = normalizeVoiceName(name);
+    if (/multilingual|multi-lingual|multi language|polyglot/i.test(n)) return false;
+    if (/microsoft (ryan|jenny|aria)/i.test(n) && /natural|online/i.test(n)) return false;
     return /comic|novelty|whisper|baby|junior|fun|jester|zira|helen|susan|kathy|linda|samantha|victoria|karen|jenny|aria|xiaoxiao|ting-?ting|huihui|yaoyao|meijia|sin-ji|yuna|flo|grandma|grandpa/i
-      .test(normalizeVoiceName(name));
+      .test(n);
+  }
+
+  function charSpeechLang(ch) {
+    if (/[\u0400-\u04FF]/.test(ch)) return 'ru';
+    if (/[\u4e00-\u9fff]/.test(ch)) return 'zh';
+    if (/[A-Za-z]/.test(ch)) return 'en';
+    return null;
+  }
+
+  function textHasMixedSpeechScripts(text) {
+    var seen = {};
+    var i;
+    var lang;
+    for (i = 0; i < text.length; i++) {
+      lang = charSpeechLang(text[i]);
+      if (!lang) continue;
+      seen[lang] = true;
+      if (seen.en && seen.ru) return true;
+      if (seen.en && seen.zh) return true;
+      if (seen.ru && seen.zh) return true;
+    }
+    return false;
+  }
+
+  function splitSpeechSegments(text, uiLang) {
+    var segments = [];
+    var current = { lang: null, text: '' };
+    var i;
+    var ch;
+    var lang;
+
+    function flush() {
+      if (!current.text) return;
+      segments.push({ lang: current.lang || uiLang, text: current.text });
+      current = { lang: null, text: '' };
+    }
+
+    for (i = 0; i < text.length; i++) {
+      ch = text[i];
+      lang = charSpeechLang(ch);
+      if (!lang) {
+        current.text += ch;
+        continue;
+      }
+      if (current.lang === null) {
+        current.lang = lang;
+        current.text += ch;
+      } else if (current.lang === lang) {
+        current.text += ch;
+      } else {
+        flush();
+        current.lang = lang;
+        current.text = ch;
+      }
+    }
+    flush();
+
+    var merged = [];
+    for (i = 0; i < segments.length; i++) {
+      if (!segments[i].text.trim()) continue;
+      if (merged.length && merged[merged.length - 1].lang === segments[i].lang) {
+        merged[merged.length - 1].text += segments[i].text;
+      } else {
+        merged.push(segments[i]);
+      }
+    }
+    return merged;
+  }
+
+  function getSharedSpeechVoice() {
+    if (!speechVoiceBundle) rebuildSpeechVoiceBundle();
+    return speechVoiceBundle && speechVoiceBundle.shared ? speechVoiceBundle.shared : null;
+  }
+
+  function resolveSpeechVoiceForLang(lang) {
+    var shared = getSharedSpeechVoice();
+    if (shared) return shared;
+    return getSpeechVoice(lang);
   }
 
   function normalizeVoiceName(name) {
@@ -816,6 +883,7 @@
     return {
       mode: speechVoiceBundleMode,
       multilingual: speechVoiceBundleMode === 'multilingual',
+      sharedVoice: speechVoiceBundle && speechVoiceBundle.shared ? speechVoiceBundle.shared.name : null,
       voices: {
         en: speechVoiceBundle.en ? speechVoiceBundle.en.name : null,
         ru: speechVoiceBundle.ru ? speechVoiceBundle.ru.name : null,
@@ -907,12 +975,57 @@
 
   function stopSpeech() {
     if (!state.speechSupported) return;
+    speechQueueGen += 1;
     window.speechSynthesis.cancel();
     if (state.speechResolve) {
       state.speechResolve();
       state.speechResolve = null;
     }
     state.speaking = false;
+  }
+
+  function buildUtterance(text, lang) {
+    var prepared = prepareSpeechText(text, lang);
+    if (!prepared) return null;
+    var utterance = new SpeechSynthesisUtterance(prepared);
+    utterance.lang = SPEECH_LANG[lang] || SPEECH_LANG.en;
+    utterance.rate = speechRate(lang);
+    utterance.pitch = speechPitch(lang);
+    utterance.volume = 1;
+    var voice = resolveSpeechVoiceForLang(lang);
+    if (voice) utterance.voice = voice;
+    return utterance;
+  }
+
+  function speakSegmentQueue(segments, resolve, gen) {
+    var index = 0;
+
+    function speakNext() {
+      if (gen !== speechQueueGen) return;
+
+      while (index < segments.length && !segments[index].text.trim()) index += 1;
+      if (index >= segments.length) {
+        state.speaking = false;
+        if (state.speechResolve === resolve) state.speechResolve = null;
+        if (!state.typing) releaseOrbIdle(650);
+        resolve();
+        return;
+      }
+
+      var seg = segments[index];
+      index += 1;
+      var utterance = buildUtterance(seg.text, seg.lang);
+      if (!utterance) {
+        speakNext();
+        return;
+      }
+
+      utterance.onend = speakNext;
+      utterance.onerror = speakNext;
+      window.speechSynthesis.speak(utterance);
+    }
+
+    speakNext();
   }
 
   function refreshSpeechVoices() {
@@ -930,37 +1043,46 @@
       }
 
       stopSpeech();
+      refreshSpeechVoices();
 
-      var lang = opts.lang || getLang();
-      var prepared = prepareSpeechText(text, lang);
-      var utterance = new SpeechSynthesisUtterance(prepared);
-
-      utterance.lang = SPEECH_LANG[lang] || SPEECH_LANG.en;
-      utterance.rate = speechRate(lang);
-      utterance.pitch = speechPitch(lang);
-      utterance.volume = 1;
-
-      var voice = getSpeechVoice(lang);
-      if (voice) utterance.voice = voice;
+      var uiLang = opts.lang || getLang();
+      var segments = textHasMixedSpeechScripts(text)
+        ? splitSpeechSegments(text, uiLang)
+        : [{ lang: uiLang, text: text }];
+      var gen = speechQueueGen;
 
       state.speechResolve = resolve;
       state.speaking = true;
       emitOrb('speaking');
 
-      utterance.onend = function () {
-        state.speaking = false;
-        if (state.speechResolve === resolve) state.speechResolve = null;
-        if (!state.typing) releaseOrbIdle(650);
-        resolve();
-      };
-      utterance.onerror = function () {
-        state.speaking = false;
-        if (state.speechResolve === resolve) state.speechResolve = null;
-        if (!state.typing) releaseOrbIdle(400);
-        resolve();
-      };
+      if (segments.length <= 1) {
+        var singleLang = segments[0] ? segments[0].lang : uiLang;
+        var utterance = buildUtterance(segments[0] ? segments[0].text : text, singleLang);
+        if (!utterance) {
+          state.speaking = false;
+          state.speechResolve = null;
+          resolve();
+          return;
+        }
+        utterance.onend = function () {
+          if (gen !== speechQueueGen) return;
+          state.speaking = false;
+          if (state.speechResolve === resolve) state.speechResolve = null;
+          if (!state.typing) releaseOrbIdle(650);
+          resolve();
+        };
+        utterance.onerror = function () {
+          if (gen !== speechQueueGen) return;
+          state.speaking = false;
+          if (state.speechResolve === resolve) state.speechResolve = null;
+          if (!state.typing) releaseOrbIdle(400);
+          resolve();
+        };
+        window.speechSynthesis.speak(utterance);
+        return;
+      }
 
-      window.speechSynthesis.speak(utterance);
+      speakSegmentQueue(segments, resolve, gen);
     });
   }
 
