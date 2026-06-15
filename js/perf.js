@@ -31,11 +31,10 @@
       coarse: coarse,
       lite: lite,
       dpr: lite ? 1 : Math.min(window.devicePixelRatio || 1, 1.5),
-      orbSteps: lite ? 40 : 56,
+      orbSteps: lite ? 48 : 72,
+      orbBlobs: lite ? 5 : 8,
       fbmOctaves: lite ? 3 : 4,
       lightning: !lite,
-      flow: true,
-      flowCount: lite ? 14 : 26,
       bgAnimate: visible
     };
   }

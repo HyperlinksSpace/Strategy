@@ -327,11 +327,183 @@
     return t(key, vars);
   }
 
+  var RU_SPEECH_PHRASES = [
+    ['Hyperlinks Space Program', 'Хайперлинкс Спейс Програм'],
+    ['Hyperlinks Space', 'Хайперлинкс Спейс'],
+    ['AI Transmitter', 'Эй-Ай Передатчик'],
+    ['AI CORE', 'Эй-Ай Кор'],
+    ['North Star', 'Полярная звезда'],
+    ['Earth and Space', 'Земля и космос'],
+    ['Earth & Space', 'Земля и космос'],
+    ['cis-lunar', 'сис-лунар'],
+    ['interplanetary', 'межпланетный'],
+    ['infrastructure', 'инфраструктура'],
+    ['trillion-dollar', 'триллионный'],
+    ['trillion dollar', 'триллион долларов'],
+    ['software as a service', 'сервис как программное обеспечение'],
+    ['guided tour', 'гидированный тур'],
+    ['protocol bootstrap', 'протокольный бутстрап'],
+    ['lean bootstrap', 'лин бутстрап'],
+    ['Task-Swapping Protocol', 'протокол Task-Swapping'],
+    ['Asset Custody Graph', 'граф Asset Custody']
+  ];
+
+  var RU_SPEECH_WORDS = {
+    roadmap: 'дорожная карта',
+    vision: 'видение',
+    pillars: 'столпы',
+    architecture: 'архитектура',
+    revenue: 'доходы',
+    moats: 'рвы',
+    bootstrap: 'бутстрап',
+    protocol: 'протокол',
+    interplanetary: 'межпланетный',
+    infrastructure: 'инфраструктура',
+    trillion: 'триллион',
+    guided: 'гидированный',
+    tour: 'тур',
+    online: 'онлайн',
+    github: 'гитхаб',
+    industry: 'индустрия',
+    communication: 'коммуникация',
+    processing: 'обработка',
+    extraction: 'добыча',
+    transport: 'транспорт',
+    inhabitation: 'обитание',
+    supply: 'снабжение',
+    expansion: 'экспансия',
+    layer: 'слой',
+    sections: 'разделы',
+    section: 'раздел',
+    strategy: 'стратегия',
+    lean: 'лин',
+    dollar: 'доллар',
+    dollars: 'долларов',
+    software: 'софтвер',
+    service: 'сервис',
+    edge: 'эдж',
+    compute: 'компьют',
+    inference: 'инференс',
+    metering: 'метеринг',
+    deployment: 'деплоймент',
+    rollout: 'роллаут',
+    terrestrial: 'терrestrial',
+    lunar: 'лунный',
+    martian: 'марсианский',
+    orbital: 'орбитальный',
+    provenance: 'провенанс',
+    escrow: 'эскроу',
+    custody: 'кастоди',
+    freight: 'фрахт',
+    monopoly: 'монополия',
+    ledger: 'леджер',
+    dormant: 'дормант',
+    venture: 'венчур',
+    partnerships: 'партнёрства',
+    partnership: 'партнёрство',
+    industrial: 'промышленный',
+    repositories: 'репозитории',
+    organization: 'организация',
+    transmitter: 'передатчик',
+    tinymodel: 'тайни модел',
+    hyperlinks: 'хайперлинкс',
+    space: 'космос',
+    program: 'программа',
+    saas: 'эс аа эс',
+    mqtt: 'эм кью ти ти',
+    crdt: 'си ар ди ти',
+    dtn: 'ди ти эн',
+    isru: 'ай эс ар ю',
+    hsp: 'аш эс пэ',
+    ton: 'тон',
+    b2b: 'би ту би',
+    b2c: 'би ту си',
+    esp32: 'эс пэ тридцать два',
+    plc: 'пи эл си',
+    plcs: 'пи эл си',
+    api: 'эй пи ай',
+    apis: 'эй пи ай',
+    ui: 'ю ай',
+    web: 'веб',
+    desktop: 'десктоп',
+    rust: 'раст',
+    python: 'пайтон',
+    typescript: 'тайпскрипт',
+    blockchain: 'блокчейн',
+    swap: 'своп',
+    swaps: 'свопы',
+    wallet: 'кошелёк',
+    wallets: 'кошельки',
+    promo: 'промо',
+    live: 'лайв',
+    mesh: 'меш-сеть',
+    trigger: 'триггер',
+    triggers: 'триггеры',
+    rent: 'аренда',
+    pilot: 'пилот',
+    phase: 'фаза',
+    phases: 'фазы',
+    months: 'месяцы',
+    years: 'годы',
+    year: 'год',
+    month: 'месяц'
+  };
+
+  function transliterateLatinWord(word) {
+    var lower = word.toLowerCase();
+    if (RU_SPEECH_WORDS[lower]) return RU_SPEECH_WORDS[lower];
+
+    var out = lower
+      .replace(/ough/g, 'о')
+      .replace(/tion/g, 'шн')
+      .replace(/sion/g, 'жн')
+      .replace(/ight/g, 'айт')
+      .replace(/sch/g, 'ш')
+      .replace(/sh/g, 'ш')
+      .replace(/ch/g, 'ч')
+      .replace(/ph/g, 'ф')
+      .replace(/wh/g, 'у')
+      .replace(/oo/g, 'у')
+      .replace(/ee/g, 'и')
+      .replace(/ea/g, 'и')
+      .replace(/th/g, 'т')
+      .replace(/ck/g, 'к')
+      .replace(/ng/g, 'нг');
+
+    var map = {
+      a: 'а', b: 'б', c: 'к', d: 'д', e: 'е', f: 'ф', g: 'г', h: 'х',
+      i: 'и', j: 'дж', k: 'к', l: 'л', m: 'м', n: 'н', o: 'о', p: 'п',
+      q: 'к', r: 'р', s: 'с', t: 'т', u: 'у', v: 'в', w: 'в', x: 'кс',
+      y: 'й', z: 'з'
+    };
+
+    var chars = out.split('');
+    var i;
+    var result = '';
+    for (i = 0; i < chars.length; i++) {
+      result += map[chars[i]] || chars[i];
+    }
+    return result || word;
+  }
+
+  function russianizeLatinTokens(text) {
+    return text.replace(/[A-Za-z][A-Za-z0-9&+./'-]*/g, function (token) {
+      if (/^\d/.test(token)) return token;
+      if (token.length <= 1) return transliterateLatinWord(token);
+      return transliterateLatinWord(token);
+    });
+  }
+
   function prepareSpeechText(text, lang) {
     lang = lang || getLang();
     var out = String(text);
+    var i;
 
     if (lang === 'ru') {
+      for (i = 0; i < RU_SPEECH_PHRASES.length; i++) {
+        out = out.split(RU_SPEECH_PHRASES[i][0]).join(RU_SPEECH_PHRASES[i][1]);
+      }
+
       out = out
         .replace(/\bAI\s*CORE\b/gi, 'Эй-Ай Кор')
         .replace(/\bHyperlinks Space Program\b/gi, 'Хайперлинкс Спейс Програм')
@@ -349,13 +521,16 @@
         .replace(/\bB2C\b/g, 'би ту си')
         .replace(/\bTON\b/g, 'тон')
         .replace(/\bHSP\b/g, 'аш эс пэ')
-        .replace(/\bcis-lunar\b/gi, 'сис-лунар')
+        .replace(/\bGitHub\b/g, 'ГитХаб')
         .replace(/\$1T\+?/gi, 'один триллион долларов')
         .replace(/\$1B/gi, 'один миллиард долларов')
         .replace(/\$10M/gi, 'десять миллионов долларов')
         .replace(/\$2\b/g, 'два доллара')
         .replace(/→/g, ', затем ')
-        .replace(/·/g, ', ');
+        .replace(/·/g, ', ')
+        .replace(/&/g, ' и ');
+
+      out = russianizeLatinTokens(out);
     } else if (lang === 'zh') {
       out = out
         .replace(/\bAI\s*CORE\b/gi, '人工智能核心')

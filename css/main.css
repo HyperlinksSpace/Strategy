@@ -448,6 +448,32 @@ input:focus-visible {
   -webkit-backdrop-filter: blur(18px) saturate(1.45);
 }
 
+/* Full-width bar pillows — header + bottom strip */
+.site-header.liquid-glass-host.liquid-glass-pillow,
+.section-strip.liquid-glass-host.liquid-glass-pillow {
+  border-radius: 0;
+  background: rgba(8, 8, 14, 0.62) !important;
+  backdrop-filter: blur(24px) saturate(1.55);
+  -webkit-backdrop-filter: blur(24px) saturate(1.55);
+}
+
+.site-header.liquid-glass-host.liquid-glass-pillow {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 10px 36px rgba(0, 0, 0, 0.24);
+}
+
+.section-strip.liquid-glass-host.liquid-glass-pillow {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 -10px 36px rgba(0, 0, 0, 0.2);
+}
+
+.site-header.glass-bar.liquid-glass-host::before,
+.section-strip.glass.liquid-glass-host::before {
+  display: none;
+}
+
 .liquid-glass-lens {
   position: absolute;
   inset: 0;
@@ -547,6 +573,20 @@ input:focus-visible {
   -webkit-backdrop-filter: blur(20px) saturate(1.25);
 }
 
+[data-theme="light"] .site-header.liquid-glass-host.liquid-glass-pillow,
+[data-theme="light"] .section-strip.liquid-glass-host.liquid-glass-pillow {
+  background: rgba(255, 255, 255, 0.82) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 8px 28px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .section-strip.liquid-glass-host.liquid-glass-pillow {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 -6px 24px rgba(0, 0, 0, 0.05);
+}
+
 [data-theme="light"] .liquid-glass-pill {
   background: rgba(255, 255, 255, 0.82) !important;
   border-color: rgba(0, 0, 0, 0.08);
@@ -576,6 +616,11 @@ input:focus-visible {
 @media (prefers-color-scheme: light) {
   [data-theme="system"] .liquid-glass-host {
     background: rgba(255, 255, 255, 0.78) !important;
+  }
+
+  [data-theme="system"] .site-header.liquid-glass-host.liquid-glass-pillow,
+  [data-theme="system"] .section-strip.liquid-glass-host.liquid-glass-pillow {
+    background: rgba(255, 255, 255, 0.82) !important;
   }
 
   [data-theme="system"] .liquid-glass-pill {
@@ -659,7 +704,24 @@ input:focus-visible {
   max-width: 100%;
 }
 
-.header-nav-link,
+.header-nav-link {
+  position: relative;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.42rem 0.85rem;
+  border-radius: 0;
+  cursor: pointer;
+  transition: color var(--transition);
+  font-family: inherit;
+  text-align: center;
+  width: auto;
+  white-space: nowrap;
+  box-shadow: none;
+}
+
 .nav-panel-link {
   background: transparent;
   border: 1px solid transparent;
@@ -679,15 +741,34 @@ input:focus-visible {
 .header-nav-link.is-open,
 .header-nav-link[aria-expanded="true"] {
   color: var(--text-primary);
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.18);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.header-nav-link.is-open::after,
+.header-nav-link[aria-expanded="true"]::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 0.05rem;
+  transform: translateX(-50%);
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--brand-green-display);
+  box-shadow: 0 0 8px rgba(26, 170, 17, 0.55);
 }
 
 [data-theme="light"] .header-nav-link.is-open,
 [data-theme="light"] .header-nav-link[aria-expanded="true"] {
-  background: rgba(18, 138, 12, 0.08);
-  border-color: rgba(18, 138, 12, 0.22);
+  background: transparent;
+  border: none;
+}
+
+[data-theme="light"] .header-nav-link.is-open::after,
+[data-theme="light"] .header-nav-link[aria-expanded="true"]::after {
+  box-shadow: 0 0 6px rgba(18, 138, 12, 0.45);
 }
 
 .nav-panel {
@@ -774,7 +855,14 @@ input:focus-visible {
   -webkit-overflow-scrolling: touch;
 }
 
-.header-nav-link:hover,
+.header-nav-link:hover {
+  color: var(--text-primary);
+  background: transparent;
+  border-color: transparent;
+  transform: none;
+  box-shadow: none;
+}
+
 .nav-panel-link:hover {
   color: var(--text-primary);
   background: rgba(255, 255, 255, 0.08);
@@ -783,6 +871,11 @@ input:focus-visible {
 }
 
 [data-theme="light"] .header-nav-link:hover {
+  background: transparent;
+  border-color: transparent;
+}
+
+[data-theme="light"] .nav-panel-link:hover {
   background: rgba(0, 0, 0, 0.04);
   border-color: var(--border);
 }
@@ -1132,12 +1225,6 @@ body.nav-dropdown-open { overflow: hidden; }
   border-right: none;
   border-radius: 0;
   justify-content: flex-start;
-}
-
-.section-strip.liquid-glass-host {
-  background: rgba(8, 8, 14, 0.58) !important;
-  backdrop-filter: blur(20px) saturate(1.5);
-  -webkit-backdrop-filter: blur(20px) saturate(1.5);
 }
 
 .section-strip.is-centered {
@@ -1634,7 +1721,6 @@ main { position: relative; z-index: 1; padding-top: var(--header-h); padding-bot
 }
 
 .hero-orb-canvas,
-.hero-flow-canvas,
 .hero-lightning-canvas {
   position: absolute;
   inset: 0;
@@ -1645,26 +1731,8 @@ main { position: relative; z-index: 1; padding-top: var(--header-h); padding-bot
   z-index: 1;
 }
 
-.hero-flow-canvas {
-  z-index: 2;
-  mix-blend-mode: screen;
-}
-
-[data-theme="light"] .hero-flow-canvas {
-  mix-blend-mode: multiply;
-  opacity: 0.92;
-}
-
-@media (prefers-color-scheme: light) {
-  [data-theme="system"] .hero-flow-canvas {
-    mix-blend-mode: multiply;
-    opacity: 0.92;
-  }
-}
-
 /* Orb canvas positioned in right zone on wide screens */
 .hero--fullscreen .hero-orb-canvas,
-.hero--fullscreen .hero-flow-canvas,
 .hero--fullscreen .hero-lightning-canvas {
   left: 36%;
   width: 64%;
@@ -1678,7 +1746,6 @@ main { position: relative; z-index: 1; padding-top: var(--header-h); padding-bot
   }
 
   .hero--fullscreen .hero-orb-canvas,
-  .hero--fullscreen .hero-flow-canvas,
   .hero--fullscreen .hero-lightning-canvas {
     left: 0;
     width: 100%;
@@ -2965,7 +3032,6 @@ main { position: relative; z-index: 1; padding-top: var(--header-h); padding-bot
   }
 
   .hero--fullscreen .hero-orb-canvas,
-  .hero--fullscreen .hero-flow-canvas,
   .hero--fullscreen .hero-lightning-canvas {
     left: 0;
     width: 100%;
