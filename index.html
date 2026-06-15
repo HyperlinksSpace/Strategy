@@ -68,7 +68,7 @@
       <img class="logo-full logo-full-light" src="assets/logo-full-light.svg" alt="Hyperlinks Space" width="104" height="40" decoding="async">
     </a>
 
-    <nav class="header-nav" aria-label="Site sections">
+    <nav class="header-nav liquid-glass-pill liquid-glass-host" aria-label="Site sections">
       <button type="button" class="header-nav-link" data-dropdown="tech" aria-expanded="false" aria-controls="dropdown-tech" data-i18n="nav.tech">Tech</button>
       <button type="button" class="header-nav-link" data-dropdown="research" aria-expanded="false" aria-controls="dropdown-research" data-i18n="nav.research">Research</button>
       <button type="button" class="header-nav-link" data-dropdown="products" aria-expanded="false" aria-controls="dropdown-products" data-i18n="nav.products">Products</button>
@@ -140,6 +140,7 @@
     <section id="hero" class="hero hero--fullscreen">
       <div class="hero-stage">
         <canvas id="hero-orb" class="hero-orb-canvas" aria-hidden="true"></canvas>
+        <canvas id="hero-flow" class="hero-flow-canvas" aria-hidden="true"></canvas>
         <canvas id="hero-lightning" class="hero-lightning-canvas" aria-hidden="true"></canvas>
         <div class="ai-core-aurora" aria-hidden="true"></div>
         <div class="hero-stage-layout">
@@ -162,7 +163,7 @@
             <button type="button" id="ai-core-mic" class="ai-core-mic" aria-pressed="false" aria-label="Start voice input" title="Start voice input">
               <svg class="ai-core-mic-icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 14a3 3 0 003-3V6a3 3 0 00-6 0v5a3 3 0 003 3z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M19 11v1a7 7 0 01-14 0v-1M12 19v3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
             </button>
-            <input type="text" id="ai-core-input" class="ai-core-input" autocomplete="off" maxlength="240" data-i18n-placeholder="ai.placeholder" placeholder="Ask AI CORE — type or use the microphone">
+            <input type="text" id="ai-core-input" class="ai-core-input" autocomplete="off" maxlength="240" data-i18n-placeholder="ai.placeholder" placeholder="Ask anything — or say a section name to explore the strategy">
             <button type="submit" class="ai-core-send" aria-label="Send">
               <span class="ai-core-send-label" data-i18n="ai.send">Send</span>
             </button>
@@ -210,7 +211,11 @@
             </div>
             <h2 class="promo-title" id="promo-title" data-settings="promo.title" data-i18n="promo.title">Hyperlinks Space Program</h2>
             <p class="promo-desc" data-settings="promo.desc" data-i18n="promo.desc">AI & blockchain multiplatform for managing, investing, and earning assets — recommendations, chats, swaps, trades, wallets, and deals. AI Transmitter reads chain data in real time.</p>
-            <ul class="promo-features" aria-label="Product highlights"></ul>
+            <ul class="promo-features" aria-label="Product highlights">
+              <li data-i18n="promo.f1">Wallets & swaps</li>
+              <li data-i18n="promo.f2">AI Transmitter</li>
+              <li data-i18n="promo.f3">Cross-chain deals</li>
+            </ul>
             <a href="https://www.hyperlinks.space/" class="promo-cta" target="_blank" rel="noopener noreferrer" data-settings-href="promo.url">
               <span data-i18n="promo.cta">Open hyperlinks.space</span>
               <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M7 17L17 7M17 7H9M17 7v8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -358,14 +363,14 @@
         <h2 data-i18n="matrix.title">Earth Revenue · Space Horizon</h2>
       </div>
       <div class="matrix-visual">
-        <div class="earth-space-diagram" role="img" aria-label="Earth to Space transition">
+        <div class="earth-space-diagram" role="img" data-i18n-aria="diagram.earthSpace.aria" aria-label="Earth to Space transition">
           <div class="es-node es-node--earth">
             <div class="es-node-glow"></div>
-            <span class="es-node-label">EARTH</span>
+            <span class="es-node-label" data-i18n="diagram.earth.label">EARTH</span>
             <ul class="es-node-items">
-              <li>Industry 4.0</li>
-              <li>Mining &amp; rigs</li>
-              <li>B2B SaaS</li>
+              <li data-i18n="diagram.earth.i1">Industry 4.0</li>
+              <li data-i18n="diagram.earth.i2">Mining &amp; rigs</li>
+              <li data-i18n="diagram.earth.i3">B2B SaaS</li>
             </ul>
           </div>
           <div class="es-bridge">
@@ -375,11 +380,11 @@
           </div>
           <div class="es-node es-node--space">
             <div class="es-node-glow"></div>
-            <span class="es-node-label">SPACE</span>
+            <span class="es-node-label" data-i18n="diagram.space.label">SPACE</span>
             <ul class="es-node-items">
-              <li>Lunar ISRU</li>
-              <li>DTN relays</li>
-              <li>Freight monopoly</li>
+              <li data-i18n="diagram.space.i1">Lunar ISRU</li>
+              <li data-i18n="diagram.space.i2">DTN relays</li>
+              <li data-i18n="diagram.space.i3">Freight monopoly</li>
             </ul>
           </div>
         </div>
@@ -488,33 +493,33 @@
         <p class="section-desc" data-i18n="arch.desc">Critical infrastructure demands hard separation: autonomous core runtime vs. observation UI.</p>
       </div>
       <div class="arch-diagram">
-        <div class="stack-diagram" role="img" aria-label="Two-layer system architecture">
+        <div class="stack-diagram" role="img" data-i18n-aria="diagram.stack.aria" aria-label="Two-layer system architecture">
           <div class="stack-tier stack-tier--ui">
             <div class="stack-tier-head">
-              <span class="stack-tier-badge stack-tier-badge--violet">HIGH-LEVEL UI</span>
-              <span class="stack-tier-sub">Web · TMA · Desktop · HSP Landing</span>
+              <span class="stack-tier-badge stack-tier-badge--violet" data-i18n="diagram.stack.uiBadge">HIGH-LEVEL UI</span>
+              <span class="stack-tier-sub" data-i18n="diagram.stack.uiSub">Web · TMA · Desktop · HSP Landing</span>
             </div>
             <p class="stack-tier-note" data-i18n="arch.uiNote">Observation only — never controls critical paths</p>
           </div>
           <div class="stack-connector"><span></span></div>
           <div class="stack-tier stack-tier--core">
             <div class="stack-tier-head">
-              <span class="stack-tier-badge stack-tier-badge--cyan">LOW-LEVEL CORE</span>
-              <span class="stack-tier-sub">Rust / C++ / Zig</span>
+              <span class="stack-tier-badge stack-tier-badge--cyan" data-i18n="diagram.stack.coreBadge">LOW-LEVEL CORE</span>
+              <span class="stack-tier-sub" data-i18n="diagram.stack.coreSub">Rust / C++ / Zig</span>
             </div>
             <div class="stack-modules">
-              <span class="stack-module">MQTT Broker</span>
-              <span class="stack-module">OPC UA Bridge</span>
-              <span class="stack-module">DTN Bundle</span>
-              <span class="stack-module">CRDT Engine</span>
-              <span class="stack-module">TinyModel Edge</span>
-              <span class="stack-module">Task-Swap Protocol</span>
-              <span class="stack-module">Asset Custody Graph</span>
+              <span class="stack-module" data-i18n="diagram.stack.m1">MQTT Broker</span>
+              <span class="stack-module" data-i18n="diagram.stack.m2">OPC UA Bridge</span>
+              <span class="stack-module" data-i18n="diagram.stack.m3">DTN Bundle</span>
+              <span class="stack-module" data-i18n="diagram.stack.m4">CRDT Engine</span>
+              <span class="stack-module" data-i18n="diagram.stack.m5">TinyModel Edge</span>
+              <span class="stack-module" data-i18n="diagram.stack.m6">Task-Swap Protocol</span>
+              <span class="stack-module" data-i18n="diagram.stack.m7">Asset Custody Graph</span>
             </div>
           </div>
           <div class="stack-connector stack-connector--short"><span></span></div>
           <div class="stack-tier stack-tier--hw">
-            <span class="stack-hw-label">ESP32 · PLCs · Routers · Rovers · Orbital Nodes</span>
+            <span class="stack-hw-label" data-i18n="diagram.stack.hw">ESP32 · PLCs · Routers · Rovers · Orbital Nodes</span>
           </div>
         </div>
       </div>
@@ -543,19 +548,19 @@
         <h2 data-i18n="revenue.title">Monetization Indexed to the Interplanetary Cycle</h2>
       </div>
       <div class="revenue-cycle">
-        <div class="cycle-diagram" role="img" aria-label="Closed loop revenue cycle">
+        <div class="cycle-diagram" role="img" data-i18n-aria="diagram.cycle.aria" aria-label="Closed loop revenue cycle">
           <div class="cycle-ring cycle-ring--outer"></div>
           <div class="cycle-ring cycle-ring--inner"></div>
           <div class="cycle-orbit"></div>
-          <div class="cycle-node" data-phase="extraction"><span>Extraction</span></div>
-          <div class="cycle-node" data-phase="transport"><span>Transport</span></div>
-          <div class="cycle-node" data-phase="processing"><span>Processing</span></div>
-          <div class="cycle-node" data-phase="inhabitation"><span>Inhabitation</span></div>
-          <div class="cycle-node" data-phase="supply"><span>Supply</span></div>
-          <div class="cycle-node" data-phase="comms"><span>Comms</span></div>
+          <div class="cycle-node" data-phase="extraction"><span data-i18n="diagram.cycle.extraction">Extraction</span></div>
+          <div class="cycle-node" data-phase="transport"><span data-i18n="diagram.cycle.transport">Transport</span></div>
+          <div class="cycle-node" data-phase="processing"><span data-i18n="diagram.cycle.processing">Processing</span></div>
+          <div class="cycle-node" data-phase="inhabitation"><span data-i18n="diagram.cycle.inhabitation">Inhabitation</span></div>
+          <div class="cycle-node" data-phase="supply"><span data-i18n="diagram.cycle.supply">Supply</span></div>
+          <div class="cycle-node" data-phase="comms"><span data-i18n="diagram.cycle.comms">Comms</span></div>
           <div class="cycle-core">
-            <span class="cycle-core-title">CLOSED</span>
-            <span class="cycle-core-sub">LOOP</span>
+            <span class="cycle-core-title" data-i18n="diagram.cycle.closed">CLOSED</span>
+            <span class="cycle-core-sub" data-i18n="diagram.cycle.loop">LOOP</span>
           </div>
         </div>
       </div>
@@ -615,14 +620,14 @@
   </main>
 
   <nav class="section-strip glass liquid-glass-host" aria-label="Jump to section">
-    <a href="#vision" class="section-chip" data-section-id="vision"><span>01</span><span data-i18n="nav.vision">Vision</span></a>
-    <a href="#pillars" class="section-chip" data-section-id="pillars"><span>02</span><span data-i18n="nav.pillars">Pillars</span></a>
-    <a href="#earth-space" class="section-chip" data-section-id="earth-space"><span>03</span><span data-i18n="nav.earthSpace">Earth &amp; Space</span></a>
-    <a href="#roadmap" class="section-chip" data-section-id="roadmap"><span>04</span><span data-i18n="nav.roadmap">Roadmap</span></a>
-    <a href="#architecture" class="section-chip" data-section-id="architecture"><span>05</span><span data-i18n="nav.architecture">Architecture</span></a>
-    <a href="#revenue" class="section-chip" data-section-id="revenue"><span>06</span><span data-i18n="nav.revenue">Revenue</span></a>
-    <a href="#moats" class="section-chip" data-section-id="moats"><span>07</span><span data-i18n="nav.moats">Moats</span></a>
-    <a href="#north-star" class="section-chip" data-section-id="north-star"><span>08</span><span data-i18n="nav.northStar">North Star</span></a>
+    <a href="#vision" class="section-chip" data-section-id="vision"><span lang="en">01</span><span data-i18n="nav.vision">Vision</span></a>
+    <a href="#pillars" class="section-chip" data-section-id="pillars"><span lang="en">02</span><span data-i18n="nav.pillars">Pillars</span></a>
+    <a href="#earth-space" class="section-chip" data-section-id="earth-space"><span lang="en">03</span><span data-i18n="nav.earthSpace">Earth &amp; Space</span></a>
+    <a href="#roadmap" class="section-chip" data-section-id="roadmap"><span lang="en">04</span><span data-i18n="nav.roadmap">Roadmap</span></a>
+    <a href="#architecture" class="section-chip" data-section-id="architecture"><span lang="en">05</span><span data-i18n="nav.architecture">Architecture</span></a>
+    <a href="#revenue" class="section-chip" data-section-id="revenue"><span lang="en">06</span><span data-i18n="nav.revenue">Revenue</span></a>
+    <a href="#moats" class="section-chip" data-section-id="moats"><span lang="en">07</span><span data-i18n="nav.moats">Moats</span></a>
+    <a href="#north-star" class="section-chip" data-section-id="north-star"><span lang="en">08</span><span data-i18n="nav.northStar">North Star</span></a>
   </nav>
 
   <footer class="site-footer">
@@ -637,11 +642,15 @@
 
   <script src="js/settings.js"></script>
   <script src="js/i18n.js"></script>
+  <script src="js/locale.js"></script>
+  <script src="js/nav-dd-content.js"></script>
   <script src="js/theme.js"></script>
   <script src="js/perf.js"></script>
   <script src="js/scene.js"></script>
+  <script src="js/hero-flow.js"></script>
   <script src="js/liquid-glass.js"></script>
   <script src="js/nav-dropdowns.js"></script>
+  <script src="js/ai-chat.js"></script>
   <script src="js/ai-core.js"></script>
   <script src="js/app.js"></script>
 </body>

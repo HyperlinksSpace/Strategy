@@ -18,6 +18,7 @@
   }
 
   function getLang() {
+    if (window.HLS && window.HLS.getLang) return window.HLS.getLang();
     return localStorage.getItem(LANG_KEY) || detectSystemLang();
   }
 
@@ -45,6 +46,11 @@
     document.querySelectorAll('[data-i18n-svg]').forEach(function (el) {
       var key = el.getAttribute('data-i18n-svg');
       if (dict[key]) el.textContent = dict[key];
+    });
+
+    document.querySelectorAll('[data-i18n-aria]').forEach(function (el) {
+      var key = el.getAttribute('data-i18n-aria');
+      if (dict[key]) el.setAttribute('aria-label', dict[key]);
     });
 
     document.querySelectorAll('.lang-btn').forEach(function (btn) {
@@ -100,6 +106,9 @@
     var toggle = document.querySelector('.menu-toggle');
     if (panel) panel.classList.remove('open');
     if (toggle) toggle.setAttribute('aria-expanded', 'false');
+    if (window.HLS && window.HLS.closeMobileNavAccordion) {
+      window.HLS.closeMobileNavAccordion();
+    }
   }
 
   function initHeaderMenu() {
@@ -126,8 +135,10 @@
       toggle.setAttribute('aria-expanded', open);
     });
 
-    panel.querySelectorAll('.theme-btn, .lang-btn, .panel-promo-link').forEach(function (el) {
-      el.addEventListener('click', closeHeaderPanel);
+    panel.addEventListener('click', function (e) {
+      if (e.target.closest('.nav-dd-link, .theme-btn, .lang-btn, .panel-promo-link')) {
+        closeHeaderPanel();
+      }
     });
 
     document.addEventListener('keydown', function (e) {

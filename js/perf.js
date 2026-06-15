@@ -34,6 +34,8 @@
       orbSteps: lite ? 40 : 56,
       fbmOctaves: lite ? 3 : 4,
       lightning: !lite,
+      flow: true,
+      flowCount: lite ? 14 : 26,
       bgAnimate: visible
     };
   }

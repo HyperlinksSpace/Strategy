@@ -217,6 +217,25 @@
       { label: 'GitHub Organization', href: 'https://github.com/HyperlinksSpace', style: 'ghost', external: true, i18n: 'hero.cta2' }
     ],
 
+    aiChat: {
+      enabled: true,
+      endpoint: 'https://www.hyperlinks.space/api/ai',
+      preferSameOrigin: true,
+      format: 'hsp',
+      mode: 'chat',
+      maxHistory: 12,
+      model: 'gpt-4o-mini',
+      apiKey: '',
+      instructions: {
+        en:
+          'You are AI CORE, a knowledgeable general-purpose assistant. Answer questions on any topic clearly, accurately, and professionally in English. You are shown on the Hyperlinks Space strategy website; when users ask about Hyperlinks Space, its protocols, roadmap, or products, you may use that context. For site navigation they can also say section names such as Vision, Pillars, Roadmap, or ask for a guided tour. Keep answers concise for voice (two to five sentences) unless the user asks for more detail.',
+        ru:
+          'Вы — AI CORE, универсальный помощник. Отвечайте на любые вопросы ясно, точно и профессионально на русском языке. Вы на сайте стратегии Hyperlinks Space; при вопросах о компании, протоколах или roadmap используйте этот контекст. Для навигации пользователь может назвать раздел (Видение, Столпы, Дорожная карта) или попросить тур. Краткие ответы для голоса (2–5 предложений), если не просят подробнее.',
+        zh:
+          '你是 AI CORE，通用智能助手。用中文清晰、准确、专业地回答任何领域的问题。你位于 Hyperlinks Space 战略网站；若用户询问该公司、协议或路线图，可结合该背景。导航可说章节名（愿景、支柱、路线图）或请求导览。语音场景下回答宜简洁（2–5 句），除非用户要求更详细。'
+      }
+    },
+
     dropdownIntros: {
       products: 'Live platforms that fund Earth operations while the interplanetary protocol stack matures.',
       research: 'Research aligned with the long-term strategy — blockchain infrastructure, edge AI, agentic automation, and deep-space networking.',

@@ -137,7 +137,9 @@
     micPermissionGranted: null,
     micAutoStart: false,
     micStream: null,
-    micPausedForTour: false
+    micPausedForTour: false,
+    aiPending: false,
+    thinkingEl: null
   };
 
   var VOICE_KEY = 'hls-ai-voice';
@@ -145,28 +147,12 @@
   var speechVoices = [];
 
   function getLang() {
-    var stored = localStorage.getItem('hls-lang');
-    if (stored && window.HLS_I18N[stored]) return stored;
-    var list = navigator.languages && navigator.languages.length
-      ? navigator.languages
-      : [navigator.language || 'en'];
-    for (var i = 0; i < list.length; i++) {
-      var code = String(list[i]).toLowerCase().split('-')[0];
-      if (window.HLS_I18N[code]) return code;
-    }
-    return 'en';
+    return (window.HLS && window.HLS.getLang) ? window.HLS.getLang() : 'en';
   }
 
   function t(key, vars) {
-    var lang = getLang();
-    var dict = window.HLS_I18N[lang] || window.HLS_I18N.en;
-    var text = dict[key] || window.HLS_I18N.en[key] || key;
-    if (vars) {
-      Object.keys(vars).forEach(function (k) {
-        text = text.split('{' + k + '}').join(vars[k]);
-      });
-    }
-    return text;
+    if (window.HLS && window.HLS.t) return window.HLS.t(key, vars, getLang());
+    return key;
   }
 
   function sectionMeta(id) {
@@ -206,6 +192,21 @@
     return bestScore > 0 ? best : null;
   }
 
+  function isGeneralQuestion(text) {
+    return /\b(what|why|how|explain|tell me|describe|who|when|where|define|meaning|difference|compare|calculate|solve|write|summarize|translate|что|как|почему|расскаж|объясн|опиши|зачем|什么|怎么|为什么|介绍|解释|是什么)\b/i.test(text);
+  }
+
+  function isNavigationIntent(text) {
+    if (/^(show|open|go to|take me|navigate|scroll to|jump to|перейди|покажи|открой|打开|去)\b/i.test(text)) {
+      return true;
+    }
+    if (isGeneralQuestion(text)) return false;
+    var sec = detectSection(text);
+    if (!sec) return false;
+    if (text.length <= 28) return true;
+    return /\b(section|раздел|章节|chapter|page|страниц)\b/i.test(text);
+  }
+
   function getVisibleSectionId() {
     var ids = SECTIONS.map(function (s) { return s.id; });
     var bestId = null;
@@ -225,6 +226,59 @@
     });
 
     return bestRatio > 0.12 ? bestId : null;
+  }
+
+  function showThinking() {
+    if (!state.messagesEl || state.thinkingEl) return;
+    state.thinkingEl = document.createElement('div');
+    state.thinkingEl.className = 'ai-core-msg ai-core-msg--bot ai-core-msg--typing ai-core-msg--thinking';
+    state.thinkingEl.setAttribute('aria-busy', 'true');
+    state.thinkingEl.textContent = t('ai.thinking');
+    state.messagesEl.appendChild(state.thinkingEl);
+    state.messagesEl.scrollTop = state.messagesEl.scrollHeight;
+  }
+
+  function hideThinking() {
+    if (state.thinkingEl) {
+      state.thinkingEl.remove();
+      state.thinkingEl = null;
+    }
+  }
+
+  function askGeneral(raw) {
+    if (state.aiPending || state.typing) return;
+
+    if (!window.HLS || !window.HLS.aiChat || !window.HLS.aiChat.isEnabled()) {
+      sayBot('ai.apiOffline');
+      return;
+    }
+
+    state.aiPending = true;
+    showThinking();
+
+    window.HLS.aiChat.ask(raw, getLang()).then(function (result) {
+      hideThinking();
+      state.aiPending = false;
+
+      if (result.ok && result.text) {
+        showBotMessage(result.text, {
+          speakText: result.text,
+          onDone: maybeAutoStartMic
+        });
+        return;
+      }
+
+      if (result.error === 'network' || result.error === 'invalid_json') {
+        sayBot('ai.apiError');
+        return;
+      }
+
+      sayBot('ai.apiOffline');
+    }).catch(function () {
+      hideThinking();
+      state.aiPending = false;
+      sayBot('ai.apiError');
+    });
   }
 
   function scrollToHero() {
@@ -273,30 +327,74 @@
     return t(key, vars);
   }
 
-  function prepareSpeechText(text) {
-    return String(text)
-      .replace(/\bAI CORE\b/gi, 'A I Core')
-      .replace(/\bHyperlinks Space\b/gi, 'Hyperlinks Space')
-      .replace(/\bESP32s?\b/gi, 'E S P thirty two')
-      .replace(/\bMQTT\b/g, 'M Q T T')
-      .replace(/\bOPC UA\b/g, 'O P C U A')
-      .replace(/\bCRDTs?\b/g, 'C R D T')
-      .replace(/\bDTN\b/g, 'D T N')
-      .replace(/\bISRU\b/g, 'I S R U')
-      .replace(/\bSaaS\b/g, 'software as a service')
-      .replace(/\bB2B\b/g, 'B to B')
-      .replace(/\bB2C\b/g, 'B to C')
-      .replace(/\bTON\b/g, 'T O N')
-      .replace(/\bHSP\b/g, 'H S P')
-      .replace(/\bcis-lunar\b/gi, 'sis lunar')
-      .replace(/\bTinyModel\b/g, 'Tiny Model')
-      .replace(/\$1T\+?/gi, 'one trillion dollars')
-      .replace(/\$1B/gi, 'one billion dollars')
-      .replace(/\$10M/gi, 'ten million dollars')
-      .replace(/\$2\b/g, 'two dollars')
-      .replace(/→/g, ', then ')
+  function prepareSpeechText(text, lang) {
+    lang = lang || getLang();
+    var out = String(text);
+
+    if (lang === 'ru') {
+      out = out
+        .replace(/\bAI\s*CORE\b/gi, 'Эй-Ай Кор')
+        .replace(/\bHyperlinks Space Program\b/gi, 'Хайперлинкс Спейс Програм')
+        .replace(/\bHyperlinks Space\b/gi, 'Хайперлинкс Спейс')
+        .replace(/\bAI Transmitter\b/gi, 'Эй-Ай Передатчик')
+        .replace(/\bTinyModel\b/g, 'Тайни Модел')
+        .replace(/\bESP32s?\b/gi, 'ЭСП тридцать два')
+        .replace(/\bMQTT\b/g, 'эм кью ти ти')
+        .replace(/\bOPC UA\b/g, 'о пэ цэ ю эй')
+        .replace(/\bCRDTs?\b/g, 'си ар ди ти')
+        .replace(/\bDTN\b/g, 'ди ти эн')
+        .replace(/\bISRU\b/g, 'ай эс ар ю')
+        .replace(/\bSaaS\b/g, 'эс аа эс')
+        .replace(/\bB2B\b/g, 'би ту би')
+        .replace(/\bB2C\b/g, 'би ту си')
+        .replace(/\bTON\b/g, 'тон')
+        .replace(/\bHSP\b/g, 'аш эс пэ')
+        .replace(/\bcis-lunar\b/gi, 'сис-лунар')
+        .replace(/\$1T\+?/gi, 'один триллион долларов')
+        .replace(/\$1B/gi, 'один миллиард долларов')
+        .replace(/\$10M/gi, 'десять миллионов долларов')
+        .replace(/\$2\b/g, 'два доллара')
+        .replace(/→/g, ', затем ')
+        .replace(/·/g, ', ');
+    } else if (lang === 'zh') {
+      out = out
+        .replace(/\bAI\s*CORE\b/gi, '人工智能核心')
+        .replace(/\bHyperlinks Space Program\b/gi, 'Hyperlinks 太空计划')
+        .replace(/\bHyperlinks Space\b/gi, 'Hyperlinks Space')
+        .replace(/\bAI Transmitter\b/gi, 'AI 发射器')
+        .replace(/\bTinyModel\b/g, 'TinyModel')
+        .replace(/\$1T\+?/gi, '一万亿美元')
+        .replace(/\$1B/gi, '十亿美元')
+        .replace(/\$10M/gi, '一千万美元')
+        .replace(/\$2\b/g, '两美元')
+        .replace(/→/g, '，然后')
+        .replace(/·/g, '、');
+    } else {
+      out = out
+        .replace(/\bAI\s*CORE\b/gi, 'Artificial Intelligence Core')
+        .replace(/\bESP32s?\b/gi, 'E S P thirty two')
+        .replace(/\bMQTT\b/g, 'M Q T T')
+        .replace(/\bOPC UA\b/g, 'O P C U A')
+        .replace(/\bCRDTs?\b/g, 'C R D T')
+        .replace(/\bDTN\b/g, 'D T N')
+        .replace(/\bISRU\b/g, 'I S R U')
+        .replace(/\bSaaS\b/g, 'software as a service')
+        .replace(/\bB2B\b/g, 'B to B')
+        .replace(/\bB2C\b/g, 'B to C')
+        .replace(/\bTON\b/g, 'T O N')
+        .replace(/\bHSP\b/g, 'H S P')
+        .replace(/\bcis-lunar\b/gi, 'sis lunar')
+        .replace(/\bTinyModel\b/g, 'Tiny Model')
+        .replace(/\$1T\+?/gi, 'one trillion dollars')
+        .replace(/\$1B/gi, 'one billion dollars')
+        .replace(/\$10M/gi, 'ten million dollars')
+        .replace(/\$2\b/g, 'two dollars')
+        .replace(/→/g, ', then ')
+        .replace(/·/g, ', ');
+    }
+
+    return out
       .replace(/…/g, '...')
-      .replace(/·/g, ', ')
       .replace(/\s+/g, ' ')
       .trim();
   }
@@ -476,7 +574,7 @@
       stopSpeech();
 
       var lang = getLang();
-      var prepared = prepareSpeechText(text);
+      var prepared = prepareSpeechText(text, lang);
       var utterance = new SpeechSynthesisUtterance(prepared);
 
       utterance.lang = SPEECH_LANG[lang] || SPEECH_LANG.en;
@@ -855,11 +953,11 @@
 
     var lang = getLang();
 
-    if (matchesAny(text, GREET_WORDS[lang] || GREET_WORDS.en)) {
+    if (matchesAny(text, GREET_WORDS[lang] || GREET_WORDS.en) && !isGeneralQuestion(text) && text.length < 32) {
       sayBot('ai.greeting');
       return;
     }
-    if (matchesAny(text, THANK_WORDS[lang] || THANK_WORDS.en)) {
+    if (matchesAny(text, THANK_WORDS[lang] || THANK_WORDS.en) && !isGeneralQuestion(text) && text.length < 40) {
       sayBot('ai.thanks');
       return;
     }
@@ -886,7 +984,7 @@
     }
 
     var sec = detectSection(text);
-    if (sec) {
+    if (sec && isNavigationIntent(text)) {
       openSection(sec);
       return;
     }
@@ -901,7 +999,7 @@
       }
     }
 
-    sayBot('ai.unknown');
+    askGeneral(raw);
   }
 
   function sectionFromId(id) {
@@ -1147,8 +1245,20 @@
     window.addEventListener('hls:locale-change', function () {
       refreshChrome();
       var now = getLang();
+      if (state.recognition) {
+        state.recognition.lang = SPEECH_LANG[now] || SPEECH_LANG.en;
+      }
       if (state.ready && state.lastLang && now !== state.lastLang) {
-        sayBot('ai.langSwitch');
+        stopSpeech();
+        stopTour();
+        if (window.HLS.aiChat && window.HLS.aiChat.clearHistory) {
+          window.HLS.aiChat.clearHistory();
+        }
+        if (state.messagesEl) state.messagesEl.innerHTML = '';
+        showBotMessage(t('ai.greeting'), {
+          speakText: tVoice('ai.greeting'),
+          onDone: maybeAutoStartMic
+        });
       }
       state.lastLang = now;
     });
