@@ -133,7 +133,11 @@
     lastLang: null,
     ready: false,
     speaking: false,
-    speechResolve: null
+    speechResolve: null,
+    micPermissionGranted: null,
+    micAutoStart: false,
+    micStream: null,
+    micPausedForTour: false
   };
 
   var VOICE_KEY = 'hls-ai-voice';
@@ -223,6 +227,18 @@
     return bestRatio > 0.12 ? bestId : null;
   }
 
+  function scrollToHero() {
+    var hero = document.getElementById('hero');
+    if (!hero) return;
+
+    window.scrollTo({
+      top: 0,
+      behavior: state.reducedMotion ? 'auto' : 'smooth'
+    });
+
+    document.dispatchEvent(new CustomEvent('ai-core:navigate', { detail: { sectionId: 'hero' } }));
+  }
+
   function scrollToSection(id) {
     var el = document.getElementById(id);
     if (!el) return;
@@ -259,6 +275,21 @@
 
   function prepareSpeechText(text) {
     return String(text)
+      .replace(/\bAI CORE\b/gi, 'A I Core')
+      .replace(/\bHyperlinks Space\b/gi, 'Hyperlinks Space')
+      .replace(/\bESP32s?\b/gi, 'E S P thirty two')
+      .replace(/\bMQTT\b/g, 'M Q T T')
+      .replace(/\bOPC UA\b/g, 'O P C U A')
+      .replace(/\bCRDTs?\b/g, 'C R D T')
+      .replace(/\bDTN\b/g, 'D T N')
+      .replace(/\bISRU\b/g, 'I S R U')
+      .replace(/\bSaaS\b/g, 'software as a service')
+      .replace(/\bB2B\b/g, 'B to B')
+      .replace(/\bB2C\b/g, 'B to C')
+      .replace(/\bTON\b/g, 'T O N')
+      .replace(/\bHSP\b/g, 'H S P')
+      .replace(/\bcis-lunar\b/gi, 'sis lunar')
+      .replace(/\bTinyModel\b/g, 'Tiny Model')
       .replace(/\$1T\+?/gi, 'one trillion dollars')
       .replace(/\$1B/gi, 'one billion dollars')
       .replace(/\$10M/gi, 'ten million dollars')
@@ -270,6 +301,11 @@
       .trim();
   }
 
+  function isExcludedVoice(name) {
+    return /comic|novelty|whisper|baby|junior|fun|jester|zira|helen|susan|kathy|linda|samantha|victoria|karen|jenny|aria|xiaoxiao|ting-?ting|huihui|yaoyao|meijia|sin-ji|yuna|flo|grandma|grandpa/i
+      .test(normalizeVoiceName(name));
+  }
+
   function normalizeVoiceName(name) {
     return String(name || '').toLowerCase();
   }
@@ -279,15 +315,29 @@
     var prefix = code.split('-')[0];
     var prefer = {
       en: [
-        /google.*english.*female/i,
-        /microsoft.*aria/i,
-        /microsoft.*jenny/i,
-        /samantha/i,
-        /karen/i,
-        /victoria/i
+        /microsoft (david|mark|guy|ryan|george|james)/i,
+        /google.*english.*(male|united states)/i,
+        /google uk english male/i,
+        /daniel/i,
+        /alex(?!a)/i,
+        /fred/i,
+        /tom/i,
+        /rishi/i
       ],
-      ru: [/google.*russian/i, /milena/i, /irina/i, /pavel/i],
-      zh: [/google.*mandarin/i, /xiaoxiao/i, /ting-?ting/i, /huihui/i, /yaoyao/i]
+      ru: [
+        /google.*russian.*male/i,
+        /dmitri/i,
+        /pavel/i,
+        /yuri/i,
+        /maxim/i
+      ],
+      zh: [
+        /yunxi/i,
+        /yunjian/i,
+        /kangkang/i,
+        /google.*mandarin.*male/i,
+        /zh-cn.*male/i
+      ]
     };
     var patterns = prefer[lang] || prefer.en;
     var i;
@@ -300,34 +350,38 @@
       for (i = 0; i < speechVoices.length; i++) {
         voice = speechVoices[i];
         if (voice.lang.indexOf(prefix) !== 0) continue;
+        if (isExcludedVoice(voice.name)) continue;
         if (patterns[p].test(normalizeVoiceName(voice.name))) return voice;
       }
     }
 
     for (i = 0; i < speechVoices.length; i++) {
-      if (speechVoices[i].lang === code) return speechVoices[i];
+      voice = speechVoices[i];
+      if (voice.lang === code && !isExcludedVoice(voice.name)) return voice;
     }
     for (i = 0; i < speechVoices.length; i++) {
-      if (speechVoices[i].lang.indexOf(prefix) === 0 && speechVoices[i].localService) {
-        return speechVoices[i];
+      voice = speechVoices[i];
+      if (voice.lang.indexOf(prefix) === 0 && voice.localService && !isExcludedVoice(voice.name)) {
+        return voice;
       }
     }
     for (i = 0; i < speechVoices.length; i++) {
-      if (speechVoices[i].lang.indexOf(prefix) === 0) return speechVoices[i];
+      voice = speechVoices[i];
+      if (voice.lang.indexOf(prefix) === 0 && !isExcludedVoice(voice.name)) return voice;
     }
     return null;
   }
 
   function speechRate(lang) {
-    if (lang === 'zh') return 0.9;
-    if (lang === 'ru') return 0.93;
-    return 0.95;
+    if (lang === 'zh') return 0.88;
+    if (lang === 'ru') return 0.9;
+    return 0.92;
   }
 
   function speechPitch(lang) {
-    if (lang === 'en') return 1.06;
-    if (lang === 'ru') return 1.02;
-    return 1.0;
+    if (lang === 'zh') return 0.96;
+    if (lang === 'ru') return 0.98;
+    return 0.98;
   }
 
   function typeBotMessage(text, done) {
@@ -506,9 +560,90 @@
   function updateMicButton() {
     if (!state.micBtn) return;
     var listening = state.listening;
+    var denied = state.micPermissionGranted === false;
     state.micBtn.setAttribute('aria-pressed', listening ? 'true' : 'false');
+    state.micBtn.classList.toggle('is-disabled', denied && !listening);
     state.micBtn.setAttribute('aria-label', t(listening ? 'ai.micOffLabel' : 'ai.micOnLabel'));
     state.micBtn.title = t(listening ? 'ai.micOffLabel' : 'ai.micOnLabel');
+  }
+
+  function stopMicStream() {
+    if (!state.micStream) return;
+    state.micStream.getTracks().forEach(function (track) {
+      track.stop();
+    });
+    state.micStream = null;
+  }
+
+  function requestMicPermission() {
+    if (!state.recognitionSupported) {
+      return Promise.resolve(false);
+    }
+
+    if (state.micPermissionGranted === true) {
+      return Promise.resolve(true);
+    }
+
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      return navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(function (stream) {
+          stopMicStream();
+          state.micStream = stream;
+          stream.getTracks().forEach(function (track) {
+            track.stop();
+          });
+          state.micStream = null;
+          state.micPermissionGranted = true;
+          state.micAutoStart = true;
+          updateMicButton();
+          if (state.ready) maybeAutoStartMic();
+          return true;
+        })
+        .catch(function () {
+          state.micPermissionGranted = false;
+          state.micAutoStart = false;
+          updateMicButton();
+          return false;
+        });
+    }
+
+    return Promise.resolve(null);
+  }
+
+  function startListening() {
+    if (!state.recognitionSupported || !state.recognition) return;
+
+    stopTour();
+    stopSpeech();
+
+    try {
+      state.recognition.lang = SPEECH_LANG[getLang()] || SPEECH_LANG.en;
+      state.recognition.start();
+    } catch (err) {
+      try {
+        state.recognition.stop();
+        state.recognition.lang = SPEECH_LANG[getLang()] || SPEECH_LANG.en;
+        state.recognition.start();
+      } catch (retryErr) {
+        sayBot('ai.micError');
+      }
+    }
+  }
+
+  function maybeAutoStartMic() {
+    if (!state.micAutoStart || state.micPermissionGranted !== true || state.listening) return;
+    startListening();
+  }
+
+  function requestMicAccessOnLoad() {
+    if (!state.recognitionSupported) return;
+
+    requestMicPermission().then(function (granted) {
+      if (granted === false) {
+        state.micAutoStart = false;
+      }
+      updateMicButton();
+    });
   }
 
   function stopListening() {
@@ -546,12 +681,23 @@
     state.recognition.onend = function () {
       state.listening = false;
       updateMicButton();
+      if (!state.micAutoStart || state.micPermissionGranted !== true) return;
+      if (state.tourTimer || state.typing || state.speaking) return;
+      window.setTimeout(function () {
+        if (state.micAutoStart && state.micPermissionGranted && !state.listening &&
+            !state.typing && !state.tourTimer && !state.speaking) {
+          startListening();
+        }
+      }, 600);
     };
 
     state.recognition.onerror = function (event) {
       state.listening = false;
       updateMicButton();
       if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+        state.micPermissionGranted = false;
+        state.micAutoStart = false;
+        updateMicButton();
         sayBot('ai.micDenied');
       } else if (event.error !== 'aborted' && event.error !== 'no-speech') {
         sayBot('ai.micError');
@@ -582,23 +728,35 @@
 
     state.micBtn.addEventListener('click', function () {
       if (state.listening) {
+        state.micAutoStart = false;
         stopListening();
         return;
       }
-      stopTour();
-      stopSpeech();
-      try {
-        state.recognition.lang = SPEECH_LANG[getLang()] || SPEECH_LANG.en;
-        state.recognition.start();
-      } catch (err) {
-        try {
-          state.recognition.stop();
-          state.recognition.lang = SPEECH_LANG[getLang()] || SPEECH_LANG.en;
-          state.recognition.start();
-        } catch (retryErr) {
-          sayBot('ai.micError');
+
+      state.micAutoStart = true;
+
+      function beginListening() {
+        if (state.micPermissionGranted === false) {
+          sayBot('ai.micDenied');
+          return;
         }
+        startListening();
       }
+
+      if (state.micPermissionGranted === true) {
+        beginListening();
+        return;
+      }
+
+      requestMicPermission().then(function (granted) {
+        if (granted) {
+          beginListening();
+        } else if (granted === false) {
+          sayBot('ai.micDenied');
+        } else {
+          beginListening();
+        }
+      });
     });
 
     window.addEventListener('hls:locale-change', function () {
@@ -644,10 +802,18 @@
 
   function tourStep() {
     if (state.tourIndex >= SECTIONS.length) {
+      scrollToHero();
       showBotMessage(t('ai.tourDone'), {
         speakText: tVoice('ai.tourDone'),
-        parallelSpeak: true
+        onDone: function () {
+          if (state.micPausedForTour) {
+            state.micAutoStart = true;
+            maybeAutoStartMic();
+          }
+          state.micPausedForTour = false;
+        }
       });
+      state.tourIndex = 0;
       return;
     }
 
@@ -668,6 +834,9 @@
 
   function startTour(userText) {
     stopTour();
+    state.micPausedForTour = state.micAutoStart;
+    state.micAutoStart = false;
+    stopListening();
     if (userText) sayUser(userText);
 
     state.tourIndex = 0;
@@ -968,7 +1137,10 @@
     });
 
     setTimeout(function () {
-      sayBot('ai.greeting');
+      showBotMessage(t('ai.greeting'), {
+        speakText: tVoice('ai.greeting'),
+        onDone: maybeAutoStartMic
+      });
       state.ready = true;
     }, state.reducedMotion ? 100 : 600);
 
@@ -995,6 +1167,7 @@
 
     initVoice();
     initSpeechRecognition();
+    requestMicAccessOnLoad();
     initLightning();
     initSectionNavBridge();
     initChat();

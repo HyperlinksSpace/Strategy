@@ -218,9 +218,9 @@
     ],
 
     dropdownIntros: {
-      products: 'Live platforms funding Earth operations while we harden the interplanetary protocol stack.',
-      research: 'R&D mapped to our $1T strategy — blockchain rails, edge AI, agentic automation, and deep-space networking.',
-      tech: 'What we ship in production today and the hardened protocols we are building for industrial and orbital scale.'
+      products: 'Live platforms that fund Earth operations while the interplanetary protocol stack matures.',
+      research: 'Research aligned with the long-term strategy — blockchain infrastructure, edge AI, agentic automation, and deep-space networking.',
+      tech: 'Production systems in use today and hardened protocols under development for industrial and orbital scale.'
     }
   };
 })();

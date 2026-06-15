@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="system">
+<html lang="en" data-theme="dark" data-theme-pref="system">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -34,8 +34,27 @@
 
       var t = localStorage.getItem('hls-theme') || 'system';
       var l = localStorage.getItem('hls-lang') || detectLang();
-      document.documentElement.setAttribute('data-theme', t);
+      document.documentElement.setAttribute('data-theme-pref', t);
       document.documentElement.lang = l;
+
+      function bootResolveTheme(pref) {
+        if (/Telegram/i.test(navigator.userAgent || '')) {
+          try {
+            var tg = window.Telegram && window.Telegram.WebApp;
+            if (tg && (tg.colorScheme === 'light' || tg.colorScheme === 'dark')) {
+              return tg.colorScheme;
+            }
+          } catch (e) { /* ignore */ }
+          return 'dark';
+        }
+        if (pref === 'light' || pref === 'dark') return pref;
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+          return 'light';
+        }
+        return 'dark';
+      }
+
+      document.documentElement.setAttribute('data-theme', bootResolveTheme(t));
     })();
   </script>
 </head>
@@ -211,12 +230,12 @@
         <article class="card card-glow">
           <div class="card-icon">⚡</div>
           <h3 data-i18n="vision.c1.title">Protocol-First Bootstrap</h3>
-          <p data-i18n="vision.c1.text">Hyperlinks Space wins by owning the protocol layer — not factories. Turn low-cost ESP32s and legacy industrial controllers into an unkillable mesh that scales worldwide.</p>
+          <p data-i18n="vision.c1.text">Hyperlinks Space focuses on the protocol layer rather than manufacturing. Low-cost ESP32 modules and legacy industrial controllers form a resilient mesh that scales globally.</p>
         </article>
         <article class="card card-glow">
           <div class="card-icon">🛡</div>
-          <h3 data-i18n="vision.c2.title">Anti-NVIDIA Vector</h3>
-          <p data-i18n="vision.c2.text">Bypass centralized, energy-hungry data centers. Build a hyper-decentralized edge-native compute network on consumer and industrial hardware the world already owns.</p>
+          <h3 data-i18n="vision.c2.title">Distributed Edge Compute</h3>
+          <p data-i18n="vision.c2.text">Reduce reliance on centralized, energy-intensive data centers. Build a decentralized edge compute network on consumer and industrial hardware already deployed worldwide.</p>
         </article>
         <article class="card card-glow">
           <div class="card-icon">🌐</div>
@@ -323,7 +342,7 @@
             <span class="pillar-abbr">Edge AI</span>
             <h3 data-i18n="pillars.edgeai.title">TinyModel Distributed Partition</h3>
           </div>
-          <p data-i18n="pillars.edgeai.text">Fracture heavy AI models into micro-inferences on ESP32s, routers, and smartphones. A mesh supercomputer without NVIDIA's gigawatt bills — users donate compute for free.</p>
+          <p data-i18n="pillars.edgeai.text">Partition large models into micro-inferences on ESP32s, routers, and smartphones. Aggregate idle devices into a distributed compute mesh with minimal infrastructure overhead.</p>
           <ul class="pillar-use inline">
             <li data-i18n="pillars.edgeai.u1">Model sharding</li>
             <li data-i18n="pillars.edgeai.u2">Task-swapping protocol</li>
@@ -336,7 +355,7 @@
     <section id="earth-space" class="section">
       <div class="section-header">
         <span class="section-tag" data-i18n="matrix.tag">03 · Dual Market</span>
-        <h2 data-i18n="matrix.title">Earth Pays Today · Space Wins Tomorrow</h2>
+        <h2 data-i18n="matrix.title">Earth Revenue · Space Horizon</h2>
       </div>
       <div class="matrix-visual">
         <div class="earth-space-diagram" role="img" aria-label="Earth to Space transition">
@@ -367,7 +386,7 @@
       </div>
       <div class="matrix-grid">
         <div class="matrix-col earth">
-          <h3 data-i18n="matrix.earth.title">Immediate Cash Engine</h3>
+          <h3 data-i18n="matrix.earth.title">Near-Term Revenue</h3>
           <ul>
             <li data-i18n="matrix.earth.i1">Deep-sea rigs, autonomous mining, Industry 4.0</li>
             <li data-i18n="matrix.earth.i2">High bandwidth, EM interference, legacy controllers</li>
@@ -378,7 +397,7 @@
           <span data-i18n="matrix.bridge">Same protocol stack · Same CRDT state · Same TinyModel runtime</span>
         </div>
         <div class="matrix-col space">
-          <h3 data-i18n="matrix.space.title">Visionary End-Game</h3>
+          <h3 data-i18n="matrix.space.title">Long-Term Horizon</h3>
           <ul>
             <li data-i18n="matrix.space.i1">Lunar ISRU, Von Neumann probes, life-support nets</li>
             <li data-i18n="matrix.space.i2">Light-lag, radiation corruption, zero continuous paths</li>
@@ -416,7 +435,7 @@
           <div class="phase-content">
             <div class="phase-meta">
               <span class="phase-time" data-i18n="roadmap.p2.time">Months 6–18</span>
-              <span class="phase-focus" data-i18n="roadmap.p2.focus">Anti-NVIDIA · Edge AI</span>
+              <span class="phase-focus" data-i18n="roadmap.p2.focus">Edge AI · Scale</span>
             </div>
             <h3 data-i18n="roadmap.p2.title">Computational Scale &amp; Lock-In</h3>
             <p data-i18n="roadmap.p2.desc">Optimize TinyModel for edge-native execution. Decentralized model fragmentation turns idle client hardware into a distributed supercomputer. Monetize compute network via Phase 1 enterprise connections.</p>
@@ -553,7 +572,7 @@
     <section id="moats" class="section">
       <div class="section-header">
         <span class="section-tag" data-i18n="moats.tag">07 · Trillion-Dollar Moats</span>
-        <h2 data-i18n="moats.title">How We Win Where Others Cannot</h2>
+        <h2 data-i18n="moats.title">Structural Advantages</h2>
       </div>
       <div class="card-grid four">
         <article class="moat-card">
@@ -579,7 +598,7 @@
       <div class="north-star-content">
         <span class="section-tag" data-i18n="north.tag">08 · North Star</span>
         <h2 data-i18n="north.title">The Future We're Building</h2>
-        <blockquote data-i18n="north.quote">This is Hyperlinks Space's straight line from today to owning the interplanetary nervous system — a trillion-dollar infrastructure layer that coordinates industry on Earth, freight and compute in cis-lunar space, and the protocols that bind it all together.</blockquote>
+        <blockquote data-i18n="north.quote">Hyperlinks Space is building the infrastructure layer that coordinates industry on Earth, freight and compute in cis-lunar space, and the protocols that connect both domains.</blockquote>
         <div class="north-milestones">
           <div class="milestone"><span class="year">2026</span><span data-i18n="north.y2026">First 50-node offline pilot · Rust core MVP</span></div>
           <div class="milestone"><span class="year">2028</span><span data-i18n="north.y2028">$10M ARR from edge compute · Series A</span></div>
