@@ -159,6 +159,7 @@
   var speechVoicesReady = false;
   var micRestartTimer = 0;
   var micAutoStartTimer = 0;
+  var aiRequestGen = 0;
 
   function emitOrb(mode, detail) {
     if (window.HLS && window.HLS.setOrbReactive) {
@@ -306,6 +307,7 @@
 
   function cancelGeneration() {
     var wasActive = isGenerating();
+    aiRequestGen += 1;
     if (state.aiPending) {
       if (window.HLS.aiChat && window.HLS.aiChat.cancel) {
         window.HLS.aiChat.cancel();
@@ -331,8 +333,11 @@
     state.aiPending = true;
     showThinking();
     setGeneratingUI(true);
+    var requestGen = ++aiRequestGen;
 
     window.HLS.aiChat.ask(raw, getLang()).then(function (result) {
+      if (requestGen !== aiRequestGen) return;
+
       hideThinking();
       state.aiPending = false;
       setGeneratingUI(false);
@@ -356,6 +361,8 @@
 
       sayBot('ai.apiOffline');
     }).catch(function () {
+      if (requestGen !== aiRequestGen) return;
+
       hideThinking();
       state.aiPending = false;
       setGeneratingUI(false);

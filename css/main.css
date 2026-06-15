@@ -4236,7 +4236,6 @@ main { position: relative; z-index: 1; padding-top: var(--header-stack); padding
 /* Responsive */
 @media (max-width: 1024px) {
   .hero--fullscreen .hero-stage { min-height: calc(100dvh - var(--strip-stack)); }
-  .hero--fullscreen { min-height: calc(100dvh - var(--strip-stack)); }
   .ai-core-panel { max-height: calc(100% - 1rem); }
   .ai-core-messages { max-height: min(360px, 48vh); flex: 1; }
   .ai-core-chips { max-height: none; }
@@ -4253,6 +4252,32 @@ main { position: relative; z-index: 1; padding-top: var(--header-stack); padding
   :root {
     --bar-float-gap: 10px;
     --bar-float-max: calc(100vw - 20px);
+  }
+
+  .hero--fullscreen {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  .hero--fullscreen .hero-stage {
+    flex: 0 0 auto;
+    height: calc(100dvh - var(--strip-stack));
+    min-height: calc(100dvh - var(--strip-stack));
+  }
+
+  .hero--fullscreen .hero-intro {
+    flex: 0 0 auto;
+    position: relative;
+    z-index: 2;
+    padding: 1.75rem 1rem 2.5rem;
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+  }
+
+  .section {
+    content-visibility: visible;
+    contain-intrinsic-size: none;
   }
 
   .site-header {
@@ -4345,6 +4370,32 @@ main { position: relative; z-index: 1; padding-top: var(--header-stack); padding
 
   .pillars-grid { grid-template-columns: 1fr; }
   .section { padding: 4rem 1rem; }
+
+  .hero--fullscreen {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  .hero--fullscreen .hero-stage {
+    flex: 0 0 auto;
+    height: calc(100dvh - var(--strip-stack));
+    min-height: calc(100dvh - var(--strip-stack));
+  }
+
+  .hero--fullscreen .hero-intro {
+    flex: 0 0 auto;
+    position: relative;
+    z-index: 2;
+    padding: 1.75rem 1rem 2.5rem;
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+  }
+
+  .section {
+    content-visibility: visible;
+    contain-intrinsic-size: none;
+  }
 
   .ai-core-panel {
     border-radius: 14px;
