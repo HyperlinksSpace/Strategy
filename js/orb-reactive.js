@@ -3,26 +3,26 @@
 
   var MODES = ['idle', 'listening', 'thinking', 'typing', 'speaking', 'user', 'navigate', 'tour'];
   var MODE_CFG = {
-    idle: { intensity: 0.14, hue: 220, pulse: 0.32, speed: 1 },
-    listening: { intensity: 0.58, hue: 128, pulse: 0.88, speed: 1.15 },
-    thinking: { intensity: 0.52, hue: 235, pulse: 0.55, speed: 1.35 },
-    typing: { intensity: 0.42, hue: 272, pulse: 0.68, speed: 1.25 },
-    speaking: { intensity: 0.78, hue: 252, pulse: 0.96, speed: 1.1 },
-    user: { intensity: 0.62, hue: 205, pulse: 0.82, speed: 1.4 },
-    navigate: { intensity: 0.88, hue: 218, pulse: 1, speed: 1.55 },
-    tour: { intensity: 0.64, hue: 248, pulse: 0.78, speed: 1.2 }
+    idle: { intensity: 0.12, hue: 248, pulse: 0.24, speed: 0.78 },
+    listening: { intensity: 0.64, hue: 162, pulse: 0.94, speed: 1.06 },
+    thinking: { intensity: 0.58, hue: 278, pulse: 0.76, speed: 1.48 },
+    typing: { intensity: 0.5, hue: 292, pulse: 0.84, speed: 1.38 },
+    speaking: { intensity: 0.84, hue: 318, pulse: 1, speed: 0.9 },
+    user: { intensity: 0.78, hue: 340, pulse: 0.96, speed: 1.5 },
+    navigate: { intensity: 0.92, hue: 198, pulse: 1, speed: 1.55 },
+    tour: { intensity: 0.52, hue: 265, pulse: 0.7, speed: 1.04 }
   };
 
   var SECTION_HUE = {
-    hero: 220,
-    vision: 268,
-    pillars: 132,
-    'earth-space': 208,
-    roadmap: 48,
-    architecture: 278,
-    revenue: 158,
-    moats: 292,
-    'north-star': 242
+    hero: 248,
+    vision: 278,
+    pillars: 162,
+    'earth-space': 198,
+    roadmap: 265,
+    architecture: 288,
+    revenue: 155,
+    moats: 310,
+    'north-star': 318
   };
 
   var zone = null;
@@ -32,34 +32,54 @@
     mode: 'idle',
     intensity: 0.14,
     targetIntensity: 0.14,
-    hue: 220,
-    targetHue: 220,
-    pulse: 0.32,
-    targetPulse: 0.32,
-    speed: 1,
-    targetSpeed: 1,
+    hue: 248,
+    targetHue: 248,
+    pulse: 0.26,
+    targetPulse: 0.26,
+    speed: 0.82,
+    targetSpeed: 0.82,
     impulse: 0,
     sectionId: null,
-    speakingPhase: 0
+    speakingPhase: 0,
+    cursorX: 0,
+    cursorY: 0,
+    targetCursorX: 0,
+    targetCursorY: 0,
+    cursorActive: 0,
+    targetCursorActive: 0
   };
 
+  function findZone() {
+    return document.querySelector('.stratviz-stage') ||
+      document.querySelector('.nexus-stage') ||
+      document.querySelector('.ai-orb-zone');
+  }
+
   function applyDom() {
-    if (!zone) zone = document.querySelector('.ai-orb-zone');
+    if (!zone) zone = findZone();
     if (!zone) return;
     var i;
     for (i = 0; i < MODES.length; i++) {
       zone.classList.remove('orb-reactive--' + MODES[i]);
     }
     zone.classList.add('orb-reactive--' + reactive.mode);
+    zone.setAttribute('data-orb-mode', reactive.mode);
     if (reactive.sectionId) {
       zone.setAttribute('data-orb-section', reactive.sectionId);
     } else {
       zone.removeAttribute('data-orb-section');
     }
-    zone.style.setProperty('--orb-reactive-intensity', String(reactive.intensity + reactive.impulse * 0.45));
+    var intensity = reactive.intensity + reactive.impulse * 0.55;
+    zone.style.setProperty('--orb-reactive-intensity', String(intensity));
     zone.style.setProperty('--orb-reactive-hue', String(reactive.hue));
     zone.style.setProperty('--orb-reactive-pulse', String(reactive.pulse));
     zone.style.setProperty('--orb-reactive-speed', String(reactive.speed));
+    zone.style.setProperty('--stratviz-cursor-x', String(50 + reactive.cursorX * 46));
+    zone.style.setProperty('--stratviz-cursor-y', String(44 + reactive.cursorY * 38));
+    zone.style.setProperty('--stratviz-cursor-active', String(reactive.cursorActive));
+    zone.style.setProperty('--stratviz-tilt-x', String(reactive.cursorY * -4 * reactive.cursorActive));
+    zone.style.setProperty('--stratviz-tilt-y', String(reactive.cursorX * 5 * reactive.cursorActive));
+    zone.classList.toggle('stratviz-cursor-on', reactive.cursorActive > 0.05);
   }
 
   function broadcast() {
@@ -70,7 +90,10 @@
       pulse: reactive.pulse,
       speed: reactive.speed,
       impulse: reactive.impulse,
-      sectionId: reactive.sectionId
+      sectionId: reactive.sectionId,
+      cursorX: reactive.cursorX,
+      cursorY: reactive.cursorY,
+      cursorActive: reactive.cursorActive
     } }));
   }
 
@@ -102,18 +125,41 @@
 
   function tick() {
     raf = requestAnimationFrame(tick);
-    reactive.intensity += (reactive.targetIntensity - reactive.intensity) * 0.07;
-    reactive.hue += (reactive.targetHue - reactive.hue) * 0.06;
-    reactive.pulse += (reactive.targetPulse - reactive.pulse) * 0.08;
-    reactive.speed += (reactive.targetSpeed - reactive.speed) * 0.07;
-    reactive.impulse *= 0.9;
-    reactive.speakingPhase += reactive.mode === 'speaking' ? 0.14 * reactive.pulse : 0.04;
+    reactive.intensity += (reactive.targetIntensity - reactive.intensity) * 0.09;
+    reactive.hue += (reactive.targetHue - reactive.hue) * 0.07;
+    reactive.pulse += (reactive.targetPulse - reactive.pulse) * 0.1;
+    reactive.speed += (reactive.targetSpeed - reactive.speed) * 0.08;
+    reactive.impulse *= 0.85;
+    reactive.cursorX += (reactive.targetCursorX - reactive.cursorX) * 0.16;
+    reactive.cursorY += (reactive.targetCursorY - reactive.cursorY) * 0.16;
+    reactive.cursorActive += (reactive.targetCursorActive - reactive.cursorActive) * 0.18;
+    reactive.speakingPhase += reactive.mode === 'speaking' ? 0.15 * reactive.pulse : 0.035;
     if (zone) {
-      zone.style.setProperty('--orb-reactive-intensity', String(reactive.intensity + reactive.impulse * 0.45));
+      var intensity = reactive.intensity + reactive.impulse * 0.55;
+      zone.style.setProperty('--orb-reactive-intensity', String(intensity));
       zone.style.setProperty('--orb-reactive-hue', String(reactive.hue));
       zone.style.setProperty('--orb-reactive-pulse', String(reactive.pulse));
       zone.style.setProperty('--orb-reactive-speed', String(reactive.speed));
       zone.style.setProperty('--orb-speaking-phase', String(reactive.speakingPhase));
+      zone.style.setProperty('--stratviz-cursor-x', String(50 + reactive.cursorX * 46));
+      zone.style.setProperty('--stratviz-cursor-y', String(44 + reactive.cursorY * 38));
+      zone.style.setProperty('--stratviz-cursor-active', String(reactive.cursorActive));
+      zone.style.setProperty('--stratviz-tilt-x', String(reactive.cursorY * -4 * reactive.cursorActive));
+      zone.style.setProperty('--stratviz-tilt-y', String(reactive.cursorX * 5 * reactive.cursorActive));
+      var cx = 50 + reactive.cursorX * 46;
+      var cy = 44 + reactive.cursorY * 38;
+      var beamAngle = Math.atan2(44 - cy, 50 - cx) * (180 / Math.PI);
+      zone.style.setProperty('--stratviz-beam-angle', String(beamAngle));
+      zone.classList.toggle('stratviz-cursor-on', reactive.cursorActive > 0.05);
+      var coordsEl = document.getElementById('stratviz-coords');
+      if (coordsEl && reactive.cursorActive > 0.05) {
+        coordsEl.textContent = 'X ' + Math.round(50 + reactive.cursorX * 46) +
+          ' · Y ' + Math.round(44 + reactive.cursorY * 38);
+      }
+      var coordX = zone.querySelector('.stratviz-coord-x');
+      var coordY = zone.querySelector('.stratviz-coord-y');
+      if (coordX) coordX.textContent = String(Math.round(50 + reactive.cursorX * 46));
+      if (coordY) coordY.textContent = String(Math.round(44 + reactive.cursorY * 38));
     }
   }
 
@@ -130,16 +176,25 @@
     setMode(d.mode, d);
   }
 
+  function setCursor(x, y, active) {
+    reactive.targetCursorX = Math.max(-1, Math.min(1, x || 0));
+    reactive.targetCursorY = Math.max(-1, Math.min(1, y || 0));
+    reactive.targetCursorActive = active ? 1 : 0;
+  }
+
   window.HLS = window.HLS || {};
   window.HLS.getOrbReactive = function () {
     return {
       mode: reactive.mode,
-      intensity: reactive.intensity + reactive.impulse * 0.45,
+      intensity: reactive.intensity + reactive.impulse * 0.55,
       hue: reactive.hue,
       pulse: reactive.pulse,
       speed: reactive.speed,
       sectionId: reactive.sectionId,
-      speakingPhase: reactive.speakingPhase
+      speakingPhase: reactive.speakingPhase,
+      cursorX: reactive.cursorX,
+      cursorY: reactive.cursorY,
+      cursorActive: reactive.cursorActive
     };
   };
   window.HLS.setOrbReactive = function (mode, detail) {
@@ -147,12 +202,15 @@
       detail: Object.assign({ mode: mode }, detail || {})
     }));
   };
+  window.HLS.setStratvizCursor = setCursor;
+  window.HLS.setNexusCursor = setCursor;
   window.HLS.orbImpulse = function (amount) {
     reactive.impulse = Math.min(1, reactive.impulse + (amount || 0.35));
     applyDom();
   };
 
   document.addEventListener('ai-core:orb', onOrbEvent);
+  zone = findZone();
   applyDom();
   broadcast();
   tick();

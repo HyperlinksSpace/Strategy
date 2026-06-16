@@ -1,0 +1,247 @@
+/* Strategy Nexus Visual — distinct from hyperlinks.space orb */
+
+.nexus-stage.ai-orb-zone {
+  --nx-gold: hsl(var(--orb-reactive-hue, 38), 78%, 58%);
+  --nx-cyan: hsl(calc(var(--orb-reactive-hue, 38) + 140), 72%, 52%);
+  cursor: crosshair;
+  pointer-events: auto;
+  isolation: isolate;
+  border: 1px solid hsla(var(--orb-reactive-hue, 38), 45%, 48%, 0.28);
+  background:
+    radial-gradient(ellipse 100% 80% at 50% 110%, hsla(var(--orb-reactive-hue, 38), 55%, 18%, 0.35), transparent 55%),
+    radial-gradient(ellipse 70% 55% at 50% 42%, hsla(calc(var(--orb-reactive-hue, 38) + 140), 60%, 45%, calc(0.06 + var(--orb-reactive-intensity, 0.16) * 0.14)), transparent 68%),
+    linear-gradient(168deg, hsl(228, 32%, 7%) 0%, hsl(235, 38%, 5%) 48%, hsl(220, 28%, 4%) 100%);
+  box-shadow:
+    inset 0 0 0 1px hsla(38, 60%, 70%, 0.06),
+    inset 0 -30px 60px hsla(var(--orb-reactive-hue, 38), 70%, 40%, calc(var(--orb-reactive-intensity, 0.16) * 0.12)),
+    0 0 calc(20px + var(--orb-reactive-intensity, 0.16) * 40px) hsla(var(--orb-reactive-hue, 38), 75%, 50%, calc(var(--orb-reactive-intensity, 0.16) * 0.2));
+  transition: border-color 0.5s ease, box-shadow 0.5s ease;
+}
+
+.nexus-backdrop {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.nexus-horizon {
+  position: absolute;
+  left: -10%;
+  right: -10%;
+  bottom: -8%;
+  height: 45%;
+  background: radial-gradient(ellipse 80% 100% at 50% 100%, hsla(38, 70%, 45%, 0.18), transparent 70%);
+  opacity: calc(0.5 + var(--orb-reactive-intensity, 0.16) * 0.5);
+  animation: nexus-horizon-pulse calc(6s / var(--orb-reactive-speed, 1)) ease-in-out infinite;
+}
+
+.nexus-hex-field {
+  position: absolute;
+  inset: 0;
+  opacity: 0.35;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='100' viewBox='0 0 56 100'%3E%3Cpath d='M28 0 L56 16 L56 50 L28 66 L0 50 L0 16 Z' fill='none' stroke='rgba(212,168,83,0.08)' stroke-width='0.6'/%3E%3Cpath d='M28 34 L56 50 L56 84 L28 100 L0 84 L0 50 Z' fill='none' stroke='rgba(78,205,196,0.06)' stroke-width='0.6'/%3E%3C/svg%3E");
+  background-size: 56px 100px;
+  mask-image: radial-gradient(ellipse 90% 75% at 50% 46%, #000 20%, transparent 75%);
+}
+
+.nexus-aurora {
+  position: absolute;
+  inset: -20%;
+  background:
+    conic-gradient(from 210deg at 55% 45%,
+      transparent 0deg,
+      hsla(38, 80%, 55%, 0.12) 40deg,
+      transparent 90deg,
+      hsla(178, 70%, 48%, 0.1) 160deg,
+      transparent 220deg,
+      hsla(258, 60%, 55%, 0.08) 290deg,
+      transparent 360deg);
+  filter: blur(28px);
+  opacity: calc(0.45 + var(--orb-reactive-intensity, 0.16) * 0.55);
+  animation: nexus-aurora-spin calc(28s / var(--orb-reactive-speed, 1)) linear infinite;
+}
+
+.nexus-fx-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.nexus-webgl,
+.hero-orb-canvas.nexus-webgl {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.nexus-cursor-ring {
+  position: absolute;
+  left: calc(var(--nexus-cursor-x, 50) * 1%);
+  top: calc(var(--nexus-cursor-y, 46) * 1%);
+  width: 48px;
+  height: 48px;
+  margin: -24px 0 0 -24px;
+  border-radius: 50%;
+  border: 1px solid hsla(var(--orb-reactive-hue, 38), 80%, 65%, 0);
+  pointer-events: none;
+  z-index: 4;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.nexus-cursor-glow {
+  position: absolute;
+  left: calc(var(--nexus-cursor-x, 50) * 1%);
+  top: calc(var(--nexus-cursor-y, 46) * 1%);
+  width: 120px;
+  height: 120px;
+  margin: -60px 0 0 -60px;
+  border-radius: 50%;
+  background: radial-gradient(circle, hsla(var(--orb-reactive-hue, 38), 85%, 62%, 0.15), transparent 68%);
+  pointer-events: none;
+  z-index: 3;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.nexus-stage.nexus-cursor-on .nexus-cursor-ring {
+  opacity: calc(var(--nexus-cursor-active, 0) * 0.85);
+  border-color: hsla(var(--orb-reactive-hue, 38), 85%, 68%, calc(var(--nexus-cursor-active, 0) * 0.55));
+  box-shadow: 0 0 12px hsla(var(--orb-reactive-hue, 38), 90%, 60%, calc(var(--nexus-cursor-active, 0) * 0.35));
+  animation: nexus-cursor-pulse 1.8s ease-in-out infinite;
+}
+
+.nexus-stage.nexus-cursor-on .nexus-cursor-glow {
+  opacity: calc(var(--nexus-cursor-active, 0) * 0.7);
+}
+
+.nexus-frame {
+  position: absolute;
+  inset: 10px;
+  border-radius: calc(clamp(8px, 1.5vw, 16px) - 4px);
+  border: 1px solid hsla(38, 55%, 62%, 0.12);
+  pointer-events: none;
+  z-index: 5;
+}
+
+.nexus-frame::before,
+.nexus-frame::after {
+  content: "";
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-color: hsla(var(--orb-reactive-hue, 38), 70%, 58%, 0.45);
+  border-style: solid;
+  opacity: calc(0.35 + var(--orb-reactive-intensity, 0.16) * 0.45);
+}
+
+.nexus-frame::before {
+  top: -1px;
+  left: -1px;
+  border-width: 2px 0 0 2px;
+}
+
+.nexus-frame::after {
+  bottom: -1px;
+  right: -1px;
+  border-width: 0 2px 2px 0;
+}
+
+.nexus-vignette {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 6;
+  background: radial-gradient(ellipse 95% 85% at 50% 46%, transparent 42%, hsla(228, 40%, 4%, 0.55) 100%);
+}
+
+.nexus-stage.orb-reactive--listening {
+  border-color: hsla(168, 65%, 48%, 0.45);
+}
+
+.nexus-stage.orb-reactive--thinking {
+  border-color: hsla(258, 50%, 55%, 0.38);
+}
+
+.nexus-stage.orb-reactive--typing {
+  border-color: hsla(32, 70%, 52%, 0.38);
+}
+
+.nexus-stage.orb-reactive--speaking {
+  border-color: hsla(var(--orb-reactive-hue, 22), 75%, 55%, 0.5);
+  animation: nexus-speak-glow 1.2s ease-in-out infinite;
+}
+
+.nexus-stage.orb-reactive--navigate {
+  border-color: hsla(178, 65%, 48%, 0.52);
+}
+
+.nexus-stage.orb-reactive--user {
+  animation: nexus-user-flash 0.6s ease-out;
+}
+
+[data-theme="light"] .nexus-stage {
+  border-color: hsla(32, 45%, 42%, 0.22);
+  background:
+    radial-gradient(ellipse 100% 80% at 50% 110%, hsla(38, 55%, 72%, 0.12), transparent 55%),
+    linear-gradient(168deg, hsl(220, 25%, 96%) 0%, hsl(215, 20%, 94%) 100%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.85), var(--shadow-sm, 0 4px 24px rgba(15, 23, 42, 0.08));
+}
+
+[data-theme="light"] .nexus-vignette {
+  background: radial-gradient(ellipse 95% 85% at 50% 46%, transparent 50%, hsla(220, 20%, 88%, 0.35) 100%);
+}
+
+@keyframes nexus-aurora-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes nexus-horizon-pulse {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(1.08); }
+}
+
+@keyframes nexus-cursor-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.12); }
+}
+
+@keyframes nexus-speak-glow {
+  0%, 100% { box-shadow: 0 0 24px hsla(var(--orb-reactive-hue, 22), 80%, 50%, 0.2); }
+  50% { box-shadow: 0 0 48px hsla(var(--orb-reactive-hue, 22), 85%, 52%, 0.38); }
+}
+
+@keyframes nexus-user-flash {
+  0% { filter: brightness(1.4); }
+  100% { filter: brightness(1); }
+}
+
+.hero--fullscreen .ai-core-aurora {
+  opacity: 0.12;
+  mix-blend-mode: soft-light;
+}
+
+@media (max-width: 768px) {
+  .nexus-stage.ai-orb-zone { min-height: 120px; cursor: default; }
+  .nexus-cursor-ring, .nexus-cursor-glow { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nexus-aurora, .nexus-horizon, .nexus-cursor-ring { animation: none !important; }
+  .nexus-stage.orb-reactive--speaking, .nexus-stage.orb-reactive--user { animation: none !important; }
+}
+
+.nexus-stage.ai-orb-zone {
+  border-radius: clamp(12px, 2vw, 20px);
+}
