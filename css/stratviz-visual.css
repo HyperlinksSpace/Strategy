@@ -762,7 +762,7 @@
 
 @media (max-width: 768px) {
   .stratviz-stage.ai-orb-zone {
-    min-height: 120px;
+    min-height: 0;
     cursor: default;
     overflow: hidden;
     isolation: isolate;

@@ -233,7 +233,7 @@
 }
 
 @media (max-width: 768px) {
-  .nexus-stage.ai-orb-zone { min-height: 120px; cursor: default; }
+  .nexus-stage.ai-orb-zone { min-height: 0; cursor: default; }
   .nexus-cursor-ring, .nexus-cursor-glow { display: none; }
 }
 

@@ -3093,18 +3093,20 @@ main { position: relative; z-index: 1; padding-top: var(--header-stack); padding
   .hero-stage-layout {
     --hero-mobile-chat-share: 8fr;
     --hero-mobile-orb-share: 2fr;
+    top: var(--header-stack);
+    bottom: 0;
+    height: auto;
     grid-template-columns: 1fr;
     grid-template-rows:
       minmax(0, var(--hero-mobile-chat-share))
       minmax(0, var(--hero-mobile-orb-share));
-    height: 100%;
     min-height: 0;
     gap: 0.5rem;
     overflow: hidden;
     padding:
-      calc(var(--header-stack) + 0.5rem)
+      0.5rem
       clamp(0.55rem, 2.5vw, 0.85rem)
-      calc(var(--strip-stack) + 1.15rem + env(safe-area-inset-bottom, 0px));
+      calc(0.65rem + env(safe-area-inset-bottom, 0px));
     box-sizing: border-box;
   }
 
@@ -3217,8 +3219,8 @@ main { position: relative; z-index: 1; padding-top: var(--header-stack); padding
     --header-h: 64px;
     --strip-h: 44px;
     --strip-stack: calc(var(--strip-h) + var(--bar-float-gap) * 2 + 14px);
-    --hero-mobile-chat-share: 8.5fr;
-    --hero-mobile-orb-share: 1.5fr;
+    --hero-mobile-chat-share: 8fr;
+    --hero-mobile-orb-share: 2fr;
   }
 
   .site-header,
@@ -3276,9 +3278,9 @@ main { position: relative; z-index: 1; padding-top: var(--header-stack); padding
   .hero-stage-layout {
     gap: 0.4rem;
     padding:
-      calc(var(--header-stack) + 0.35rem)
+      0.35rem
       clamp(0.5rem, 2.5vw, 0.75rem)
-      calc(var(--strip-stack) + 1.25rem + env(safe-area-inset-bottom, 0px));
+      calc(0.55rem + env(safe-area-inset-bottom, 0px));
   }
 
   .ai-orb-halo {
