@@ -23,8 +23,10 @@
       heroVisible = entries.some(function (e) {
         return e.isIntersecting && e.intersectionRatio > 0.06;
       });
+      hero.setAttribute('data-hero-visible', heroVisible ? '1' : '0');
       window.dispatchEvent(new Event('hls:hero-visibility'));
     }, { threshold: [0, 0.06, 0.15, 0.35] }).observe(hero);
+    hero.setAttribute('data-hero-visible', '1');
   }
 
   function observeSections() {

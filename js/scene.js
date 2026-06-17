@@ -506,15 +506,40 @@
     var canvas = document.getElementById('hero-orb');
     if (!canvas) return;
     var gen = loadGen;
-    loadDeps().then(function (deps) {
+
+    function startScene() {
       if (gen !== loadGen) return;
-      disposer = createHeroScene(deps, canvas);
-    }).catch(function (err) {
-      console.warn('[scene]', err);
-    });
+      loadDeps().then(function (deps) {
+        if (gen !== loadGen) return;
+        disposer = createHeroScene(deps, canvas);
+      }).catch(function (err) {
+        console.warn('[scene]', err);
+      });
+    }
+
+    if (shouldRun()) {
+      startScene();
+      return;
+    }
+
+    function onHeroVis() {
+      if (!shouldRun()) return;
+      window.removeEventListener('hls:hero-visibility', onHeroVis);
+      startScene();
+    }
+    window.addEventListener('hls:hero-visibility', onHeroVis);
   }
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
-  else init();
+  function scheduleInit() {
+    var run = function () { init(); };
+    if (window.requestIdleCallback) {
+      requestIdleCallback(run, { timeout: 1800 });
+    } else {
+      setTimeout(run, 16);
+    }
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', scheduleInit);
+  else scheduleInit();
   window.addEventListener('hls:theme-applied', init);
 })();

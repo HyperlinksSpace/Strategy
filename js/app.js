@@ -30,35 +30,43 @@
   }
 
   function applyLang(lang, persist) {
-    var dict = window.HLS_I18N[lang] || window.HLS_I18N.en;
-    document.documentElement.lang = lang;
+    function run() {
+      var dict = window.HLS_I18N[lang] || window.HLS_I18N.en;
+      document.documentElement.lang = lang;
 
-    document.querySelectorAll('[data-i18n]').forEach(function (el) {
-      var key = el.getAttribute('data-i18n');
-      if (dict[key]) el.textContent = dict[key];
-    });
+      document.querySelectorAll('[data-i18n]').forEach(function (el) {
+        var key = el.getAttribute('data-i18n');
+        if (dict[key]) el.textContent = dict[key];
+      });
 
-    document.querySelectorAll('[data-i18n-placeholder]').forEach(function (el) {
-      var key = el.getAttribute('data-i18n-placeholder');
-      if (dict[key]) el.placeholder = dict[key];
-    });
+      document.querySelectorAll('[data-i18n-placeholder]').forEach(function (el) {
+        var key = el.getAttribute('data-i18n-placeholder');
+        if (dict[key]) el.placeholder = dict[key];
+      });
 
-    document.querySelectorAll('[data-i18n-svg]').forEach(function (el) {
-      var key = el.getAttribute('data-i18n-svg');
-      if (dict[key]) el.textContent = dict[key];
-    });
+      document.querySelectorAll('[data-i18n-svg]').forEach(function (el) {
+        var key = el.getAttribute('data-i18n-svg');
+        if (dict[key]) el.textContent = dict[key];
+      });
 
-    document.querySelectorAll('[data-i18n-aria]').forEach(function (el) {
-      var key = el.getAttribute('data-i18n-aria');
-      if (dict[key]) el.setAttribute('aria-label', dict[key]);
-    });
+      document.querySelectorAll('[data-i18n-aria]').forEach(function (el) {
+        var key = el.getAttribute('data-i18n-aria');
+        if (dict[key]) el.setAttribute('aria-label', dict[key]);
+      });
 
-    document.querySelectorAll('.lang-btn').forEach(function (btn) {
-      btn.classList.toggle('active', btn.getAttribute('data-lang') === lang);
-    });
+      document.querySelectorAll('.lang-btn').forEach(function (btn) {
+        btn.classList.toggle('active', btn.getAttribute('data-lang') === lang);
+      });
 
-    if (persist) localStorage.setItem(LANG_KEY, lang);
-    window.dispatchEvent(new Event('hls:locale-change'));
+      if (persist) localStorage.setItem(LANG_KEY, lang);
+      window.dispatchEvent(new Event('hls:locale-change'));
+    }
+
+    if (window.HLS && window.HLS.loadLocalePack) {
+      window.HLS.loadLocalePack(lang).then(run);
+    } else {
+      run();
+    }
   }
 
   function applyTheme(theme, persist) {

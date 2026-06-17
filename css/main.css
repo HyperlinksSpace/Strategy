@@ -2100,6 +2100,15 @@ main { position: relative; z-index: 1; padding-top: var(--header-stack); padding
   contain-intrinsic-size: auto 720px;
 }
 
+.section[data-cv="hidden"] * {
+  animation-play-state: paused !important;
+}
+
+.section[data-cv="hidden"] .stratviz-stage *,
+.section[data-cv="hidden"] .ai-orb-zone * {
+  transition-duration: 0s !important;
+}
+
 .section-alt {
   background: var(--surface-muted);
   max-width: none;

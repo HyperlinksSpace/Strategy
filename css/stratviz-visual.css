@@ -819,3 +819,14 @@
   .stratviz-stage.orb-reactive--speaking,
   .stratviz-stage.orb-reactive--user { animation: none !important; }
 }
+
+#hero[data-hero-visible="0"] .stratviz-stage *,
+.hls-scrolling .stratviz-stage * {
+  animation-play-state: paused !important;
+}
+
+.hls-lite .stratviz-scanline,
+.hls-lite .stratviz-radar,
+.hls-lite .stratviz-lattice {
+  animation-duration: calc(var(--orb-reactive-speed, 1) * 12s) !important;
+}

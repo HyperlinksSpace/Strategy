@@ -14,20 +14,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-  <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600&display=swap" rel="stylesheet">
-  <link rel="icon" href="favicon.ico" sizes="any">
-  <link rel="icon" href="assets/logo-mark.svg" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <link rel="preload" href="css/main.css" as="style">
+  <link rel="preload" href="css/stratviz-visual.css" as="style">
   <link rel="stylesheet" href="css/main.css">
   <link rel="stylesheet" href="css/stratviz-visual.css">
-  <script type="importmap">
-  {
-    "imports": {
-      "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js"
-    }
-  }
-  </script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600&display=swap" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600&display=swap"></noscript>
+  <link rel="icon" href="assets/logo-mark.svg" type="image/svg+xml">
   <script>
     (function () {
       var SUPPORTED = { en: 1, ru: 1, zh: 1 };
@@ -66,6 +59,29 @@
       }
 
       document.documentElement.setAttribute('data-theme', bootResolveTheme(t));
+
+      if (l !== 'en') {
+        var pack = document.createElement('link');
+        pack.rel = 'preload';
+        pack.as = 'script';
+        pack.href = 'js/i18n-' + l + '.js';
+        document.head.appendChild(pack);
+      }
+
+      document.addEventListener('DOMContentLoaded', function () {
+        var theme = document.documentElement.getAttribute('data-theme');
+        var darkLogo = document.querySelector('.logo-full-dark');
+        var lightLogo = document.querySelector('.logo-full-light');
+        if (darkLogo && lightLogo) {
+          if (theme === 'light') {
+            darkLogo.loading = 'lazy';
+            darkLogo.setAttribute('fetchpriority', 'low');
+          } else {
+            lightLogo.loading = 'lazy';
+            lightLogo.setAttribute('fetchpriority', 'low');
+          }
+        }
+      });
     })();
   </script>
 </head>
@@ -691,19 +707,19 @@
     </p>
   </footer>
 
-  <script src="js/settings.js"></script>
-  <script src="js/i18n.js"></script>
-  <script src="js/locale.js"></script>
-  <script src="js/nav-dd-content.js"></script>
-  <script src="js/theme.js"></script>
-  <script src="js/perf.js"></script>
-  <script src="js/orb-reactive.js"></script>
-  <script src="js/scene.js"></script>
-  <script src="js/orb-fx.js"></script>
-  <script src="js/liquid-glass.js"></script>
-  <script src="js/nav-dropdowns.js"></script>
-  <script src="js/ai-chat.js"></script>
-  <script src="js/ai-core.js"></script>
-  <script src="js/app.js"></script>
+  <script src="js/settings.js" defer></script>
+  <script src="js/i18n.js" defer></script>
+  <script src="js/locale.js" defer></script>
+  <script src="js/locale-pack.js" defer></script>
+  <script src="js/nav-dd-content.js" defer></script>
+  <script src="js/theme.js" defer></script>
+  <script src="js/perf.js" defer></script>
+  <script src="js/orb-reactive.js" defer></script>
+  <script src="js/scene.js" defer></script>
+  <script src="js/orb-fx.js" defer></script>
+  <script src="js/liquid-glass.js" defer></script>
+  <script src="js/nav-dropdowns.js" defer></script>
+  <script src="js/ai-loader.js" defer></script>
+  <script src="js/app.js" defer></script>
 </body>
 </html>

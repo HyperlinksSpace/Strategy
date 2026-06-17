@@ -32,6 +32,10 @@
     };
   }
 
+  function getQuality() {
+    return window.HLS && window.HLS.getQuality ? window.HLS.getQuality() : { lite: false, dpr: 1 };
+  }
+
   function shouldRun() {
     return window.HLS && window.HLS.shouldAnimateHero ? window.HLS.shouldAnimateHero() : !document.hidden;
   }
@@ -66,7 +70,8 @@
 
   function initFlow() {
     flowParticles = [];
-    var count = w < 400 ? 56 : (w < 700 ? 110 : 180);
+    var q = getQuality();
+    var count = q.lite ? (w < 400 ? 28 : 48) : (w < 400 ? 56 : (w < 700 ? 110 : 180));
     var i;
     for (i = 0; i < count; i++) {
       flowParticles.push({
@@ -83,7 +88,8 @@
   function initVoronoi() {
     voronoiSeeds = [];
     var i;
-    var n = w < 400 ? 10 : 16;
+    var q = getQuality();
+    var n = q.lite ? (w < 400 ? 6 : 8) : (w < 400 ? 10 : 16);
     for (i = 0; i < n; i++) {
       voronoiSeeds.push({
         x: 0.12 + Math.random() * 0.76,
@@ -253,18 +259,24 @@
   }
 
   function drawContours(t, rx, light) {
+    var q = getQuality();
+    if (q.lite && (rx.mode === 'idle' || document.documentElement.classList.contains('hls-scrolling'))) {
+      return;
+    }
     var hue = rx.hue || 248;
     var energy = rx.intensity || 0.14;
-    var rows = Math.floor(h / 12);
+    var rowStep = q.lite ? 20 : 12;
+    var xStep = q.lite ? 10 : 5;
+    var rows = Math.floor(h / rowStep);
     var row;
     var x;
     ctx.lineWidth = 0.85;
     for (row = 0; row < rows; row++) {
-      var baseY = row * 12;
+      var baseY = row * rowStep;
       var alpha = (light ? 0.05 : 0.08) + energy * 0.08;
       ctx.strokeStyle = hsla(hue + row * 0.5, light ? 32 : 48, light ? 50 : 44, alpha);
       ctx.beginPath();
-      for (x = 0; x <= w; x += 5) {
+      for (x = 0; x <= w; x += xStep) {
         var wave = Math.sin(x * 0.016 + t * 0.55 + row * 0.4) * (10 + energy * 18);
         wave += noise2(x, baseY, t) * 8 * energy;
         if (cursor.active) {
@@ -418,10 +430,11 @@
     }
 
     ctx.clearRect(0, 0, w, h);
-    drawVoronoi(t, rx, light);
+    var q = getQuality();
+    if (!q.lite || rx.mode !== 'idle') drawVoronoi(t, rx, light);
     drawIsoGrid(t, rx, light);
     drawContours(t, rx, light);
-    drawNeuralWeb(t, rx, light);
+    if (!q.lite || rx.mode === 'thinking' || rx.mode === 'typing') drawNeuralWeb(t, rx, light);
     tickFlow(t, rx);
 
     if (mode === 'listening' && Math.random() < 0.1) addSonar(cx, cy, hue + 95);
@@ -677,7 +690,16 @@
     window.addEventListener('hls:quality-change', wake);
   }
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
-  else init();
+  function scheduleInit() {
+    var run = function () { init(); };
+    if (window.requestIdleCallback) {
+      requestIdleCallback(run, { timeout: 1200 });
+    } else {
+      setTimeout(run, 16);
+    }
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', scheduleInit);
+  else scheduleInit();
   window.addEventListener('hls:theme-applied', init);
 })();

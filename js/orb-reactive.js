@@ -27,7 +27,6 @@
 
   var zone = null;
   var idleTimer = 0;
-  var raf = 0;
   var reactive = {
     mode: 'idle',
     intensity: 0.14,
@@ -123,8 +122,7 @@
     }, delay == null ? 450 : delay);
   }
 
-  function tick() {
-    raf = requestAnimationFrame(tick);
+  function tick(now) {
     reactive.intensity += (reactive.targetIntensity - reactive.intensity) * 0.09;
     reactive.hue += (reactive.targetHue - reactive.hue) * 0.07;
     reactive.pulse += (reactive.targetPulse - reactive.pulse) * 0.1;
@@ -213,5 +211,19 @@
   zone = findZone();
   applyDom();
   broadcast();
-  tick();
+
+  function shouldTick() {
+    return window.HLS && window.HLS.shouldAnimateHero
+      ? window.HLS.shouldAnimateHero()
+      : !document.hidden;
+  }
+
+  if (window.HLS && window.HLS.raf) {
+    window.HLS.raf.add('orb-reactive', tick, { when: shouldTick, skip: 1 });
+  } else {
+    (function loop() {
+      if (shouldTick()) tick(performance.now());
+      requestAnimationFrame(loop);
+    })();
+  }
 })();
