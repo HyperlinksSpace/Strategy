@@ -358,6 +358,8 @@ textarea::placeholder {
 
 .ai-core-mic.is-listening .ai-core-mic-eq-bar {
   box-shadow: 0 0 8px color-mix(in srgb, currentColor 55%, transparent);
+  animation: none;
+  height: var(--eq-level, 12%);
 }
 
 .ai-core-mic.is-enabled:not(.is-listening) .ai-core-mic-eq-bar {

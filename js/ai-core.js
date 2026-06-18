@@ -171,7 +171,7 @@
   var micSessionAudio = false;
   var micSessionSound = false;
   var micNoVoiceHintShown = false;
-  var micLevelProbed = false;
+  var micVisLastPulseAt = 0;
   var micVis = {
     bars: null,
     ctx: null,
@@ -182,6 +182,7 @@
     active: false,
     soundActive: false,
     energy: 0,
+    lastSignalAt: 0,
     useAnalyser: false,
     monitorAttempted: false
   };
@@ -1701,7 +1702,7 @@
       stopListening(true);
       releaseMicCapture();
     }
-    if (!state.micAutoStart) micLevelProbed = false;
+    if (!state.micAutoStart) micVisLastPulseAt = 0;
     updateMicButton();
   }
 
@@ -1802,34 +1803,47 @@
     if (!micVis.analyser || !micVis.data || !micVis.bars) return false;
     micVis.analyser.getByteFrequencyData(micVis.data);
     var bands = micVis.bars.length;
-    var slice = Math.max(1, Math.floor(micVis.data.length / (bands * 2)));
-    var barWeights = [0.92, 1.2, 1.0, 1.24];
+    var slice = Math.max(1, Math.floor(micVis.data.length / (bands * 3)));
+    var barWeights = [0.85, 1.0, 0.92, 1.05];
+    var peak = 0;
     micVis.bars.forEach(function (bar, i) {
       var sum = 0;
       var offset = i * slice;
       var j;
       for (j = 0; j < slice; j++) sum += micVis.data[offset + j] || 0;
       var avg = sum / slice;
+      if (avg > peak) peak = avg;
       var weight = barWeights[i] || 1;
-      var pct = 12 + Math.pow(avg / 255, 0.72) * 88 * weight;
-      bar.style.setProperty('--eq-level', Math.round(Math.min(100, pct)) + '%');
+      var pct = 8 + Math.pow(avg / 255, 1.15) * 52 * weight;
+      bar.style.setProperty('--eq-level', Math.round(Math.min(78, pct)) + '%');
     });
+    if (peak > 18) micVisPulse(Math.min(0.72, 0.2 + peak / 255));
     return true;
   }
 
+  function micVisPulse(strength) {
+    var now = Date.now();
+    if (now - micVisLastPulseAt < 180) return;
+    micVisLastPulseAt = now;
+    var s = strength == null ? 0.42 : strength;
+    micVis.energy = Math.min(0.72, Math.max(micVis.energy * 0.5, s));
+    micVis.lastSignalAt = now;
+    micVis.soundActive = true;
+  }
+
   function bumpMicEqEnergy(amount) {
-    micVis.energy = Math.min(1, micVis.energy + (amount == null ? 0.42 : amount));
+    micVisPulse(amount == null ? 0.38 : Math.min(0.75, amount));
   }
 
   function paintMicEqBars() {
     if (!micVis.bars || !micVis.bars.length) return;
     var now = Date.now();
-    var barWeights = [0.88, 1.18, 0.94, 1.22];
+    var barWeights = [0.82, 1.0, 0.86, 1.04];
     micVis.bars.forEach(function (bar, i) {
-      var wave = (Math.sin(now / 88 + i * 1.65) + 1) * 0.5;
+      var wave = (Math.sin(now / 110 + i * 1.65) + 1) * 0.5;
       var weight = barWeights[i] || 1;
-      var pct = 10 + micVis.energy * (54 + wave * 36) * weight;
-      bar.style.setProperty('--eq-level', Math.round(Math.min(100, pct)) + '%');
+      var pct = 8 + micVis.energy * (28 + wave * 16) * weight;
+      bar.style.setProperty('--eq-level', Math.round(Math.min(72, pct)) + '%');
     });
   }
   function tickMicVisualizer() {
@@ -1839,17 +1853,18 @@
       return;
     }
 
+    var now = Date.now();
+    var idleMs = now - (micVis.lastSignalAt || 0);
+    if (idleMs > 120) {
+      micVis.soundActive = false;
+      micVis.energy = Math.max(0.04, micVis.energy - 0.055);
+    }
+
     if (micVis.useAnalyser && paintMicEqFromAnalyser()) {
       micVis.raf = requestAnimationFrame(tickMicVisualizer);
       return;
     }
 
-    if (micVis.soundActive) {
-      bumpMicEqEnergy(0.22);
-    } else {
-      var ambient = 0.34 + (Math.sin(Date.now() / 320) + 1) * 0.16;
-      micVis.energy = Math.max(ambient, micVis.energy - 0.014);
-    }
     paintMicEqBars();
     micVis.raf = requestAnimationFrame(tickMicVisualizer);
   }
@@ -1861,7 +1876,8 @@
     }
     micVis.active = true;
     micVis.soundActive = false;
-    micVis.energy = 0.22;
+    micVis.energy = 0.1;
+    micVis.lastSignalAt = Date.now();
     if (micVis.raf) cancelAnimationFrame(micVis.raf);
     micVis.raf = requestAnimationFrame(tickMicVisualizer);
     micLog('debug', 'vis.start', { bars: micVis.bars.length });
@@ -1961,8 +1977,7 @@
       micNoSpeechCount = 0;
       micNoVoiceHintShown = false;
       micSessionSound = true;
-      bumpMicEqEnergy(parsed.final ? 0.88 : 0.62);
-      paintMicEqBars();
+      micVisPulse(parsed.final ? 0.62 : 0.46);
     }
     if (parsed.final) {
       processVoiceTranscript(parsed.final, true);
@@ -1971,7 +1986,7 @@
     if (parsed.interim) {
       micLastInterim = parsed.interim;
       if (state.inputEl) state.inputEl.value = parsed.interim;
-      scheduleInterimCommit(1000);
+      scheduleInterimCommit(1600);
     }
   }
 
@@ -2086,14 +2101,10 @@
     recognition.onaudiostart = function () {
       micSessionAudio = true;
       micLog('info', 'recognition.onaudiostart', null);
-      micVis.soundActive = true;
-      bumpMicEqEnergy(0.55);
-      paintMicEqBars();
     };
 
     recognition.onaudioend = function () {
       micLog('debug', 'recognition.onaudioend', null);
-      micVis.soundActive = false;
     };
 
     recognition.onsoundstart = function () {
@@ -2101,22 +2112,18 @@
       micNoSpeechCount = 0;
       micNoVoiceHintShown = false;
       micLog('info', 'recognition.onsoundstart', null);
-      micVis.soundActive = true;
-      bumpMicEqEnergy(0.78);
-      paintMicEqBars();
+      micVisPulse(0.34);
     };
 
     recognition.onsoundend = function () {
       micLog('debug', 'recognition.onsoundend', null);
-      micVis.soundActive = false;
     };
 
     recognition.onspeechstart = function () {
       micSessionSound = true;
       micNoSpeechCount = 0;
       micLog('info', 'recognition.onspeechstart', null);
-      bumpMicEqEnergy(0.65);
-      paintMicEqBars();
+      micVisPulse(0.44);
     };
 
     recognition.onspeechend = function () {
@@ -2132,13 +2139,16 @@
       return null;
     }
     var recognition = new SR();
-    recognition.continuous = true;
+    var ua = navigator.userAgent || '';
+    var winDesktop = /Windows/i.test(ua) && !/Windows Phone/i.test(ua);
+    recognition.continuous = !winDesktop;
     recognition.interimResults = true;
     recognition.maxAlternatives = 1;
     attachRecognitionHandlers(recognition);
     micLog('info', 'recognition.created', {
       continuous: recognition.continuous,
-      interimResults: recognition.interimResults
+      interimResults: recognition.interimResults,
+      winDesktop: winDesktop
     });
     return recognition;
   }
@@ -2219,7 +2229,7 @@
     }
 
     micLastInterim = text;
-    scheduleInterimCommit(1000);
+    scheduleInterimCommit(1600);
   }
 
   function bootstrapMic() {
@@ -2314,40 +2324,54 @@
 
     releaseMicCapture();
 
-    try {
-      state.recognition.lang = SPEECH_LANG[getLang()] || SPEECH_LANG.en;
-      micLog('info', 'start.call', { force: !!force, lang: state.recognition.lang });
-      state.recognition.start();
-      startMicVisualizer();
-      micStartTimeout = window.setTimeout(function () {
-        micStartTimeout = 0;
-        if (!state.listening && state.micStarting) {
-          micLog('error', 'start.timeout', {
-            hint: 'recognition.start() did not fire onstart within 4.5s',
-            lang: state.recognition.lang
-          });
-          state.micStarting = false;
-          releaseMicCapture();
-          updateMicButton();
-          rebuildRecognitionInstance();
-          if (micIsEnabled()) scheduleMicRestart(500);
-        }
-      }, 4500);
-    } catch (err) {
-      micLog('error', 'start.exception', {
-        name: err && err.name,
-        message: err && err.message
-      });
-      state.micStarting = false;
-      releaseMicCapture();
-      updateMicButton();
-      recognitionFailCount += 1;
-      if (recognitionFailCount >= 2) {
-        recognitionFailCount = 0;
-        rebuildRecognitionInstance();
+    function callStart() {
+      if (!micIsEnabled()) {
+        state.micStarting = false;
+        updateMicButton();
+        return;
       }
-      scheduleMicRestart(600);
+      try {
+        state.recognition.lang = SPEECH_LANG[getLang()] || SPEECH_LANG.en;
+        micLog('info', 'start.call', { force: !!force, lang: state.recognition.lang });
+        state.recognition.start();
+        micStartTimeout = window.setTimeout(function () {
+          micStartTimeout = 0;
+          if (!state.listening && state.micStarting) {
+            micLog('error', 'start.timeout', {
+              hint: 'recognition.start() did not fire onstart within 4.5s',
+              lang: state.recognition.lang
+            });
+            state.micStarting = false;
+            releaseMicCapture();
+            updateMicButton();
+            rebuildRecognitionInstance();
+            if (micIsEnabled()) scheduleMicRestart(500);
+          }
+        }, 4500);
+      } catch (err) {
+        micLog('error', 'start.exception', {
+          name: err && err.name,
+          message: err && err.message
+        });
+        state.micStarting = false;
+        releaseMicCapture();
+        updateMicButton();
+        recognitionFailCount += 1;
+        if (recognitionFailCount >= 2) {
+          recognitionFailCount = 0;
+          rebuildRecognitionInstance();
+        }
+        scheduleMicRestart(600);
+      }
     }
+
+    var winDesktop = /Windows/i.test(navigator.userAgent || '') &&
+      !/Windows Phone/i.test(navigator.userAgent || '');
+    if (winDesktop) {
+      window.setTimeout(callStart, 120);
+      return;
+    }
+    callStart();
   }
 
   function beginRecognitionAfterIdle(force) {
@@ -2357,30 +2381,7 @@
       return;
     }
     if (state.listening) return;
-
-    if (micLevelProbed) {
-      invokeRecognitionStart(force);
-      return;
-    }
-
-    micLevelProbed = true;
-    probeMicInputLevel().then(function (probe) {
-      micLog('info', 'mic.levelProbe', probe);
-      if (probe.quiet) {
-        micLog('warn', 'mic.levelLow', {
-          peak: probe.peak,
-          hint: 'Input signal is very quiet — raise mic volume or pick the correct device in OS settings.'
-        });
-      }
-      window.setTimeout(function () {
-        if (!micIsEnabled() || state.listening) {
-          state.micStarting = false;
-          updateMicButton();
-          return;
-        }
-        invokeRecognitionStart(force);
-      }, probe.skipped ? 0 : 280);
-    });
+    invokeRecognitionStart(force);
   }
 
   function startListening(force) {
