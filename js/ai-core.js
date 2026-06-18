@@ -187,6 +187,7 @@
     monitorAttempted: false
   };
 
+  var MIC_BUILD = '20250616b';
   var MIC_DEBUG_KEY = 'hls-mic-debug';
   var MIC_LOG_MAX = 200;
   var MIC_LOG_ALWAYS = {
@@ -210,8 +211,6 @@
     'recognition.onsoundstart': true,
     'recognition.result': true,
     'recognition.audioButNoVoice': true,
-    'mic.levelProbe': true,
-    'mic.levelLow': true,
     'transcript.final': true,
     'stop': true
   };
@@ -394,7 +393,7 @@
         return Promise.reject(new Error('clipboard unavailable'));
       }
     };
-    micLog('info', 'debug.init', micEnvInfo());
+    micLog('info', 'debug.init', Object.assign({ build: MIC_BUILD }, micEnvInfo()));
     if (micEnvInfo().ios && !micEnvInfo().speechRecognition) {
       micLog('warn', 'env.iosNoSpeechRecognition', {
         hint: 'iOS Safari does not expose Web Speech Recognition; use Chrome on Android or desktop.'
@@ -1588,72 +1587,6 @@
     })();
   }
 
-  function probeMicInputLevel() {
-    return new Promise(function (resolve) {
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        resolve({ skipped: true, reason: 'noMediaDevices' });
-        return;
-      }
-      var AC = window.AudioContext || window.webkitAudioContext;
-      if (!AC) {
-        resolve({ skipped: true, reason: 'noAudioContext' });
-        return;
-      }
-
-      navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: false,
-          autoGainControl: true
-        }
-      }).then(function (stream) {
-        var ctx = new AC();
-        var analyser = ctx.createAnalyser();
-        analyser.fftSize = 512;
-        var src = ctx.createMediaStreamSource(stream);
-        src.connect(analyser);
-        var data = new Uint8Array(analyser.frequencyBinCount);
-        var peak = 0;
-        var started = Date.now();
-
-        function sample() {
-          analyser.getByteTimeDomainData(data);
-          var i;
-          var v;
-          var sum = 0;
-          for (i = 0; i < data.length; i++) {
-            v = (data[i] - 128) / 128;
-            sum += v * v;
-          }
-          var rms = Math.sqrt(sum / data.length);
-          if (rms > peak) peak = rms;
-          if (Date.now() - started < 550) {
-            requestAnimationFrame(sample);
-            return;
-          }
-          stream.getTracks().forEach(function (track) { track.stop(); });
-          try { src.disconnect(); } catch (e) { /* noop */ }
-          if (ctx.close) ctx.close().catch(function () { /* noop */ });
-          resolve({
-            peak: Math.round(peak * 1000) / 1000,
-            quiet: peak < 0.012
-          });
-        }
-
-        if (ctx.state === 'suspended') {
-          ctx.resume().then(sample).catch(sample);
-        } else {
-          sample();
-        }
-      }).catch(function (err) {
-        resolve({
-          error: err && err.name,
-          message: err && err.message
-        });
-      });
-    });
-  }
-
   function clearMicRestartTimer() {
     if (!micRestartTimer) return;
     clearTimeout(micRestartTimer);
@@ -2037,9 +1970,11 @@
             count: micNoSpeechCount,
             hint: 'Mic captures audio but speech VAD never triggered — check default input device and input volume.'
           });
-          if (micNoSpeechCount >= 3 && !micNoVoiceHintShown) {
+          if (micNoSpeechCount >= 2 && !micNoVoiceHintShown) {
             micNoVoiceHintShown = true;
             sayBot('ai.micNoVoice');
+            scheduleMicRestart(2800);
+            return;
           }
         } else if (micNoSpeechCount >= 5) {
           micLog('warn', 'recognition.noSpeechHint', {
@@ -2139,16 +2074,13 @@
       return null;
     }
     var recognition = new SR();
-    var ua = navigator.userAgent || '';
-    var winDesktop = /Windows/i.test(ua) && !/Windows Phone/i.test(ua);
-    recognition.continuous = !winDesktop;
+    recognition.continuous = true;
     recognition.interimResults = true;
     recognition.maxAlternatives = 1;
     attachRecognitionHandlers(recognition);
     micLog('info', 'recognition.created', {
       continuous: recognition.continuous,
-      interimResults: recognition.interimResults,
-      winDesktop: winDesktop
+      interimResults: recognition.interimResults
     });
     return recognition;
   }

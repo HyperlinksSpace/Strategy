@@ -249,7 +249,7 @@ window.HLS_I18N = {
     'ai.micListeningLabel': 'Listening…',
     'ai.micBlockedLabel': 'Microphone blocked — click to allow',
     'ai.micDenied': 'Microphone access is required for voice input. Please enable it in your browser settings.',
-    'ai.micNoVoice': 'I hear the microphone open, but not your voice. Check Windows sound settings: pick the correct input device and raise the input volume, then try again.',
+    'ai.micNoVoice': 'I hear the microphone open, but not your voice. In Windows sound settings, pick the correct input device and raise the input volume. Speak in the same language as the site (currently Russian), then try again.',
     'ai.micError': 'Voice input is temporarily unavailable. Please type your command instead.'
   },
 };

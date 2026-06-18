@@ -249,6 +249,6 @@ window.HLS_I18N.zh = {
     'ai.micListeningLabel': '正在聆听…',
     'ai.micBlockedLabel': '麦克风被阻止——点击允许',
     'ai.micDenied': '语音输入需要麦克风权限。请在浏览器设置中开启。',
-    'ai.micNoVoice': '麦克风已打开但未听到声音。请检查 Windows 声音设置：选择正确输入设备并提高输入音量，然后重试。',
+    'ai.micNoVoice': '麦克风已打开但未听到声音。请在 Windows 声音设置中选择正确输入设备并提高输入音量。请使用与网站相同的语言说话（当前为中文），然后重试。',
     'ai.micError': '语音输入暂时不可用。请改用文字输入。'
 };

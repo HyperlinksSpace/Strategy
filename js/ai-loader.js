@@ -1,6 +1,7 @@
 (function () {
   'use strict';
 
+  var AI_BUILD = '20250616b';
   var loading = false;
   var loaded = false;
   var queue = [];
@@ -35,8 +36,8 @@
     window.HLS = window.HLS || {};
     window.HLS.aiLoading = true;
 
-    return loadScript('js/ai-chat.js')
-      .then(function () { return loadScript('js/ai-core.js'); })
+    return loadScript('js/ai-chat.js?v=' + AI_BUILD)
+      .then(function () { return loadScript('js/ai-core.js?v=' + AI_BUILD); })
       .then(function () {
         loaded = true;
         loading = false;
