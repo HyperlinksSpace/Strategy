@@ -225,46 +225,107 @@
   function initSectionSpy() {
     var sectionIds = [
       'vision', 'pillars', 'earth-space', 'roadmap',
-      'architecture', 'revenue', 'moats', 'north-star'
+      'architecture', 'revenue', 'moats', 'genesis-mesh', 'scale-mesh', 'north-star'
     ];
     var links = document.querySelectorAll('.section-chip[data-section-id]');
     var strip = document.querySelector('.section-strip');
+    var inner = strip && strip.querySelector('.section-strip-inner');
+    var undercover = inner && inner.querySelector('.section-strip-undercover');
     var sections = sectionIds.map(function (id) {
       return document.getElementById(id);
     }).filter(Boolean);
 
-    if (!sections.length) return;
+    if (!sections.length || !strip || !inner || !undercover) return;
 
     var reducedMotion = window.matchMedia &&
       window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     var scrollTimer;
+    var layoutTimer;
+    var activeId = sectionIds[0];
 
-    function scrollStripToActive(id) {
-      if (!strip || !id) return;
-      if (strip.classList.contains('is-centered')) return;
-      if (strip.scrollWidth <= strip.clientWidth) return;
+    function stripOverflows() {
+      return inner.scrollWidth > strip.clientWidth + 1;
+    }
 
-      var chip = strip.querySelector('.section-chip[data-section-id="' + id + '"]');
+    function syncStripLayout() {
+      var overflow = stripOverflows();
+      strip.classList.toggle('is-overflow', overflow);
+      strip.classList.toggle('is-centered', !overflow);
+      if (!overflow) strip.scrollLeft = 0;
+    }
+
+    function syncUndercover(chip) {
+      if (!chip) {
+        undercover.classList.remove('is-visible');
+        return;
+      }
+      var left = chip.offsetLeft;
+      undercover.style.width = chip.offsetWidth + 'px';
+      undercover.style.height = chip.offsetHeight + 'px';
+      undercover.style.transform = 'translate3d(' + left + 'px, -50%, 0)';
+      undercover.classList.add('is-visible');
+    }
+
+    function ensureChipVisible(chip) {
+      if (!chip || !stripOverflows()) {
+        if (!stripOverflows()) strip.scrollLeft = 0;
+        return;
+      }
+
+      var pad = 6;
+      var chipLeft = chip.offsetLeft;
+      var chipRight = chipLeft + chip.offsetWidth;
+      var viewLeft = strip.scrollLeft;
+      var viewRight = viewLeft + strip.clientWidth;
+
+      if (chipLeft < viewLeft + pad) {
+        strip.scrollLeft = Math.max(0, chipLeft - pad);
+      } else if (chipRight > viewRight - pad) {
+        strip.scrollLeft = chipRight - strip.clientWidth + pad;
+      }
+    }
+
+    function scrollStripToActive(id, immediate) {
+      if (!id) return;
+      var chip = inner.querySelector('.section-chip[data-section-id="' + id + '"]');
       if (!chip) return;
 
-      var target = chip.offsetLeft - (strip.clientWidth - chip.offsetWidth) / 2;
-      target = Math.max(0, Math.min(target, strip.scrollWidth - strip.clientWidth));
+      syncStripLayout();
 
-      strip.scrollTo({
-        left: target,
-        behavior: reducedMotion ? 'auto' : 'smooth'
+      if (stripOverflows()) {
+        ensureChipVisible(chip);
+      } else {
+        strip.scrollLeft = 0;
+      }
+
+      if (immediate) {
+        syncUndercover(chip);
+        return;
+      }
+
+      requestAnimationFrame(function () {
+        syncUndercover(chip);
       });
     }
 
     function setActive(id) {
+      activeId = id;
       links.forEach(function (link) {
         link.classList.toggle('is-active', link.getAttribute('data-section-id') === id);
       });
 
       clearTimeout(scrollTimer);
       scrollTimer = setTimeout(function () {
-        scrollStripToActive(id);
+        scrollStripToActive(id, false);
       }, 50);
+    }
+
+    function scheduleLayoutSync() {
+      clearTimeout(layoutTimer);
+      layoutTimer = setTimeout(function () {
+        syncStripLayout();
+        scrollStripToActive(activeId, false);
+      }, 80);
     }
 
     if ('IntersectionObserver' in window) {
@@ -275,10 +336,10 @@
         });
         var bestId = sectionIds[0];
         var bestRatio = 0;
-        sectionIds.forEach(function (id) {
-          if ((visible[id] || 0) > bestRatio) {
-            bestRatio = visible[id];
-            bestId = id;
+        sectionIds.forEach(function (sid) {
+          if ((visible[sid] || 0) > bestRatio) {
+            bestRatio = visible[sid];
+            bestId = sid;
           }
         });
         setActive(bestId);
@@ -290,30 +351,35 @@
     links.forEach(function (link) {
       link.addEventListener('click', function () {
         closeHeaderPanel();
-        scrollStripToActive(link.getAttribute('data-section-id'));
+        activeId = link.getAttribute('data-section-id');
+        scrollStripToActive(activeId, reducedMotion);
       });
     });
 
-    if (window.HLS && window.HLS.onResize) {
-      window.HLS.onResize(function () {
-        var active = strip && strip.querySelector('.section-chip.is-active');
-        if (active) scrollStripToActive(active.getAttribute('data-section-id'));
-      });
-    } else {
-      window.addEventListener('resize', function () {
-        var active = strip && strip.querySelector('.section-chip.is-active');
-        if (active) scrollStripToActive(active.getAttribute('data-section-id'));
-      });
+    strip.addEventListener('scroll', function () {
+      var chip = inner.querySelector('.section-chip.is-active');
+      if (chip) syncUndercover(chip);
+    }, { passive: true });
+
+    function onResize() {
+      scheduleLayoutSync();
     }
 
-    window.addEventListener('hls:locale-change', function () {
-      var active = strip && strip.querySelector('.section-chip.is-active');
-      if (active) {
-        setTimeout(function () {
-          scrollStripToActive(active.getAttribute('data-section-id'));
-        }, 80);
-      }
-    });
+    if (window.HLS && window.HLS.onResize) {
+      window.HLS.onResize(onResize);
+    } else {
+      window.addEventListener('resize', onResize, { passive: true });
+    }
+
+    window.addEventListener('hls:locale-change', scheduleLayoutSync);
+
+    syncStripLayout();
+    var initial = inner.querySelector('.section-chip.is-active') ||
+      inner.querySelector('.section-chip[data-section-id="' + sectionIds[0] + '"]');
+    if (initial) {
+      initial.classList.add('is-active');
+      syncUndercover(initial);
+    }
   }
 
   function initHeaderShadow() {

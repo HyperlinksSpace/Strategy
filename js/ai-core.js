@@ -73,6 +73,26 @@
       }
     },
     {
+      id: 'genesis-mesh',
+      nameKey: 'nav.genesisMesh',
+      descKey: 'genesis.title',
+      words: {
+        en: ['genesis', 'mesh', 'protocol mesh', 'anriltine', 'founder', 'peer', 'replica', 'merge'],
+        ru: ['genesis', 'mesh', 'протокол', 'anriltine', 'основат', 'peer', 'replica', 'merge'],
+        zh: ['genesis', '网格', '协议', 'anriltine', '创始人', '对等', '合并']
+      }
+    },
+    {
+      id: 'scale-mesh',
+      nameKey: 'nav.scaleMesh',
+      descKey: 'scale.title',
+      words: {
+        en: ['scale', 'trillion', '1t', 'federation', 'planetary', 'infrastructure mesh'],
+        ru: ['масштаб', 'триллион', '1t', 'федерац', 'планет', 'mesh'],
+        zh: ['规模', '万亿', '1t', '联邦', '行星', '网格']
+      }
+    },
+    {
       id: 'north-star',
       nameKey: 'nav.northStar',
       descKey: 'north.title',
@@ -165,6 +185,10 @@
   var aiRequestGen = 0;
   var micWatchdog = 0;
   var micStartTimeout = 0;
+  var micStartDelayTimer = 0;
+  var micRecEndedAt = 0;
+  var micAbortStreak = 0;
+  var MIC_RESTART_MIN_MS = 1000;
   var recognitionFailCount = 0;
   var micNoSpeechCount = 0;
   var micStopReason = '';
@@ -187,7 +211,7 @@
     monitorAttempted: false
   };
 
-  var MIC_BUILD = '20250616b';
+  var MIC_BUILD = '20250616c';
   var MIC_DEBUG_KEY = 'hls-mic-debug';
   var MIC_LOG_MAX = 200;
   var MIC_LOG_ALWAYS = {
@@ -1587,6 +1611,12 @@
     })();
   }
 
+  function clearMicStartDelayTimer() {
+    if (!micStartDelayTimer) return;
+    clearTimeout(micStartDelayTimer);
+    micStartDelayTimer = 0;
+  }
+
   function clearMicRestartTimer() {
     if (!micRestartTimer) return;
     clearTimeout(micRestartTimer);
@@ -1599,14 +1629,30 @@
     micAutoStartTimer = 0;
   }
 
-  function scheduleMicRestart(delay) {
+  function micRestartCooldownMs() {
+    var elapsed = Date.now() - (micRecEndedAt || 0);
+    var minGap = MIC_RESTART_MIN_MS;
+    if (/Windows/i.test(navigator.userAgent || '')) minGap = 1150;
+    return Math.max(0, minGap - elapsed);
+  }
+
+  function micRestartDelayFor(reason) {
+    if (reason === 'aborted') {
+      return Math.min(3600, 950 + micAbortStreak * 450);
+    }
+    if (reason === 'no-speech') return 700;
+    return 900;
+  }
+
+  function scheduleMicRestart(delay, reason) {
     clearMicRestartTimer();
     if (!micIsEnabled()) return;
-    micLog('debug', 'restart.scheduled', { delay: delay == null ? 900 : delay });
+    var wait = delay == null ? micRestartDelayFor(reason) : delay;
+    micLog('debug', 'restart.scheduled', { delay: wait, reason: reason || '' });
     micRestartTimer = window.setTimeout(function () {
       micRestartTimer = 0;
       maybeAutoStartMic();
-    }, delay == null ? 900 : delay);
+    }, wait);
   }
 
   function scheduleMicAutoStart(delay) {
@@ -1847,9 +1893,10 @@
       if (!micWatchdog) {
         micWatchdog = window.setInterval(function () {
           if (!micIsEnabled() || state.listening || state.micStarting || micBusy()) return;
+          if (micRestartTimer || micStartDelayTimer) return;
           micLog('debug', 'watchdog.startListening', micSnapshot());
           startListening(false);
-        }, 2000);
+        }, 4000);
         micLog('info', 'watchdog.on', null);
       }
       return;
@@ -1909,6 +1956,7 @@
     if (parsed.final || parsed.interim) {
       micNoSpeechCount = 0;
       micNoVoiceHintShown = false;
+      micAbortStreak = 0;
       micSessionSound = true;
       micVisPulse(parsed.final ? 0.62 : 0.46);
     }
@@ -1944,6 +1992,7 @@
       micVis.soundActive = false;
       var reason = micStopReason || 'end';
       micStopReason = '';
+      micRecEndedAt = Date.now();
       micLog('info', 'recognition.onend', {
         reason: reason,
         sessionAudio: micSessionAudio,
@@ -1973,7 +2022,7 @@
           if (micNoSpeechCount >= 2 && !micNoVoiceHintShown) {
             micNoVoiceHintShown = true;
             sayBot('ai.micNoVoice');
-            scheduleMicRestart(2800);
+            scheduleMicRestart(2800, 'no-speech');
             return;
           }
         } else if (micNoSpeechCount >= 5) {
@@ -1981,12 +2030,27 @@
             hint: 'Repeated silence timeouts — speak right after the listening indicator appears.'
           });
         }
-        scheduleMicRestart(400);
+        scheduleMicRestart(null, 'no-speech');
         return;
       }
 
       if (reason === 'not-allowed' || reason === 'service-not-allowed') return;
-      scheduleMicRestart(reason === 'aborted' ? 550 : 450);
+
+      if (reason === 'aborted') {
+        micAbortStreak += 1;
+        micLog('warn', 'recognition.aborted', { streak: micAbortStreak });
+        if (micAbortStreak >= 5) {
+          micAbortStreak = 0;
+          rebuildRecognitionInstance();
+          scheduleMicRestart(2400, 'aborted');
+          return;
+        }
+        scheduleMicRestart(null, 'aborted');
+        return;
+      }
+
+      micAbortStreak = 0;
+      scheduleMicRestart(null, reason);
     };
 
     recognition.onerror = function (event) {
@@ -2254,10 +2318,18 @@
       return;
     }
 
+    clearMicStartDelayTimer();
     releaseMicCapture();
 
     function callStart() {
+      micStartDelayTimer = 0;
       if (!micIsEnabled()) {
+        state.micStarting = false;
+        updateMicButton();
+        return;
+      }
+      if (state.listening) {
+        micLog('debug', 'start.skip', { reason: 'alreadyListening' });
         state.micStarting = false;
         updateMicButton();
         return;
@@ -2277,7 +2349,7 @@
             releaseMicCapture();
             updateMicButton();
             rebuildRecognitionInstance();
-            if (micIsEnabled()) scheduleMicRestart(500);
+            if (micIsEnabled()) scheduleMicRestart(1200, 'timeout');
           }
         }, 4500);
       } catch (err) {
@@ -2293,14 +2365,14 @@
           recognitionFailCount = 0;
           rebuildRecognitionInstance();
         }
-        scheduleMicRestart(600);
+        scheduleMicRestart(1200, 'exception');
       }
     }
 
-    var winDesktop = /Windows/i.test(navigator.userAgent || '') &&
-      !/Windows Phone/i.test(navigator.userAgent || '');
-    if (winDesktop) {
-      window.setTimeout(callStart, 120);
+    var waitMs = micRestartCooldownMs();
+    if (waitMs > 0) {
+      micLog('debug', 'start.cooldown', { waitMs: waitMs, abortStreak: micAbortStreak });
+      micStartDelayTimer = window.setTimeout(callStart, waitMs);
       return;
     }
     callStart();
@@ -2343,6 +2415,7 @@
     clearMicRestartTimer();
     clearMicAutoStartTimer();
     clearMicStartTimeout();
+    clearMicStartDelayTimer();
     state.micStarting = true;
     updateMicButton();
 
@@ -2397,6 +2470,7 @@
     clearMicRestartTimer();
     clearMicInterimTimer();
     clearMicStartTimeout();
+    clearMicStartDelayTimer();
     state.micStarting = false;
     if (!state.recognition) return;
 

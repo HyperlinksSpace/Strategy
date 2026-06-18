@@ -22,6 +22,8 @@
     architecture: 288,
     revenue: 155,
     moats: 310,
+    'genesis-mesh': 278,
+    'scale-mesh': 198,
     'north-star': 318
   };
 

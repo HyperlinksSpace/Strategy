@@ -226,26 +226,7 @@
   }
 
   function initStripCenter() {
-    var strip = document.querySelector('.section-strip');
-    if (!strip) return;
-
-    function sync() {
-      if (strip.scrollWidth <= strip.clientWidth + 2) {
-        strip.classList.add('is-centered');
-      } else {
-        strip.classList.remove('is-centered');
-      }
-    }
-
-    sync();
-    if (window.HLS && window.HLS.onResize) {
-      window.HLS.onResize(sync);
-    } else {
-      window.addEventListener('resize', sync, { passive: true });
-    }
-    window.addEventListener('hls:locale-change', function () {
-      setTimeout(sync, 80);
-    });
+    /* Overflow layout is owned by app.js initSectionSpy (is-overflow / undercover). */
   }
 
   function init() {
