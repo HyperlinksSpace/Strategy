@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var AI_BUILD = '20250619d';
+  var AI_BUILD = '20250619e';
   var loading = false;
   var loaded = false;
   var queue = [];

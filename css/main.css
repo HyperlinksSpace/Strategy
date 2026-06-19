@@ -302,7 +302,8 @@ body {
 
 a:focus-visible,
 button:focus-visible,
-input:focus-visible {
+input:focus-visible,
+textarea:focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
@@ -3818,6 +3819,7 @@ main { position: relative; z-index: 1; padding-top: var(--header-stack); padding
   background: var(--brand-green-solid);
   border: none;
   color: var(--text-on-brand);
+  white-space: pre-wrap;
 }
 
 .ai-core-chips {
@@ -3838,7 +3840,7 @@ main { position: relative; z-index: 1; padding-top: var(--header-stack); padding
 .ai-core-form {
   display: flex;
   gap: 0.5rem;
-  align-items: center;
+  align-items: flex-end;
   padding: 0.65rem 0.75rem 0.75rem;
   border-top: 1px solid var(--border);
   background: var(--bg-card);
@@ -3848,13 +3850,19 @@ main { position: relative; z-index: 1; padding-top: var(--header-stack); padding
 .ai-core-input {
   flex: 1;
   min-width: 0;
-  padding: 0.7rem 1rem;
-  border-radius: 999px;
+  min-height: 2.75rem;
+  max-height: 7.5rem;
+  padding: 0.65rem 1rem;
+  border-radius: var(--radius);
   border: 1px solid var(--border);
   background: var(--undercover);
   color: var(--text-primary);
   font: inherit;
   font-size: 0.875rem;
+  line-height: 1.45;
+  resize: none;
+  overflow-y: auto;
+  field-sizing: content;
 }
 
 .ai-core-send {
@@ -5155,6 +5163,8 @@ main { position: relative; z-index: 1; padding-top: var(--header-stack); padding
   .ai-core-input {
     padding: 0.55rem 0.85rem;
     font-size: 0.8125rem;
+    min-height: 2.5rem;
+    max-height: 6.5rem;
   }
 
   .ai-core-send,

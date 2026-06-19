@@ -2145,7 +2145,10 @@
     }
     if (parsed.interim) {
       micLastInterim = parsed.interim;
-      if (state.inputEl) state.inputEl.value = parsed.interim;
+      if (state.inputEl) {
+        state.inputEl.value = parsed.interim;
+        syncInputHeight();
+      }
       scheduleInterimCommit(1600);
     }
   }
@@ -2373,7 +2376,10 @@
     var text = String(raw || '').trim();
     if (!text) return;
     pendingVoiceInput = text;
-    if (state.inputEl) state.inputEl.value = text;
+    if (state.inputEl) {
+      state.inputEl.value = text;
+      syncInputHeight();
+    }
   }
 
   function flushPendingVoiceInput() {
@@ -2400,9 +2406,13 @@
     stopListening(true);
     var handled = handleInput(text, { fromVoice: true });
     if (handled) {
-      if (state.inputEl) state.inputEl.value = '';
+      if (state.inputEl) {
+        state.inputEl.value = '';
+        syncInputHeight();
+      }
     } else if (state.inputEl) {
       state.inputEl.value = text;
+      syncInputHeight();
     }
   }
 
@@ -2422,13 +2432,19 @@
     clearMicInterimTimer();
     micLastInterim = '';
 
-    if (state.inputEl) state.inputEl.value = text;
+    if (state.inputEl) {
+      state.inputEl.value = text;
+      syncInputHeight();
+    }
 
     if (isFinal) {
       stopListening(true);
       var handled = handleInput(text, { fromVoice: true });
       if (handled) {
-        if (state.inputEl) state.inputEl.value = '';
+        if (state.inputEl) {
+          state.inputEl.value = '';
+          syncInputHeight();
+        }
       }
       return;
     }
@@ -3053,6 +3069,15 @@
     });
   }
 
+  function syncInputHeight() {
+    if (!state.inputEl) return;
+    state.inputEl.style.height = 'auto';
+    var max = window.matchMedia && window.matchMedia('(max-width: 768px)').matches ? 104 : 120;
+    var next = Math.min(state.inputEl.scrollHeight, max);
+    state.inputEl.style.height = next + 'px';
+    state.inputEl.style.overflowY = state.inputEl.scrollHeight > max ? 'auto' : 'hidden';
+  }
+
   function refreshChrome() {
     document.querySelectorAll('[data-i18n]').forEach(function (el) {
       if (!el.closest('.ai-core-panel')) return;
@@ -3063,6 +3088,7 @@
     });
     if (state.inputEl) {
       state.inputEl.placeholder = t('ai.placeholder');
+      syncInputHeight();
     }
     updateVoiceButton();
     updateMicButton();
@@ -3308,10 +3334,26 @@
 
     state.formEl.addEventListener('submit', function (e) {
       e.preventDefault();
-      var val = state.inputEl.value;
+      var val = state.inputEl.value.trim();
       state.inputEl.value = '';
+      syncInputHeight();
       handleInput(val);
     });
+
+    if (state.inputEl) {
+      state.inputEl.addEventListener('input', syncInputHeight);
+      state.inputEl.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          if (typeof state.formEl.requestSubmit === 'function') {
+            state.formEl.requestSubmit();
+          } else {
+            state.formEl.dispatchEvent(new Event('submit', { cancelable: true }));
+          }
+        }
+      });
+      syncInputHeight();
+    }
 
     setTimeout(function () {
       state.ready = true;
