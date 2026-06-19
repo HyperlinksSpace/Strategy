@@ -341,10 +341,9 @@
   function micDebugRenderPanel(entry) {
     if (!micDebugOn || !micDebugListEl) return;
     micDebugListEl.appendChild(micDebugFormatLine(entry));
-    while (micDebugListEl.childNodes.length > 22) {
+    while (micDebugListEl.childNodes.length > 14) {
       micDebugListEl.removeChild(micDebugListEl.firstChild);
     }
-    micDebugListEl.scrollTop = micDebugListEl.scrollHeight;
   }
 
   function micDebugCopyLogs() {
@@ -377,10 +376,12 @@
       micDebugPanel.hidden = false;
       micDebugPanel.classList.add('is-active');
       micDebugPanel.setAttribute('aria-hidden', 'false');
+      if (micDebugCopyBtn) micDebugCopyBtn.style.display = 'inline-flex';
     } else {
       micDebugPanel.classList.remove('is-active');
       micDebugPanel.hidden = true;
       micDebugPanel.setAttribute('aria-hidden', 'true');
+      if (micDebugCopyBtn) micDebugCopyBtn.style.display = 'none';
     }
   }
 
@@ -435,7 +436,7 @@
         micDebugOn = true;
         micDebugSetVisible(true);
         if (micDebugListEl) micDebugListEl.innerHTML = '';
-        micLogBuffer.slice(-18).forEach(micDebugRenderPanel);
+        micLogBuffer.slice(-14).forEach(micDebugRenderPanel);
         micLog('info', 'debug.enabled', { via: 'api' });
         return micSnapshot();
       },
@@ -453,7 +454,7 @@
     };
     if (micDebugOn) {
       micDebugSetVisible(true);
-      micLogBuffer.slice(-18).forEach(micDebugRenderPanel);
+      micLogBuffer.slice(-14).forEach(micDebugRenderPanel);
     }
     micLog('info', 'debug.init', Object.assign({ build: MIC_BUILD }, micEnvInfo()));
     if (micEnvInfo().ios && !micEnvInfo().speechRecognition) {

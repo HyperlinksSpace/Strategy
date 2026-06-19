@@ -2594,6 +2594,7 @@ main { position: relative; z-index: 1; padding-top: var(--header-stack); padding
 }
 
 .hero-stage-layout > * { pointer-events: auto; min-width: 0; min-height: 0; }
+.hero-stage-layout > .ai-orb-zone.stratviz-stage { pointer-events: none; }
 
 .ai-orb-zone {
   position: relative;
