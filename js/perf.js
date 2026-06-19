@@ -20,12 +20,16 @@
     if (!hero || !('IntersectionObserver' in window)) return;
 
     new IntersectionObserver(function (entries) {
-      heroVisible = entries.some(function (e) {
-        return e.isIntersecting && e.intersectionRatio > 0.06;
+      var ratio = 0;
+      entries.forEach(function (e) {
+        if (e.isIntersecting) ratio = Math.max(ratio, e.intersectionRatio);
       });
+      var next = ratio > 0.02 || (heroVisible && ratio > 0);
+      if (next === heroVisible) return;
+      heroVisible = next;
       hero.setAttribute('data-hero-visible', heroVisible ? '1' : '0');
       window.dispatchEvent(new Event('hls:hero-visibility'));
-    }, { threshold: [0, 0.06, 0.15, 0.35] }).observe(hero);
+    }, { threshold: [0, 0.02, 0.08, 0.2, 0.4] }).observe(hero);
     hero.setAttribute('data-hero-visible', '1');
   }
 
@@ -89,9 +93,13 @@
   }
 
   function invalidateQuality() {
+    var prevLite = qualityCache ? qualityCache.lite : null;
     qualityCache = null;
     applyDocClasses();
-    window.dispatchEvent(new Event('hls:quality-change'));
+    var q = getQuality();
+    if (prevLite !== q.lite) {
+      window.dispatchEvent(new Event('hls:quality-change'));
+    }
   }
 
   function applyDocClasses() {
@@ -104,7 +112,7 @@
   }
 
   function shouldAnimateHero() {
-    return visible && heroVisible && !scrolling;
+    return visible;
   }
 
   function shouldAnimateBg() {
@@ -113,17 +121,17 @@
 
   function reportFrameTime(ms) {
     adaptive.samples.push(ms);
-    if (adaptive.samples.length < 40) return;
+    if (adaptive.samples.length < 72) return;
 
     var sum = 0;
     for (var i = 0; i < adaptive.samples.length; i++) sum += adaptive.samples[i];
     var avg = sum / adaptive.samples.length;
     adaptive.samples = [];
 
-    if (avg > 14 && adaptive.boost < 2) {
+    if (avg > 17 && adaptive.boost < 2) {
       adaptive.boost += 1;
       invalidateQuality();
-    } else if (avg < 8 && adaptive.boost > 0) {
+    } else if (avg < 6 && adaptive.boost > 0) {
       adaptive.boost -= 1;
       invalidateQuality();
     }

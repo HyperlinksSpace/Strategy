@@ -23,6 +23,12 @@
   var neuralNodes = [];
   var lastRipple = 0;
   var lastTrail = 0;
+  var lastLayoutW = 0;
+  var lastLayoutH = 0;
+  var booted = false;
+  var cursorBound = false;
+  var pausedAt = 0;
+  var pausedTotal = 0;
   var cursor = { x: 0.5, y: 0.44, px: 0, py: 0, active: false, vx: 0, vy: 0 };
 
   function getReactive() {
@@ -52,8 +58,9 @@
     return 'hsla(' + h + ',' + s + '%,' + l + '%,' + a + ')';
   }
 
-  function resize() {
-    if (!canvas) return;
+  function resize(opts) {
+    if (!canvas || !ctx) return;
+    opts = opts || {};
     var cw = canvas.clientWidth;
     var ch = canvas.clientHeight;
     if (cw < 1 || ch < 1) return;
@@ -64,8 +71,21 @@
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     w = cw;
     h = ch;
-    initVoronoi();
-    initNeural();
+
+    var layoutChanged = !lastLayoutW || !lastLayoutH ||
+      Math.abs(cw - lastLayoutW) > 2 || Math.abs(ch - lastLayoutH) > 2;
+    var visualRelayout = opts.forceVisual || !voronoiSeeds.length || !neuralNodes.length ||
+      Math.abs(cw - lastLayoutW) / Math.max(lastLayoutW, 1) > 0.1 ||
+      Math.abs(ch - lastLayoutH) / Math.max(lastLayoutH, 1) > 0.1;
+
+    lastLayoutW = cw;
+    lastLayoutH = ch;
+
+    if (layoutChanged && flowParticles.length === 0) initFlow();
+    if (visualRelayout) {
+      initVoronoi();
+      initNeural();
+    }
   }
 
   function initFlow() {
@@ -402,10 +422,29 @@
     }
   }
 
+  function onVisibilityPause() {
+    if (document.hidden) {
+      if (!pausedAt) pausedAt = performance.now();
+    } else if (pausedAt) {
+      pausedTotal += performance.now() - pausedAt;
+      pausedAt = 0;
+      schedule();
+    }
+  }
+
   function tick(now) {
     raf = 0;
-    if (!running || !shouldRun()) return;
-    var t = (now - start) * 0.001;
+    if (!running) return;
+    if (!shouldRun()) {
+      if (document.hidden && !pausedAt) pausedAt = now;
+      schedule();
+      return;
+    }
+    if (pausedAt) {
+      pausedTotal += now - pausedAt;
+      pausedAt = 0;
+    }
+    var t = (now - start - pausedTotal) * 0.001;
     var rx = getReactive();
     var light = isLight();
     var cx = w * 0.5;
@@ -555,13 +594,14 @@
   }
 
   function schedule() {
-    if (!running || !shouldRun()) return;
+    if (!running) return;
+    if (raf) return;
     raf = requestAnimationFrame(tick);
   }
 
   function wake() {
-    resize();
-    if (flowParticles.length === 0) initFlow();
+    resize({ forceVisual: false });
+    if (flowParticles.length === 0 && w > 0 && h > 0) initFlow();
     schedule();
   }
 
@@ -645,23 +685,33 @@
   }
 
   function init() {
-    running = false;
-    if (raf) cancelAnimationFrame(raf);
     canvas = document.getElementById('stratviz-fx');
     if (!canvas) return;
     if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
-    ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    if (!ctx) {
+      ctx = canvas.getContext('2d');
+      if (!ctx) return;
+    }
 
+    if (booted) {
+      wake();
+      return;
+    }
+    booted = true;
     running = true;
     start = performance.now();
+
     var zone = canvas.closest('.stratviz-stage') || canvas.closest('.ai-orb-zone');
-    if (zone) bindCursor(zone);
+    if (zone && !cursorBound) {
+      cursorBound = true;
+      bindCursor(zone);
+    }
 
     document.addEventListener('ai-core:orb', onOrbEvent);
+    document.addEventListener('visibilitychange', onVisibilityPause);
 
-    resize();
+    resize({ forceVisual: true });
     initFlow();
     wake();
 
@@ -669,6 +719,7 @@
       new ResizeObserver(wake).observe(canvas.parentElement || canvas);
     }
     window.addEventListener('hls:hero-visibility', wake);
+    window.addEventListener('hls:visibility', wake);
     window.addEventListener('hls:quality-change', wake);
   }
 
@@ -683,5 +734,5 @@
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', scheduleInit);
   else scheduleInit();
-  window.addEventListener('hls:theme-applied', init);
+  window.addEventListener('hls:theme-applied', wake);
 })();

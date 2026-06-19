@@ -768,8 +768,8 @@
   .stratviz-stage.orb-reactive--user { animation: none !important; }
 }
 
-#hero[data-hero-visible="0"] .stratviz-stage *,
-.hls-scrolling .stratviz-stage * {
+#hero[data-hero-visible="0"] .stratviz-backdrop > *,
+.hls-scrolling .stratviz-backdrop > * {
   animation-play-state: paused !important;
 }
 

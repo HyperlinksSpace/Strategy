@@ -279,6 +279,38 @@
     var targetRotX = rotX;
     var targetRotY = rotY;
 
+    function applyTheme() {
+      var light = isLight();
+      scene.fog.color.setHex(light ? 0xe8eef8 : 0x060812);
+      scene.fog.density = light ? 0.08 : 0.14;
+      renderer.toneMappingExposure = light ? 1.02 : 1.55;
+      amb.color.setHex(light ? 0xeef2ff : 0x080a14);
+      amb.intensity = light ? 0.75 : 0.35;
+      key.intensity = light ? 0.9 : 2.4;
+      rim.intensity = light ? 0.45 : 1.15;
+      var mi;
+      for (mi = 0; mi < nodeMeshes.length; mi++) {
+        var mesh = nodeMeshes[mi];
+        var mat = nodeMats[mi];
+        if (mesh.userData.isHalo || !mat.color) continue;
+        mat.color.setHex(light ? 0xd8e4ff : 0x12182a);
+        mat.transmission = light ? 0.25 : 0.48;
+      }
+    }
+
+    function onVisibilityPause() {
+      if (document.hidden) {
+        if (!pausedAt) pausedAt = performance.now();
+      } else if (pausedAt) {
+        pausedTotal += performance.now() - pausedAt;
+        pausedAt = 0;
+        schedule();
+      }
+    }
+
+    var pausedAt = 0;
+    var pausedTotal = 0;
+
     function lerpNode(a, b, t) {
       return {
         x: a.x + (b.x - a.x) * t,
@@ -447,10 +479,11 @@
 
     function tick(now) {
       raf = 0;
-      if (!running || !shouldRun()) return;
+      if (!running) return;
+      if (!shouldRun()) return;
       frame += 1;
       if (frame % (getQ().orbFrameSkip || 1) !== 0) { schedule(); return; }
-      var t = (now - start) * 0.001;
+      var t = (now - start - pausedTotal) * 0.001;
       applyReactive(t, getReactive());
       var t0 = performance.now();
       renderer.render(scene, camera);
@@ -468,9 +501,11 @@
     function wake() { resize(); schedule(); }
 
     if (window.ResizeObserver) new ResizeObserver(wake).observe(canvas);
-    ['hls:visibility', 'hls:hero-visibility', 'hls:scroll-idle', 'hls:quality-change', 'hls:theme-applied'].forEach(function (ev) {
+    document.addEventListener('visibilitychange', onVisibilityPause);
+    ['hls:visibility', 'hls:hero-visibility', 'hls:scroll-idle', 'hls:quality-change'].forEach(function (ev) {
       window.addEventListener(ev, wake);
     });
+    window.addEventListener('hls:theme-applied', applyTheme);
 
     resize();
     schedule();
@@ -479,6 +514,8 @@
     return function dispose() {
       running = false;
       if (raf) cancelAnimationFrame(raf);
+      document.removeEventListener('visibilitychange', onVisibilityPause);
+      window.removeEventListener('hls:theme-applied', applyTheme);
       edgeGeo.dispose();
       edgeMat.dispose();
       packetGeo.dispose();
@@ -541,5 +578,4 @@
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', scheduleInit);
   else scheduleInit();
-  window.addEventListener('hls:theme-applied', init);
 })();
