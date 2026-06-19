@@ -376,6 +376,7 @@ window.HLS_I18N = {
     'ai.tourDone': 'Guided tour complete. The full strategic arc from protocol bootstrap to interplanetary infrastructure has been presented.',
     'ai.tourDoneVoice': 'Guided tour complete. You have reviewed the full arc from lean protocol bootstrap to a trillion-dollar interplanetary infrastructure layer.',
     'ai.tourStop': 'Tour paused. Select a section or submit a new inquiry.',
+    'presentation.stop': 'Stop presentation',
     'ai.langSwitch': 'Language updated. Continuing in your selected language.',
     'ai.langSwitchVoice': 'Language updated. Continuing in your selected language.',
     'ai.thanks': 'You\'re welcome. What would you like to know next?',

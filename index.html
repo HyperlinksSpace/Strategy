@@ -989,22 +989,30 @@
     </section>
   </main>
 
-  <nav class="section-strip glass glass-pillow" aria-label="Jump to section">
-    <div class="section-strip-inner">
-      <span class="section-strip-undercover" aria-hidden="true"></span>
-      <a href="#vision" class="section-chip" data-section-id="vision"><span lang="en">01</span><span data-i18n="nav.vision">Vision</span></a>
-      <a href="#pillars" class="section-chip" data-section-id="pillars"><span lang="en">02</span><span data-i18n="nav.pillars">Pillars</span></a>
-      <a href="#earth-space" class="section-chip" data-section-id="earth-space"><span lang="en">03</span><span data-i18n="nav.earthSpace">Earth &amp; Space</span></a>
-      <a href="#roadmap" class="section-chip" data-section-id="roadmap"><span lang="en">04</span><span data-i18n="nav.roadmap">Roadmap</span></a>
-      <a href="#architecture" class="section-chip" data-section-id="architecture"><span lang="en">05</span><span data-i18n="nav.architecture">Architecture</span></a>
-      <a href="#revenue" class="section-chip" data-section-id="revenue"><span lang="en">06</span><span data-i18n="nav.revenue">Revenue</span></a>
-      <a href="#moats" class="section-chip" data-section-id="moats"><span lang="en">07</span><span data-i18n="nav.moats">Moats</span></a>
-      <a href="#genesis-links" class="section-chip" data-section-id="genesis-links"><span lang="en">08</span><span data-i18n="nav.genesisLinks">Genesis · Links Space</span></a>
-      <a href="#scale-links" class="section-chip" data-section-id="scale-links"><span lang="en">09</span><span data-i18n="nav.scaleLinks">$1T Links Space</span></a>
-      <a href="#intellectual-links" class="section-chip" data-section-id="intellectual-links"><span lang="en">10</span><span data-i18n="nav.intellectualLinks">Intellectual Links</span></a>
-      <a href="#north-star" class="section-chip" data-section-id="north-star"><span lang="en">11</span><span data-i18n="nav.northStar">North Star</span></a>
-    </div>
-  </nav>
+  <div class="section-strip-dock" id="section-strip-dock">
+    <nav class="section-strip glass glass-pillow" aria-label="Jump to section">
+      <div class="section-strip-inner">
+        <span class="section-strip-undercover" aria-hidden="true"></span>
+        <a href="#vision" class="section-chip" data-section-id="vision"><span lang="en">01</span><span data-i18n="nav.vision">Vision</span></a>
+        <a href="#pillars" class="section-chip" data-section-id="pillars"><span lang="en">02</span><span data-i18n="nav.pillars">Pillars</span></a>
+        <a href="#earth-space" class="section-chip" data-section-id="earth-space"><span lang="en">03</span><span data-i18n="nav.earthSpace">Earth &amp; Space</span></a>
+        <a href="#roadmap" class="section-chip" data-section-id="roadmap"><span lang="en">04</span><span data-i18n="nav.roadmap">Roadmap</span></a>
+        <a href="#architecture" class="section-chip" data-section-id="architecture"><span lang="en">05</span><span data-i18n="nav.architecture">Architecture</span></a>
+        <a href="#revenue" class="section-chip" data-section-id="revenue"><span lang="en">06</span><span data-i18n="nav.revenue">Revenue</span></a>
+        <a href="#moats" class="section-chip" data-section-id="moats"><span lang="en">07</span><span data-i18n="nav.moats">Moats</span></a>
+        <a href="#genesis-links" class="section-chip" data-section-id="genesis-links"><span lang="en">08</span><span data-i18n="nav.genesisLinks">Genesis · Links Space</span></a>
+        <a href="#scale-links" class="section-chip" data-section-id="scale-links"><span lang="en">09</span><span data-i18n="nav.scaleLinks">$1T Links Space</span></a>
+        <a href="#intellectual-links" class="section-chip" data-section-id="intellectual-links"><span lang="en">10</span><span data-i18n="nav.intellectualLinks">Intellectual Links</span></a>
+        <a href="#north-star" class="section-chip" data-section-id="north-star"><span lang="en">11</span><span data-i18n="nav.northStar">North Star</span></a>
+      </div>
+    </nav>
+    <button type="button" class="presentation-stop glass glass-pillow" id="presentation-stop" hidden
+      data-i18n-aria="presentation.stop" title="Stop presentation">
+      <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true">
+        <rect x="7" y="7" width="10" height="10" rx="1.6" fill="currentColor"/>
+      </svg>
+    </button>
+  </div>
 
   <footer class="site-footer">
     <p>© 2026 <a href="https://github.com/HyperlinksSpace" target="_blank" rel="noopener">Hyperlinks Space</a> · <span data-i18n="footer.tagline">Hyperlinks Space — protocol layer from factory floor to lunar orbit</span></p>
@@ -1026,7 +1034,7 @@
   <script src="js/orb-reactive.js" defer></script>
   <script src="js/load-heavy.js" defer></script>
   <script src="js/nav-dropdowns.js" defer></script>
-  <script src="js/ai-loader.js?v=20250619c" defer></script>
+  <script src="js/ai-loader.js?v=20250619d" defer></script>
   <script src="js/app.js" defer></script>
 </body>
 </html>

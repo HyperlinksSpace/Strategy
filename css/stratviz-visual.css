@@ -782,18 +782,17 @@
 /* Mic debug overlay — subtle watermark on stratviz stage */
 .stratviz-mic-debug {
   --mic-debug-green: color-mix(in srgb, var(--brand-green-display) 48%, transparent);
+  --mic-debug-anchor: 50%;
   position: absolute;
   inset: 0;
   z-index: 12;
   display: none;
-  flex-direction: column;
-  padding: 10px 12px 12px;
   pointer-events: none;
   background: transparent;
 }
 
 .stratviz-mic-debug.is-active {
-  display: flex;
+  display: block;
 }
 
 .stratviz-mic-debug-copy {
@@ -832,9 +831,11 @@
 }
 
 .stratviz-mic-debug-list {
-  flex: 1;
-  min-height: 0;
-  margin-top: 8px;
+  position: absolute;
+  top: clamp(4px, 1.2%, 10px);
+  right: clamp(8px, 2.5%, 12px);
+  bottom: var(--mic-debug-anchor);
+  left: clamp(8px, 2.5%, 12px);
   overflow-x: hidden;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
@@ -848,8 +849,8 @@
   opacity: 0.46;
   text-shadow: none;
   pointer-events: none;
-  mask-image: linear-gradient(to bottom, transparent 0%, #000 16%, #000 100%);
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 16%, #000 100%);
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 14%, #000 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 14%, #000 100%);
 }
 
 .stratviz-mic-debug-list::-webkit-scrollbar {
@@ -874,29 +875,33 @@
 
 @media (max-width: 768px) {
   .stratviz-mic-debug {
-    justify-content: flex-end;
-    padding: 4px 8px 6px;
+    --mic-debug-anchor: 50%;
   }
 
   .stratviz-mic-debug-copy { top: 5px; right: 5px; width: 26px; height: 26px; }
 
   .stratviz-mic-debug-list {
-    margin-top: 0;
-    flex: 1 1 auto;
+    top: 3px;
+    left: 6px;
+    right: 6px;
     font-size: 8px;
     line-height: 1.4;
     opacity: 0.44;
-    mask-image: linear-gradient(to bottom, transparent 0%, #000 20%, #000 100%);
-    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 20%, #000 100%);
+    mask-image: linear-gradient(to bottom, transparent 0%, #000 16%, #000 100%);
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 16%, #000 100%);
   }
 }
 
 @media (max-width: 480px) {
+  .stratviz-mic-debug {
+    --mic-debug-anchor: 52%;
+  }
+
   .stratviz-mic-debug-list {
     font-size: 7.5px;
     line-height: 1.32;
-    mask-image: linear-gradient(to bottom, transparent 0%, #000 24%, #000 100%);
-    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 24%, #000 100%);
+    mask-image: linear-gradient(to bottom, transparent 0%, #000 20%, #000 100%);
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 20%, #000 100%);
   }
 }
 

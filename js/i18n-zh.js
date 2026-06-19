@@ -376,6 +376,7 @@ window.HLS_I18N.zh = {
     'ai.tourDone': '引导游览完成。从协议启动到行星际基础设施的完整战略脉络已呈现完毕。',
     'ai.tourDoneVoice': '引导游览完成。您已回顾从精益协议启动到万亿美元行星际基础设施层的完整脉络。',
     'ai.tourStop': '游览已暂停。选择章节或提交新问题。',
+    'presentation.stop': '停止演示',
     'ai.langSwitch': '语言已更新。将以您选择的语言继续。',
     'ai.langSwitchVoice': '语言已更新。将以您选择的语言继续。',
     'ai.thanks': '不客气。还想了解什么？',

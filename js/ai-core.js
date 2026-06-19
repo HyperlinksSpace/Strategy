@@ -2775,6 +2775,39 @@
     emitOrb('user', { impulse: 0.48 });
   }
 
+  function setPresentationUI(active) {
+    var dock = document.getElementById('section-strip-dock');
+    var btn = document.getElementById('presentation-stop');
+    if (!dock) return;
+    dock.classList.toggle('is-presentation-active', !!active);
+    if (btn) {
+      btn.hidden = !active;
+      btn.tabIndex = active ? 0 : -1;
+    }
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('resize'));
+    }
+  }
+
+  function stopPresentation() {
+    if (!state.tourActive) return;
+    cancelGeneration();
+    resumeMicAfterTour();
+    scrollToSectionWhenReady('hero').then(function () {
+      document.dispatchEvent(new CustomEvent('ai-core:navigate', { detail: { sectionId: 'hero' } }));
+      emitOrb('navigate', { sectionId: 'hero', impulse: 0.4 });
+      sayBotSilent('ai.tourStop');
+    });
+  }
+
+  function initPresentationStop() {
+    var btn = document.getElementById('presentation-stop');
+    if (!btn) return;
+    btn.addEventListener('click', function () {
+      stopPresentation();
+    });
+  }
+
   function stopTour() {
     state.tourActive = false;
     if (state.tourTimer) {
@@ -2783,6 +2816,7 @@
     }
     state.tourIndex = 0;
     stopSpeech();
+    setPresentationUI(false);
     releaseOrbIdle(400);
   }
 
@@ -2847,7 +2881,7 @@
         showBotMessage(t('ai.tourDone'), {
           speakText: tVoice('ai.tourDone'),
           onDone: function () {
-            state.tourActive = false;
+            stopTour();
             resumeMicAfterTour();
           }
         });
@@ -2889,6 +2923,7 @@
   function startTour(userText) {
     stopTour();
     state.tourActive = true;
+    setPresentationUI(true);
     emitOrb('tour');
     pauseMicForTour();
     if (userText) sayUser(userText);
@@ -3032,6 +3067,7 @@
     updateVoiceButton();
     updateMicButton();
     buildChips();
+    initPresentationStop();
   }
 
   function isLightTheme() {
@@ -3262,6 +3298,7 @@
     if (!state.messagesEl || !state.formEl) return;
 
     buildChips();
+    initPresentationStop();
 
     if (state.stopBtn) {
       state.stopBtn.addEventListener('click', function () {

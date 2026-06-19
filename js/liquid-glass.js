@@ -76,7 +76,7 @@
   }
 
   function hostSelector() {
-    return '.site-header.glass-pillow, .section-strip.glass-pillow, .nav-dropdown-panel.liquid-glass-pillow, .liquid-glass-pill';
+    return '.site-header.glass-pillow, .section-strip.glass-pillow, .presentation-stop.glass-pillow, .nav-dropdown-panel.liquid-glass-pillow, .liquid-glass-pill';
   }
 
   function initAllHosts() {
