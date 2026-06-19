@@ -3850,9 +3850,9 @@ main { position: relative; z-index: 1; padding-top: var(--header-stack); padding
 .ai-core-input {
   flex: 1;
   min-width: 0;
-  min-height: 2.75rem;
+  height: 2.75rem;
   max-height: 7.5rem;
-  padding: 0.65rem 1rem;
+  padding: 0.5rem 1rem;
   border-radius: var(--radius);
   border: 1px solid var(--border);
   background: var(--undercover);
@@ -3861,8 +3861,7 @@ main { position: relative; z-index: 1; padding-top: var(--header-stack); padding
   font-size: 0.875rem;
   line-height: 1.45;
   resize: none;
-  overflow-y: auto;
-  field-sizing: content;
+  overflow-y: hidden;
 }
 
 .ai-core-send {
@@ -5161,9 +5160,9 @@ main { position: relative; z-index: 1; padding-top: var(--header-stack); padding
   }
 
   .ai-core-input {
-    padding: 0.55rem 0.85rem;
+    height: 2.5rem;
+    padding: 0.45rem 0.85rem;
     font-size: 0.8125rem;
-    min-height: 2.5rem;
     max-height: 6.5rem;
   }
 

@@ -148,6 +148,7 @@
     messagesEl: null,
     chipsEl: null,
     inputEl: null,
+    inputBaseHeight: 0,
     formEl: null,
     stopBtn: null,
     voiceBtn: null,
@@ -3071,11 +3072,24 @@
 
   function syncInputHeight() {
     if (!state.inputEl) return;
-    state.inputEl.style.height = 'auto';
     var max = window.matchMedia && window.matchMedia('(max-width: 768px)').matches ? 104 : 120;
-    var next = Math.min(state.inputEl.scrollHeight, max);
+    state.inputEl.style.height = 'auto';
+    if (!state.inputBaseHeight) {
+      state.inputBaseHeight = state.inputEl.scrollHeight;
+    }
+    var scrollH = state.inputEl.scrollHeight;
+    var val = state.inputEl.value;
+    var next = state.inputBaseHeight;
+    if (val && scrollH > state.inputBaseHeight + 1) {
+      next = Math.min(scrollH, max);
+    }
     state.inputEl.style.height = next + 'px';
-    state.inputEl.style.overflowY = state.inputEl.scrollHeight > max ? 'auto' : 'hidden';
+    state.inputEl.style.overflowY = scrollH > max ? 'auto' : 'hidden';
+  }
+
+  function resetInputBaseHeight() {
+    state.inputBaseHeight = 0;
+    syncInputHeight();
   }
 
   function refreshChrome() {
@@ -3088,7 +3102,7 @@
     });
     if (state.inputEl) {
       state.inputEl.placeholder = t('ai.placeholder');
-      syncInputHeight();
+      resetInputBaseHeight();
     }
     updateVoiceButton();
     updateMicButton();
@@ -3353,6 +3367,12 @@
         }
       });
       syncInputHeight();
+    }
+
+    if (window.HLS && window.HLS.onResize) {
+      window.HLS.onResize(resetInputBaseHeight);
+    } else {
+      window.addEventListener('resize', resetInputBaseHeight, { passive: true });
     }
 
     setTimeout(function () {
