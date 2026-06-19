@@ -234,6 +234,15 @@
             <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
           </div>
           <div class="stratviz-vignette" aria-hidden="true"></div>
+          <div class="stratviz-mic-debug" id="stratviz-mic-debug" hidden>
+            <button type="button" class="stratviz-mic-debug-copy" id="stratviz-mic-debug-copy" aria-label="Copy mic debug logs" title="Copy logs">
+              <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">
+                <rect x="9" y="9" width="13" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
+                <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" fill="none" stroke="currentColor" stroke-width="2"/>
+              </svg>
+            </button>
+            <div class="stratviz-mic-debug-list" id="stratviz-mic-debug-list" role="log" aria-live="polite"></div>
+          </div>
         </div>
         </div>
       </div>
@@ -666,7 +675,7 @@
       <div class="section-header">
         <span class="section-tag" data-i18n="genesis.tag">08 · Links Space · Genesis</span>
         <h2 data-i18n="genesis.title">Genesis Node. Peer Replicas. No King.</h2>
-        <p class="section-desc" data-i18n="genesis.desc">Hyperlinks Space is built by a technical founder who commits code daily—not a pitch-deck hub. Authority comes from signed merges and protocol depth, not from a glowing orb. This is the social topology we run today and harden into Links Space.</p>
+        <p class="section-desc" data-i18n="genesis.desc">Hyperlinks Space is built by a technical founder who commits code daily—not a pitch-deck hub. The company's authority is achieved through signed merges and protocol depth, not from a glowing orb—though we do have one. This is the social topology we run today and harden into Links Space.</p>
       </div>
       <div class="links-visual">
         <div class="links-diagram links-diagram--genesis" role="img" data-i18n-aria="genesis.diagram.aria" aria-label="Genesis Links Space topology">
@@ -1018,7 +1027,7 @@
   <script src="js/orb-reactive.js" defer></script>
   <script src="js/load-heavy.js" defer></script>
   <script src="js/nav-dropdowns.js" defer></script>
-  <script src="js/ai-loader.js?v=20250616c" defer></script>
+  <script src="js/ai-loader.js?v=20250616d" defer></script>
   <script src="js/app.js" defer></script>
 </body>
 </html>

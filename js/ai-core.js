@@ -198,7 +198,12 @@
   var micStartDelayTimer = 0;
   var micRecEndedAt = 0;
   var micAbortStreak = 0;
+  var micRecGen = 0;
+  var micRecEnding = false;
+  var micPausedByFailure = false;
+  var micFailureRebuilds = 0;
   var MIC_RESTART_MIN_MS = 1000;
+  var MIC_MAX_FAILURE_REBUILDS = 2;
   var recognitionFailCount = 0;
   var micNoSpeechCount = 0;
   var micStopReason = '';
@@ -221,7 +226,7 @@
     monitorAttempted: false
   };
 
-  var MIC_BUILD = '20250616c';
+  var MIC_BUILD = '20250616d';
   var MIC_DEBUG_KEY = 'hls-mic-debug';
   var MIC_LOG_MAX = 200;
   var MIC_LOG_ALWAYS = {
@@ -252,15 +257,17 @@
   var micDebugOn = false;
   var micDebugPanel = null;
   var micDebugListEl = null;
+  var micDebugCopyBtn = null;
+  var micDebugCopyTimer = 0;
 
   function micDebugEnabled() {
     try {
-      if (localStorage.getItem(MIC_DEBUG_KEY) === '1') return true;
+      if (localStorage.getItem(MIC_DEBUG_KEY) === '0') return false;
     } catch (e) { /* noop */ }
     try {
-      return /(?:^|[?&])micDebug=1(?:&|$)/.test(window.location.search || '');
+      if (/(?:^|[?&])micDebug=0(?:&|$)/.test(window.location.search || '')) return false;
     } catch (e) { /* noop */ }
-    return false;
+    return true;
   }
 
   function micBusyReasons() {
@@ -321,43 +328,64 @@
     };
   }
 
+  function micDebugFormatLine(entry) {
+    var line = document.createElement('div');
+    var level = entry.level || 'info';
+    line.className = 'stratviz-mic-debug-line stratviz-mic-debug-line--' + level;
+    line.textContent = entry.t.slice(11, 19) + ' ' + entry.event +
+      (entry.detail ? ' ' + JSON.stringify(entry.detail).slice(0, 180) : '');
+    return line;
+  }
+
   function micDebugRenderPanel(entry) {
     if (!micDebugOn || !micDebugListEl) return;
-    var line = document.createElement('div');
-    line.textContent = entry.t.slice(11, 19) + ' ' + entry.event +
-      (entry.detail ? ' ' + JSON.stringify(entry.detail).slice(0, 120) : '');
-    micDebugListEl.appendChild(line);
-    while (micDebugListEl.childNodes.length > 14) {
+    micDebugListEl.appendChild(micDebugFormatLine(entry));
+    while (micDebugListEl.childNodes.length > 22) {
       micDebugListEl.removeChild(micDebugListEl.firstChild);
     }
     micDebugListEl.scrollTop = micDebugListEl.scrollHeight;
   }
 
-  function micDebugEnsurePanel() {
-    if (!micDebugOn || micDebugPanel) return;
-    micDebugPanel = document.createElement('div');
-    micDebugPanel.id = 'hls-mic-debug-panel';
-    micDebugPanel.style.cssText =
-      'position:fixed;left:8px;bottom:8px;z-index:99999;max-width:min(96vw,420px);' +
-      'background:rgba(8,12,20,.92);color:#b8f0c8;font:11px/1.35 ui-monospace,monospace;' +
-      'border:1px solid rgba(120,200,150,.35);border-radius:8px;padding:8px;pointer-events:auto;';
-    micDebugPanel.innerHTML =
-      '<div style="display:flex;justify-content:space-between;gap:8px;margin-bottom:6px;">' +
-      '<strong style="color:#e8fff0;">Mic debug</strong>' +
-      '<span><button type="button" id="hls-mic-debug-copy" style="font:inherit;cursor:pointer;">Copy</button> ' +
-      '<button type="button" id="hls-mic-debug-close" style="font:inherit;cursor:pointer;">Hide</button></span></div>' +
-      '<div id="hls-mic-debug-list" style="max-height:140px;overflow:auto;white-space:nowrap;"></div>';
-    document.body.appendChild(micDebugPanel);
-    micDebugListEl = micDebugPanel.querySelector('#hls-mic-debug-list');
-    micDebugPanel.querySelector('#hls-mic-debug-copy').addEventListener('click', function () {
-      var text = micLogExport();
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text).catch(function () { /* noop */ });
+  function micDebugCopyLogs() {
+    var text = micLogExport();
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () {
+        if (!micDebugCopyBtn) return;
+        micDebugCopyBtn.classList.add('is-copied');
+        if (micDebugCopyTimer) clearTimeout(micDebugCopyTimer);
+        micDebugCopyTimer = window.setTimeout(function () {
+          micDebugCopyTimer = 0;
+          if (micDebugCopyBtn) micDebugCopyBtn.classList.remove('is-copied');
+        }, 1400);
+      }).catch(function () { /* noop */ });
+    }
+  }
+
+  function micDebugSetVisible(show) {
+    if (!micDebugPanel) {
+      micDebugPanel = document.getElementById('stratviz-mic-debug');
+      micDebugListEl = document.getElementById('stratviz-mic-debug-list');
+      micDebugCopyBtn = document.getElementById('stratviz-mic-debug-copy');
+      if (micDebugCopyBtn && !micDebugCopyBtn.dataset.bound) {
+        micDebugCopyBtn.dataset.bound = '1';
+        micDebugCopyBtn.addEventListener('click', micDebugCopyLogs);
       }
-    });
-    micDebugPanel.querySelector('#hls-mic-debug-close').addEventListener('click', function () {
-      if (micDebugPanel) micDebugPanel.style.display = 'none';
-    });
+    }
+    if (!micDebugPanel) return;
+    if (show) {
+      micDebugPanel.hidden = false;
+      micDebugPanel.classList.add('is-active');
+      micDebugPanel.setAttribute('aria-hidden', 'false');
+    } else {
+      micDebugPanel.classList.remove('is-active');
+      micDebugPanel.hidden = true;
+      micDebugPanel.setAttribute('aria-hidden', 'true');
+    }
+  }
+
+  function micDebugEnsurePanel() {
+    if (!micDebugOn) return;
+    micDebugSetVisible(true);
   }
 
   function micLogExport() {
@@ -404,29 +432,28 @@
       enable: function () {
         try { localStorage.setItem(MIC_DEBUG_KEY, '1'); } catch (e) { /* noop */ }
         micDebugOn = true;
-        micDebugEnsurePanel();
-        micLogBuffer.slice(-12).forEach(micDebugRenderPanel);
+        micDebugSetVisible(true);
+        if (micDebugListEl) micDebugListEl.innerHTML = '';
+        micLogBuffer.slice(-18).forEach(micDebugRenderPanel);
         micLog('info', 'debug.enabled', { via: 'api' });
         return micSnapshot();
       },
       disable: function () {
         try { localStorage.setItem(MIC_DEBUG_KEY, '0'); } catch (e) { /* noop */ }
         micDebugOn = false;
-        if (micDebugPanel) micDebugPanel.style.display = 'none';
+        micDebugSetVisible(false);
         return micSnapshot();
       },
       status: micSnapshot,
       env: micEnvInfo,
       dump: function () { return micLogExport(); },
       log: micLog,
-      copy: function () {
-        var text = micLogExport();
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          return navigator.clipboard.writeText(text);
-        }
-        return Promise.reject(new Error('clipboard unavailable'));
-      }
+      copy: micDebugCopyLogs
     };
+    if (micDebugOn) {
+      micDebugSetVisible(true);
+      micLogBuffer.slice(-18).forEach(micDebugRenderPanel);
+    }
     micLog('info', 'debug.init', Object.assign({ build: MIC_BUILD }, micEnvInfo()));
     if (micEnvInfo().ios && !micEnvInfo().speechRecognition) {
       micLog('warn', 'env.iosNoSpeechRecognition', {
@@ -1621,6 +1648,58 @@
     })();
   }
 
+  function recognitionIsCurrent(recognition, gen) {
+    return recognition === state.recognition && gen === micRecGen;
+  }
+
+  function resetMicFailureState() {
+    micAbortStreak = 0;
+    micFailureRebuilds = 0;
+    micPausedByFailure = false;
+    micRecEnding = false;
+  }
+
+  function teardownRecognitionInstance() {
+    var rec = state.recognition;
+    state.recognition = null;
+    state.listening = false;
+    state.micStarting = false;
+    if (!rec) return;
+    rec.onstart = null;
+    rec.onend = null;
+    rec.onerror = null;
+    rec.onresult = null;
+    rec.onaudiostart = null;
+    rec.onaudioend = null;
+    rec.onsoundstart = null;
+    rec.onsoundend = null;
+    rec.onspeechstart = null;
+    rec.onspeechend = null;
+    rec.onnomatch = null;
+    try {
+      rec.abort();
+    } catch (e) {
+      try { rec.stop(); } catch (e2) { /* noop */ }
+    }
+  }
+
+  function pauseMicAfterFailure() {
+    micPausedByFailure = true;
+    clearMicRestartTimer();
+    clearMicAutoStartTimer();
+    clearMicStartDelayTimer();
+    clearMicStartTimeout();
+    teardownRecognitionInstance();
+    state.recognition = createRecognitionInstance();
+    stopMicVisualizer();
+    updateMicButton();
+    sayBot('ai.micError');
+    micLog('warn', 'mic.pausedByFailure', {
+      rebuilds: micFailureRebuilds,
+      abortStreak: micAbortStreak
+    });
+  }
+
   function clearMicStartDelayTimer() {
     if (!micStartDelayTimer) return;
     clearTimeout(micStartDelayTimer);
@@ -1642,7 +1721,8 @@
   function micRestartCooldownMs() {
     var elapsed = Date.now() - (micRecEndedAt || 0);
     var minGap = MIC_RESTART_MIN_MS;
-    if (/Windows/i.test(navigator.userAgent || '')) minGap = 1150;
+    if (/Windows/i.test(navigator.userAgent || '')) minGap = 1500;
+    if (micRecEnding) minGap = Math.max(minGap, 400);
     return Math.max(0, minGap - elapsed);
   }
 
@@ -1656,7 +1736,8 @@
 
   function scheduleMicRestart(delay, reason) {
     clearMicRestartTimer();
-    if (!micIsEnabled()) return;
+    clearMicAutoStartTimer();
+    if (!micIsEnabled() || micPausedByFailure) return;
     var wait = delay == null ? micRestartDelayFor(reason) : delay;
     micLog('debug', 'restart.scheduled', { delay: wait, reason: reason || '' });
     micRestartTimer = window.setTimeout(function () {
@@ -1667,7 +1748,8 @@
 
   function scheduleMicAutoStart(delay) {
     clearMicAutoStartTimer();
-    if (!micIsEnabled()) return;
+    if (!micIsEnabled() || micPausedByFailure || micRecEnding) return;
+    if (micRestartTimer || micStartDelayTimer) return;
     micLog('debug', 'autoStart.scheduled', { delay: delay == null ? 500 : delay });
     micAutoStartTimer = window.setTimeout(function () {
       micAutoStartTimer = 0;
@@ -1679,6 +1761,7 @@
     var prev = state.micAutoStart;
     state.micAutoStart = !!enabled;
     micLog('info', 'autoStart.set', { enabled: state.micAutoStart, persist: persist !== false, prev: prev });
+    if (state.micAutoStart) resetMicFailureState();
     if (persist !== false) {
       localStorage.setItem(MIC_AUTO_KEY, state.micAutoStart ? '1' : '0');
     }
@@ -1903,7 +1986,8 @@
       if (!micWatchdog) {
         micWatchdog = window.setInterval(function () {
           if (!micIsEnabled() || state.listening || state.micStarting || micBusy()) return;
-          if (micRestartTimer || micStartDelayTimer) return;
+          if (micPausedByFailure || micRecEnding) return;
+          if (micRestartTimer || micStartDelayTimer || micAutoStartTimer) return;
           micLog('debug', 'watchdog.startListening', micSnapshot());
           startListening(false);
         }, 4000);
@@ -1967,6 +2051,7 @@
       micNoSpeechCount = 0;
       micNoVoiceHintShown = false;
       micAbortStreak = 0;
+      resetMicFailureState();
       micSessionSound = true;
       micVisPulse(parsed.final ? 0.62 : 0.46);
     }
@@ -1981,8 +2066,10 @@
     }
   }
 
-  function attachRecognitionHandlers(recognition) {
+  function attachRecognitionHandlers(recognition, gen) {
     recognition.onstart = function () {
+      if (!recognitionIsCurrent(recognition, gen)) return;
+      micRecEnding = false;
       clearMicStartTimeout();
       recognitionFailCount = 0;
       micStopReason = '';
@@ -1998,6 +2085,11 @@
     };
 
     recognition.onend = function () {
+      if (!recognitionIsCurrent(recognition, gen)) {
+        micLog('debug', 'recognition.onend.stale', { gen: gen, current: micRecGen });
+        return;
+      }
+      micRecEnding = false;
       clearMicStartTimeout();
       micVis.soundActive = false;
       var reason = micStopReason || 'end';
@@ -2051,8 +2143,14 @@
         micLog('warn', 'recognition.aborted', { streak: micAbortStreak });
         if (micAbortStreak >= 5) {
           micAbortStreak = 0;
-          rebuildRecognitionInstance();
-          scheduleMicRestart(2400, 'aborted');
+          micFailureRebuilds += 1;
+          teardownRecognitionInstance();
+          state.recognition = createRecognitionInstance();
+          if (micFailureRebuilds > MIC_MAX_FAILURE_REBUILDS) {
+            pauseMicAfterFailure();
+            return;
+          }
+          scheduleMicRestart(3200, 'aborted');
           return;
         }
         scheduleMicRestart(null, 'aborted');
@@ -2064,6 +2162,8 @@
     };
 
     recognition.onerror = function (event) {
+      if (!recognitionIsCurrent(recognition, gen)) return;
+      micRecEnding = true;
       clearMicStartTimeout();
       micVis.soundActive = false;
       micStopReason = event.error || 'unknown';
@@ -2105,9 +2205,13 @@
       micLog('info', 'recognition.onnomatch', null);
     };
 
-    recognition.onresult = handleRecognitionResult;
+    recognition.onresult = function (event) {
+      if (!recognitionIsCurrent(recognition, gen)) return;
+      handleRecognitionResult(event);
+    };
 
     recognition.onaudiostart = function () {
+      if (!recognitionIsCurrent(recognition, gen)) return;
       micSessionAudio = true;
       micLog('info', 'recognition.onaudiostart', null);
     };
@@ -2117,6 +2221,7 @@
     };
 
     recognition.onsoundstart = function () {
+      if (!recognitionIsCurrent(recognition, gen)) return;
       micSessionSound = true;
       micNoSpeechCount = 0;
       micNoVoiceHintShown = false;
@@ -2129,6 +2234,7 @@
     };
 
     recognition.onspeechstart = function () {
+      if (!recognitionIsCurrent(recognition, gen)) return;
       micSessionSound = true;
       micNoSpeechCount = 0;
       micLog('info', 'recognition.onspeechstart', null);
@@ -2147,12 +2253,15 @@
       micLog('error', 'recognition.unavailable', null);
       return null;
     }
+    micRecGen += 1;
+    var gen = micRecGen;
     var recognition = new SR();
     recognition.continuous = true;
     recognition.interimResults = true;
     recognition.maxAlternatives = 1;
-    attachRecognitionHandlers(recognition);
+    attachRecognitionHandlers(recognition, gen);
     micLog('info', 'recognition.created', {
+      gen: gen,
       continuous: recognition.continuous,
       interimResults: recognition.interimResults
     });
@@ -2161,7 +2270,9 @@
 
   function rebuildRecognitionInstance() {
     micLog('warn', 'recognition.rebuild', { failCount: recognitionFailCount });
-    stopListening(true);
+    teardownRecognitionInstance();
+    stopMicVisualizer();
+    updateMicButton();
     state.recognition = createRecognitionInstance();
   }
 
@@ -2333,9 +2444,14 @@
 
     function callStart() {
       micStartDelayTimer = 0;
-      if (!micIsEnabled()) {
+      if (!micIsEnabled() || micPausedByFailure) {
         state.micStarting = false;
         updateMicButton();
+        return;
+      }
+      if (micRecEnding) {
+        micLog('debug', 'start.waitEnding', null);
+        micStartDelayTimer = window.setTimeout(callStart, 250);
         return;
       }
       if (state.listening) {
@@ -2439,6 +2555,15 @@
       micLog('debug', 'auto.skip', { reason: 'disabled' });
       return;
     }
+    if (micPausedByFailure) {
+      micLog('debug', 'auto.skip', { reason: 'pausedByFailure' });
+      return;
+    }
+    if (micRecEnding) {
+      micLog('debug', 'auto.skip', { reason: 'recEnding' });
+      scheduleMicAutoStart(300);
+      return;
+    }
     if (state.listening || state.micStarting) {
       micLog('debug', 'auto.skip', { reason: 'active' });
       return;
@@ -2482,6 +2607,7 @@
     clearMicStartTimeout();
     clearMicStartDelayTimer();
     state.micStarting = false;
+    micRecEnding = false;
     if (!state.recognition) return;
 
     if (state.listening) {

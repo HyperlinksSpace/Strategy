@@ -201,7 +201,7 @@ window.HLS_I18N = {
     'moats.m4d': 'Software marginal cost near zero at global scale. Industrial contracts and consumer swap volume fund the same runtime binary.',
     'genesis.tag': '08 · Links Space · Genesis',
     'genesis.title': 'Genesis Node. Peer Replicas. No King.',
-    'genesis.desc': 'Hyperlinks Space is built by a technical founder who commits code daily—not a pitch-deck hub. Authority comes from signed merges and protocol depth, not from a glowing orb. This is the social topology we run today and harden into Links Space.',
+    'genesis.desc': 'Hyperlinks Space is built by a technical founder who commits code daily—not a pitch-deck hub. The company\'s authority is achieved through signed merges and protocol depth, not from a glowing orb—though we do have one. This is the social topology we run today and harden into Links Space.',
     'genesis.diagram.aria': 'Genesis Links Space topology',
     'genesis.node.transmitter': 'AI TRANSMITTER',
     'genesis.node.transmitterSub': 'Read-only observer',

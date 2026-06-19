@@ -201,7 +201,7 @@ window.HLS_I18N.zh = {
     'moats.m4d': '软件边际成本在全球规模下接近零。工业合同与消费者交换量资助同一运行时二进制。',
     'genesis.tag': '08 · Links Space · Genesis',
     'genesis.title': 'Genesis 节点。对等副本。无「国王」。',
-    'genesis.desc': 'Hyperlinks Space 由每日提交代码的技术型创始人构建——而非 pitch deck 中心。权威来自签名合并与协议深度，而非发光球体。这是我们今日运行并硬化进 Links Space 的社会拓扑。',
+    'genesis.desc': 'Hyperlinks Space 由每日提交代码的技术型创始人构建——而非 pitch deck 中心。公司权威通过已签名的合并与协议深度达成，而非来自那颗发光的球体——尽管我们确实有一个。这是我们今日运行并硬化进 Links Space 的社会拓扑。',
     'genesis.diagram.aria': 'Genesis Links Space 拓扑',
     'genesis.node.transmitter': 'AI TRANSMITTER',
     'genesis.node.transmitterSub': '只读观察者',
