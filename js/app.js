@@ -257,13 +257,24 @@
         overflow = true;
       }
       strip.classList.toggle('is-overflow', overflow);
+      strip.classList.toggle('is-tablet-rail', isTabletStrip());
       strip.classList.toggle('is-centered', !overflow && !isTabletStrip());
-      if (!overflow) strip.scrollLeft = 0;
+      if (overflow) {
+        undercover.classList.remove('is-visible');
+        undercover.style.width = '';
+        undercover.style.height = '';
+        undercover.style.transform = '';
+      } else {
+        strip.scrollLeft = 0;
+      }
     }
 
     function syncUndercover(chip) {
-      if (!chip) {
+      if (!chip || strip.classList.contains('is-overflow') || isTabletStrip()) {
         undercover.classList.remove('is-visible');
+        undercover.style.width = '';
+        undercover.style.height = '';
+        undercover.style.transform = '';
         return;
       }
       var left = chip.offsetLeft;
