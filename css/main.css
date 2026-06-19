@@ -1959,15 +1959,19 @@ body.nav-dropdown-open { overflow: hidden; }
 .menu-toggle {
   display: none;
   flex-direction: column;
+  align-items: center;
+  justify-content: center;
   gap: 5px;
   background: none;
   border: none;
   cursor: pointer;
   padding: 8px;
   flex-shrink: 0;
+  box-sizing: border-box;
+  line-height: 0;
 }
 
-.menu-toggle:not([hidden]) { display: flex; }
+.menu-toggle:not([hidden]) { display: inline-flex; }
 
 .menu-toggle span {
   display: block;
@@ -3302,12 +3306,14 @@ main { position: relative; z-index: 1; padding-top: var(--header-stack); padding
 
   .site-header .header-actions {
     gap: 0.25rem;
+    align-self: center;
   }
 
   .menu-toggle {
     width: 2.35rem;
     height: 2.35rem;
     padding: 0;
+    gap: 4px;
   }
 
   .header-panel.open {
@@ -4635,6 +4641,7 @@ main { position: relative; z-index: 1; padding-top: var(--header-stack); padding
   .site-header .logo {
     grid-column: 1;
     min-width: 0;
+    align-self: center;
   }
 
   .site-header .header-nav {
@@ -4646,6 +4653,14 @@ main { position: relative; z-index: 1; padding-top: var(--header-stack); padding
     min-width: 0;
     gap: 0.35rem;
     justify-self: end;
+    align-self: center;
+  }
+
+  .menu-toggle {
+    width: 2.5rem;
+    height: 2.5rem;
+    padding: 0;
+    align-self: center;
   }
 
   .header-actions > .header-promo-link,

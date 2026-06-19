@@ -227,7 +227,7 @@
     monitorAttempted: false
   };
 
-  var MIC_BUILD = '20250616e';
+  var MIC_BUILD = '20250619c';
   var MIC_DEBUG_KEY = 'hls-mic-debug';
   var MIC_LOG_MAX = 200;
   var MIC_LOG_ALWAYS = {
@@ -337,6 +337,35 @@
     return micDebugIsCompact() ? 10 : 14;
   }
 
+  function micDebugScrollToTail() {
+    if (!micDebugListEl) return;
+    var el = micDebugListEl;
+    function scroll() {
+      el.scrollTop = el.scrollHeight;
+    }
+    scroll();
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(function () {
+        scroll();
+        requestAnimationFrame(scroll);
+      });
+    }
+  }
+
+  function micDebugRebuildFromBuffer() {
+    if (!micDebugOn || !micDebugListEl) return;
+    micDebugListEl.innerHTML = '';
+    micLogBuffer.slice(-micDebugMaxLines()).forEach(function (entry) {
+      micDebugListEl.appendChild(micDebugFormatLine(entry));
+    });
+    micDebugScrollToTail();
+  }
+
+  function micDebugSnapToTail() {
+    if (!micDebugOn || !micDebugListEl) return;
+    micDebugRebuildFromBuffer();
+  }
+
   function micDebugFormatLine(entry) {
     var line = document.createElement('div');
     var level = entry.level || 'info';
@@ -348,13 +377,12 @@
 
   function micDebugRenderPanel(entry) {
     if (!micDebugOn || !micDebugListEl) return;
-    var compact = micDebugIsCompact();
     var maxLines = micDebugMaxLines();
     micDebugListEl.appendChild(micDebugFormatLine(entry));
     while (micDebugListEl.childNodes.length > maxLines) {
-      micDebugListEl.removeChild(compact ? micDebugListEl.lastChild : micDebugListEl.firstChild);
+      micDebugListEl.removeChild(micDebugListEl.firstChild);
     }
-    if (compact) micDebugListEl.scrollTop = 0;
+    micDebugScrollToTail();
   }
 
   function micDebugCopyLogs() {
@@ -446,8 +474,7 @@
         try { localStorage.setItem(MIC_DEBUG_KEY, '1'); } catch (e) { /* noop */ }
         micDebugOn = true;
         micDebugSetVisible(true);
-        if (micDebugListEl) micDebugListEl.innerHTML = '';
-        micLogBuffer.slice(-micDebugMaxLines()).forEach(micDebugRenderPanel);
+        micDebugRebuildFromBuffer();
         micLog('info', 'debug.enabled', { via: 'api' });
         return micSnapshot();
       },
@@ -465,7 +492,10 @@
     };
     if (micDebugOn) {
       micDebugSetVisible(true);
-      micLogBuffer.slice(-micDebugMaxLines()).forEach(micDebugRenderPanel);
+      micDebugRebuildFromBuffer();
+    }
+    if (micDebugOn) {
+      window.addEventListener('resize', micDebugSnapToTail, { passive: true });
     }
     micLog('info', 'debug.init', Object.assign({ build: MIC_BUILD }, micEnvInfo()));
     if (micEnvInfo().ios && !micEnvInfo().speechRecognition) {
@@ -2133,6 +2163,7 @@
       state.listening = true;
       state.micPermissionGranted = true;
       micLog('info', 'recognition.onstart', { lang: recognition.lang });
+      if (micDebugOn) micDebugSnapToTail();
       emitOrb('listening');
       startMicVisualizer();
       updateMicButton();
