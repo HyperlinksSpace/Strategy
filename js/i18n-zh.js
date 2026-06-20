@@ -350,7 +350,7 @@ window.HLS_I18N.zh = {
     'ai.name': 'AI CORE',
     'ai.orbLabel': 'AI CORE',
     'ai.status': '在线 · 执行简报 · 中 / 英 / 俄',
-    'ai.placeholder': '提问，或说出章节名（愿景、路线图、护城河…）获取简报',
+    'ai.placeholder': '请说话或文字输入',
     'ai.send': '发送',
     'ai.stop': '停止',
     'ai.chipHelp': '概览',

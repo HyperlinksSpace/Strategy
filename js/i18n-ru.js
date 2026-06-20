@@ -350,7 +350,7 @@ window.HLS_I18N.ru = {
   'ai.name': 'AI CORE',
   'ai.orbLabel': 'AI CORE',
   'ai.status': 'В сети · Брифинг для руководства · EN / RU / 中文',
-  'ai.placeholder': 'Задайте вопрос или назовите раздел (Видение, Дорожная карта, Преимущества…) для брифинга',
+  'ai.placeholder': 'Говорите или пишите мне',
   'ai.send': 'Отправить',
   'ai.stop': 'Стоп',
   'ai.chipHelp': 'Обзор',

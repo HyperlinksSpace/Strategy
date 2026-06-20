@@ -350,7 +350,7 @@ window.HLS_I18N = {
     'ai.name': 'AI CORE',
     'ai.orbLabel': 'AI CORE',
     'ai.status': 'Online · Briefing · EN / RU / 中文',
-    'ai.placeholder': 'Ask a question—or name a section (Vision, Roadmap, Moats…) for a briefing',
+    'ai.placeholder': 'Speak or write to me',
     'ai.send': 'Send',
     'ai.stop': 'Stop',
     'ai.chipHelp': 'Overview',

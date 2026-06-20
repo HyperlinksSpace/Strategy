@@ -1407,9 +1407,14 @@
     tick();
   }
 
+  function shouldSpeak(opts) {
+    if (opts && opts.speak === false) return false;
+    return !!(state.voiceEnabled && state.speechSupported);
+  }
+
   function showBotMessage(displayText, opts) {
     opts = opts || {};
-    var speakLine = opts.speak === false ? null : (opts.speakText || displayText);
+    var speakLine = shouldSpeak(opts) ? (opts.speakText || displayText) : null;
 
     if (speakLine && opts.parallelSpeak) {
       speakAsync(speakLine);
@@ -1422,7 +1427,7 @@
     }
 
     function finish() {
-      if (speakLine) {
+      if (speakLine && shouldSpeak(opts)) {
         speakAsync(speakLine).then(function (ok) {
           if (ok === false) return;
           afterSpeech();
@@ -1480,7 +1485,7 @@
   function startSpeechKeepalive() {
     if (speechKeepalive) return;
     speechKeepalive = window.setInterval(function () {
-      if (!state.speaking || !window.speechSynthesis) return;
+      if (!state.voiceEnabled || !state.speaking || !window.speechSynthesis) return;
       if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
         try { window.speechSynthesis.resume(); } catch (e) { /* noop */ }
       }
@@ -1494,16 +1499,22 @@
   }
 
   function stopSpeech() {
-    if (!state.speechSupported) return;
     speechQueueGen += 1;
     stopSpeechKeepalive();
-    window.speechSynthesis.cancel();
+    state.speaking = false;
+    if (state.speechSupported && window.speechSynthesis) {
+      try { window.speechSynthesis.cancel(); } catch (e) { /* noop */ }
+      window.setTimeout(function () {
+        if (!window.speechSynthesis) return;
+        try { window.speechSynthesis.cancel(); } catch (e2) { /* noop */ }
+      }, 0);
+    }
     if (state.speechResolve) {
       state.speechResolve(false);
       state.speechResolve = null;
     }
-    state.speaking = false;
     setGeneratingUI(false);
+    if (!state.typing && !state.aiPending) releaseOrbIdle(350);
   }
 
   function buildUtterance(text, lang) {
@@ -1532,7 +1543,10 @@
     }
 
     function speakCurrent(retrying) {
-      if (gen !== speechQueueGen) return;
+      if (gen !== speechQueueGen || !state.voiceEnabled) {
+        finish(false);
+        return;
+      }
 
       while (index < segments.length && !segments[index].text.trim()) index += 1;
       if (index >= segments.length) {
@@ -1610,7 +1624,14 @@
         var retried = false;
 
         function speakSingle(retrying) {
-          if (gen !== speechQueueGen) return;
+          if (gen !== speechQueueGen || !state.voiceEnabled) {
+            state.speaking = false;
+            stopSpeechKeepalive();
+            setGeneratingUI(false);
+            if (state.speechResolve === resolve) state.speechResolve = null;
+            resolve(false);
+            return;
+          }
           var utterance = buildUtterance(line, singleLang);
           if (!utterance) {
             state.speaking = false;
@@ -1655,11 +1676,15 @@
   }
 
   function setVoiceEnabled(enabled, persist) {
+    var wasEnabled = state.voiceEnabled;
     state.voiceEnabled = !!enabled;
     if (persist !== false) {
       localStorage.setItem(VOICE_KEY, state.voiceEnabled ? '1' : '0');
     }
-    if (!state.voiceEnabled) stopSpeech();
+    if (!state.voiceEnabled && wasEnabled) {
+      stopSpeech();
+      emitOrb('idle', { delay: 0 });
+    }
     updateVoiceButton();
   }
 
@@ -2923,6 +2948,11 @@
       showBotMessage(displayText, {
         speak: false,
         onDone: function () {
+          if (!state.tourActive) return;
+          if (!shouldSpeak()) {
+            scheduleTourStep(state.reducedMotion ? 700 : 1200);
+            return;
+          }
           speakAsync(voiceText).then(function (ok) {
             if (!state.tourActive) return;
             if (!ok) {

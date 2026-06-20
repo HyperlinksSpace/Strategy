@@ -314,6 +314,9 @@ input::placeholder,
 textarea::placeholder {
   color: var(--text-muted);
   opacity: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .ai-core-voice svg,
@@ -3861,7 +3864,9 @@ main { position: relative; z-index: 1; padding-top: var(--header-stack); padding
   font-size: 0.875rem;
   line-height: 1.45;
   resize: none;
+  overflow-x: hidden;
   overflow-y: hidden;
+  text-overflow: ellipsis;
 }
 
 .ai-core-send {
