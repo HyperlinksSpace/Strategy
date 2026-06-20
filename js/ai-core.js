@@ -3111,22 +3111,32 @@
     if (!state.inputEl) return;
     var max = window.matchMedia && window.matchMedia('(max-width: 768px)').matches ? 104 : 120;
     var minH = getInputMinHeight();
+    var val = state.inputEl.value;
+
+    if (!val) {
+      state.inputEl.style.height = '';
+      state.inputEl.style.overflowY = 'hidden';
+      state.inputBaseHeight = minH;
+      if (state.formEl) state.formEl.classList.remove('is-input-expanded');
+      return;
+    }
+
     state.inputEl.style.height = 'auto';
     var scrollH = state.inputEl.scrollHeight;
-    if (!state.inputBaseHeight) {
-      state.inputBaseHeight = Math.max(scrollH, minH);
-    } else if (state.inputBaseHeight < minH) {
-      state.inputBaseHeight = minH;
+    if (!state.inputBaseHeight) state.inputBaseHeight = minH;
+    var expanded = scrollH > state.inputBaseHeight + 1;
+
+    if (expanded) {
+      var next = Math.min(scrollH, max);
+      state.inputEl.style.height = next + 'px';
+      state.inputEl.style.overflowY = scrollH > max ? 'auto' : 'hidden';
+    } else {
+      state.inputEl.style.height = '';
+      state.inputEl.style.overflowY = 'hidden';
     }
-    var val = state.inputEl.value;
-    var next = state.inputBaseHeight;
-    if (val && scrollH > state.inputBaseHeight + 1) {
-      next = Math.min(scrollH, max);
-    }
-    state.inputEl.style.height = next + 'px';
-    state.inputEl.style.overflowY = scrollH > max ? 'auto' : 'hidden';
+
     if (state.formEl) {
-      state.formEl.classList.toggle('is-input-expanded', !!(val && next > state.inputBaseHeight + 1));
+      state.formEl.classList.toggle('is-input-expanded', expanded);
     }
   }
 
