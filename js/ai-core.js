@@ -148,6 +148,7 @@
     messagesEl: null,
     chipsEl: null,
     inputEl: null,
+    inputWrapEl: null,
     formEl: null,
     stopBtn: null,
     voiceBtn: null,
@@ -2024,6 +2025,8 @@
       bar.style.setProperty('--eq-level', Math.round(Math.min(72, pct)) + '%');
     });
   }
+  var micVisFrame = 0;
+
   function tickMicVisualizer() {
     if (!micVis.active || !micVis.bars || !micVis.bars.length) return;
     if (!state.listening && !state.micStarting) {
@@ -2043,7 +2046,8 @@
       return;
     }
 
-    paintMicEqBars();
+    micVisFrame += 1;
+    if (micVisFrame % 3 === 0) paintMicEqBars();
     micVis.raf = requestAnimationFrame(tickMicVisualizer);
   }
 
@@ -2169,7 +2173,6 @@
       micLastInterim = parsed.interim;
       if (state.inputEl) {
         state.inputEl.value = parsed.interim;
-        syncInputHeight();
       }
       scheduleInterimCommit(1600);
     }
@@ -2400,7 +2403,6 @@
     pendingVoiceInput = text;
     if (state.inputEl) {
       state.inputEl.value = text;
-      syncInputHeight();
     }
   }
 
@@ -2430,11 +2432,9 @@
     if (handled) {
       if (state.inputEl) {
         state.inputEl.value = '';
-        syncInputHeight();
       }
     } else if (state.inputEl) {
       state.inputEl.value = text;
-      syncInputHeight();
     }
   }
 
@@ -2456,7 +2456,6 @@
 
     if (state.inputEl) {
       state.inputEl.value = text;
-      syncInputHeight();
     }
 
     if (isFinal) {
@@ -2465,7 +2464,6 @@
       if (handled) {
         if (state.inputEl) {
           state.inputEl.value = '';
-          syncInputHeight();
         }
       }
       return;
@@ -3096,7 +3094,12 @@
     });
   }
 
-  function getInputLineHeight() {
+  var inputHeightRaf = 0;
+  var inputSingleLineH = 0;
+  var inputAutoSizeSupported = typeof CSS !== 'undefined' &&
+    CSS.supports && CSS.supports('field-sizing', 'content');
+
+  function measureInputSingleLine() {
     if (!state.inputEl) return 0;
     var lh = parseFloat(getComputedStyle(state.inputEl).lineHeight);
     if (!isNaN(lh) && lh > 0) return lh;
@@ -3104,38 +3107,37 @@
     return fs * 1.35;
   }
 
-  function syncInputHeight() {
-    if (!state.inputEl) return;
-    var max = window.matchMedia && window.matchMedia('(max-width: 768px)').matches ? 104 : 120;
-    var lineH = getInputLineHeight();
+  function fallbackSyncInputHeight() {
+    if (inputAutoSizeSupported || !state.inputEl) return;
+    var lineH = inputSingleLineH || measureInputSingleLine();
+    if (!lineH) return;
     var val = state.inputEl.value;
-
-    state.inputEl.style.height = 'auto';
-    var scrollH = state.inputEl.scrollHeight;
-
-    if (!val) {
+    var wrap = state.inputWrapEl;
+    if (!val || val.indexOf('\n') === -1) {
       state.inputEl.style.height = lineH + 'px';
-      state.inputEl.style.overflowY = 'hidden';
-      if (state.formEl) state.formEl.classList.remove('is-input-expanded');
+      if (wrap) wrap.classList.remove('is-expanded');
       return;
     }
-
-    var expanded = scrollH > lineH + 1;
-    if (expanded) {
-      state.inputEl.style.height = Math.min(scrollH, max) + 'px';
-      state.inputEl.style.overflowY = scrollH > max ? 'auto' : 'hidden';
-    } else {
-      state.inputEl.style.height = lineH + 'px';
-      state.inputEl.style.overflowY = 'hidden';
-    }
-
-    if (state.formEl) {
-      state.formEl.classList.toggle('is-input-expanded', expanded);
-    }
+    state.inputEl.style.height = 'auto';
+    var max = window.matchMedia && window.matchMedia('(max-width: 768px)').matches ? 104 : 120;
+    var next = Math.min(state.inputEl.scrollHeight, max);
+    state.inputEl.style.height = next + 'px';
+    if (wrap) wrap.classList.toggle('is-expanded', next > lineH + 1);
   }
 
-  function resetInputBaseHeight() {
-    syncInputHeight();
+  function scheduleFallbackInputHeight() {
+    if (inputAutoSizeSupported) return;
+    if (inputHeightRaf) return;
+    inputHeightRaf = requestAnimationFrame(function () {
+      inputHeightRaf = 0;
+      fallbackSyncInputHeight();
+    });
+  }
+
+  function resetInputMetrics() {
+    if (inputAutoSizeSupported) return;
+    inputSingleLineH = measureInputSingleLine();
+    scheduleFallbackInputHeight();
   }
 
   function refreshChrome() {
@@ -3148,7 +3150,7 @@
     });
     if (state.inputEl) {
       state.inputEl.placeholder = t('ai.placeholder');
-      resetInputBaseHeight();
+      resetInputMetrics();
     }
     updateVoiceButton();
     updateMicButton();
@@ -3378,6 +3380,7 @@
     state.messagesEl = document.getElementById('ai-core-messages');
     state.chipsEl = document.getElementById('ai-core-chips');
     state.inputEl = document.getElementById('ai-core-input');
+    state.inputWrapEl = state.inputEl && state.inputEl.parentElement;
     state.formEl = document.getElementById('ai-core-form');
     state.stopBtn = document.getElementById('ai-core-stop');
 
@@ -3396,12 +3399,15 @@
       e.preventDefault();
       var val = state.inputEl.value.trim();
       state.inputEl.value = '';
-      syncInputHeight();
+      scheduleFallbackInputHeight();
       handleInput(val);
     });
 
     if (state.inputEl) {
-      state.inputEl.addEventListener('input', syncInputHeight);
+      if (!inputAutoSizeSupported) {
+        state.inputEl.addEventListener('input', scheduleFallbackInputHeight);
+        resetInputMetrics();
+      }
       state.inputEl.addEventListener('keydown', function (e) {
         if (e.key === 'Enter' && !e.shiftKey) {
           e.preventDefault();
@@ -3412,13 +3418,14 @@
           }
         }
       });
-      syncInputHeight();
     }
 
-    if (window.HLS && window.HLS.onResize) {
-      window.HLS.onResize(resetInputBaseHeight);
-    } else {
-      window.addEventListener('resize', resetInputBaseHeight, { passive: true });
+    if (!inputAutoSizeSupported) {
+      if (window.HLS && window.HLS.onResize) {
+        window.HLS.onResize(resetInputMetrics);
+      } else {
+        window.addEventListener('resize', resetInputMetrics, { passive: true });
+      }
     }
 
     setTimeout(function () {
