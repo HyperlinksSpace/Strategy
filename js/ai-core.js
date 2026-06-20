@@ -3097,14 +3097,27 @@
     });
   }
 
+  function getInputMinHeight() {
+    if (!state.formEl) return 0;
+    var raw = getComputedStyle(state.formEl).getPropertyValue('--ai-form-control-h').trim();
+    if (!raw) return 0;
+    var root = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+    if (raw.indexOf('rem') !== -1) return Math.round(parseFloat(raw) * root);
+    if (raw.indexOf('px') !== -1) return parseFloat(raw);
+    return parseFloat(raw) || 0;
+  }
+
   function syncInputHeight() {
     if (!state.inputEl) return;
     var max = window.matchMedia && window.matchMedia('(max-width: 768px)').matches ? 104 : 120;
+    var minH = getInputMinHeight();
     state.inputEl.style.height = 'auto';
-    if (!state.inputBaseHeight) {
-      state.inputBaseHeight = state.inputEl.scrollHeight;
-    }
     var scrollH = state.inputEl.scrollHeight;
+    if (!state.inputBaseHeight) {
+      state.inputBaseHeight = Math.max(scrollH, minH);
+    } else if (state.inputBaseHeight < minH) {
+      state.inputBaseHeight = minH;
+    }
     var val = state.inputEl.value;
     var next = state.inputBaseHeight;
     if (val && scrollH > state.inputBaseHeight + 1) {
