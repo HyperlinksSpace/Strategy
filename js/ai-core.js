@@ -3095,9 +3095,10 @@
   }
 
   var inputHeightRaf = 0;
-  var inputSingleLineH = 0;
-  var inputAutoSizeSupported = typeof CSS !== 'undefined' &&
-    CSS.supports && CSS.supports('field-sizing', 'content');
+  var inputLineH = 0;
+  var inputMaxH = 120;
+  var inputExpanded = false;
+  var inputMetricsMobile = null;
 
   function measureInputSingleLine() {
     if (!state.inputEl) return 0;
@@ -3107,37 +3108,65 @@
     return fs * 1.35;
   }
 
-  function fallbackSyncInputHeight() {
-    if (inputAutoSizeSupported || !state.inputEl) return;
-    var lineH = inputSingleLineH || measureInputSingleLine();
-    if (!lineH) return;
-    var val = state.inputEl.value;
-    var wrap = state.inputWrapEl;
-    if (!val || val.indexOf('\n') === -1) {
-      state.inputEl.style.height = lineH + 'px';
-      if (wrap) wrap.classList.remove('is-expanded');
-      return;
-    }
-    state.inputEl.style.height = 'auto';
-    var max = window.matchMedia && window.matchMedia('(max-width: 768px)').matches ? 104 : 120;
-    var next = Math.min(state.inputEl.scrollHeight, max);
-    state.inputEl.style.height = next + 'px';
-    if (wrap) wrap.classList.toggle('is-expanded', next > lineH + 1);
+  function cacheInputMetrics() {
+    inputMetricsMobile = !!(window.matchMedia && window.matchMedia('(max-width: 768px)').matches);
+    inputLineH = measureInputSingleLine();
+    inputMaxH = inputMetricsMobile ? 104 : 120;
   }
 
-  function scheduleFallbackInputHeight() {
-    if (inputAutoSizeSupported) return;
+  function syncInputHeight() {
+    if (!state.inputEl) return;
+    if (!inputLineH) cacheInputMetrics();
+
+    var val = state.inputEl.value;
+    var wrap = state.inputWrapEl;
+    var form = state.formEl;
+    var lineH = inputLineH;
+
+    if (!val) {
+      state.inputEl.style.height = lineH + 'px';
+      state.inputEl.style.overflowY = 'hidden';
+      inputExpanded = false;
+      if (wrap) wrap.classList.remove('is-expanded');
+      if (form) form.classList.remove('is-input-expanded');
+      return;
+    }
+
+    var hasNewline = val.indexOf('\n') !== -1;
+    if (!hasNewline && !inputExpanded) {
+      state.inputEl.style.height = lineH + 'px';
+      state.inputEl.style.overflowY = 'hidden';
+      if (val.length > 24 && state.inputEl.scrollHeight > lineH + 1) {
+        inputExpanded = true;
+      } else {
+        return;
+      }
+    }
+
+    state.inputEl.style.height = 'auto';
+    var scrollH = state.inputEl.scrollHeight;
+    var next = Math.min(scrollH, inputMaxH);
+    var expanded = hasNewline || scrollH > lineH + 1;
+    state.inputEl.style.height = next + 'px';
+    state.inputEl.style.overflowY = scrollH > inputMaxH ? 'auto' : 'hidden';
+    inputExpanded = expanded;
+    if (wrap) wrap.classList.toggle('is-expanded', expanded);
+    if (form) form.classList.toggle('is-input-expanded', expanded);
+  }
+
+  function scheduleSyncInputHeight() {
     if (inputHeightRaf) return;
     inputHeightRaf = requestAnimationFrame(function () {
       inputHeightRaf = 0;
-      fallbackSyncInputHeight();
+      syncInputHeight();
     });
   }
 
   function resetInputMetrics() {
-    if (inputAutoSizeSupported) return;
-    inputSingleLineH = measureInputSingleLine();
-    scheduleFallbackInputHeight();
+    inputLineH = 0;
+    inputExpanded = false;
+    cacheInputMetrics();
+    scheduleSyncInputHeight();
   }
 
   function refreshChrome() {
@@ -3399,15 +3428,13 @@
       e.preventDefault();
       var val = state.inputEl.value.trim();
       state.inputEl.value = '';
-      scheduleFallbackInputHeight();
+      scheduleSyncInputHeight();
       handleInput(val);
     });
 
     if (state.inputEl) {
-      if (!inputAutoSizeSupported) {
-        state.inputEl.addEventListener('input', scheduleFallbackInputHeight);
-        resetInputMetrics();
-      }
+      state.inputEl.addEventListener('input', scheduleSyncInputHeight);
+      resetInputMetrics();
       state.inputEl.addEventListener('keydown', function (e) {
         if (e.key === 'Enter' && !e.shiftKey) {
           e.preventDefault();
@@ -3420,12 +3447,10 @@
       });
     }
 
-    if (!inputAutoSizeSupported) {
-      if (window.HLS && window.HLS.onResize) {
-        window.HLS.onResize(resetInputMetrics);
-      } else {
-        window.addEventListener('resize', resetInputMetrics, { passive: true });
-      }
+    if (window.HLS && window.HLS.onResize) {
+      window.HLS.onResize(resetInputMetrics);
+    } else {
+      window.addEventListener('resize', resetInputMetrics, { passive: true });
     }
 
     setTimeout(function () {

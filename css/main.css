@@ -3705,7 +3705,6 @@ main { position: relative; z-index: 1; padding-top: var(--header-stack); padding
   box-shadow: var(--shadow-md);
   align-self: stretch;
   overflow: hidden;
-  contain: layout style;
 }
 
 .ai-core-header {
@@ -3850,7 +3849,6 @@ main { position: relative; z-index: 1; padding-top: var(--header-stack); padding
   padding: var(--ai-form-pad);
   border-top: 1px solid var(--border);
   background: var(--bg-card);
-  contain: layout style;
 }
 
 .ai-core-input-wrap {
@@ -3865,6 +3863,10 @@ main { position: relative; z-index: 1; padding-top: var(--header-stack); padding
   padding: calc((var(--ai-form-control-h) - 2px - var(--ai-input-font-size) * var(--ai-input-leading)) / 2) 0.85rem;
 }
 
+.ai-core-input-wrap.is-expanded {
+  padding-block: 0.45rem;
+}
+
 .ai-core-input {
   display: block;
   width: 100%;
@@ -3875,14 +3877,14 @@ main { position: relative; z-index: 1; padding-top: var(--header-stack); padding
   font: inherit;
   font-size: var(--ai-input-font-size);
   line-height: var(--ai-input-leading);
+  height: calc(var(--ai-input-font-size) * var(--ai-input-leading));
   min-height: calc(var(--ai-input-font-size) * var(--ai-input-leading));
   max-height: 7.5rem;
   padding: 0;
   margin: 0;
   resize: none;
   overflow-x: hidden;
-  overflow-y: auto;
-  field-sizing: content;
+  overflow-y: hidden;
 }
 
 .ai-core-input-wrap:focus-within {
@@ -3890,15 +3892,12 @@ main { position: relative; z-index: 1; padding-top: var(--header-stack); padding
   box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
-@supports not (field-sizing: content) {
-  .ai-core-input {
-    height: calc(var(--ai-input-font-size) * var(--ai-input-leading));
-    overflow-y: hidden;
-  }
+.ai-core-form.is-input-expanded {
+  align-items: flex-end;
+}
 
-  .ai-core-input-wrap.is-expanded {
-    padding-block: 0.45rem;
-  }
+.ai-core-input:focus {
+  outline: none;
 }
 
 .ai-core-send {
@@ -4016,10 +4015,6 @@ main { position: relative; z-index: 1; padding-top: var(--header-stack); padding
   border-color: var(--active-border);
   color: var(--brand-green-display);
   background: var(--active-bg);
-}
-
-.ai-core-input:focus {
-  outline: none;
 }
 
 .ai-core-mic {
@@ -5216,6 +5211,10 @@ main { position: relative; z-index: 1; padding-top: var(--header-stack); padding
 
   .ai-core-input {
     max-height: 6.5rem;
+  }
+
+  .ai-core-input-wrap.is-expanded {
+    padding-block: 0.4rem;
   }
 
   .ai-core-send,
