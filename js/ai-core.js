@@ -169,7 +169,7 @@
     speaking: false,
     speechResolve: null,
     micPermissionGranted: null,
-    micAutoStart: false,
+    micAutoStart: true,
     micStream: null,
     micPausedForTour: false,
     micStarting: false,
@@ -1701,9 +1701,6 @@
       'speechSynthesis' in window &&
       'SpeechSynthesisUtterance' in window;
 
-    var stored = localStorage.getItem(VOICE_KEY);
-    state.voiceEnabled = stored === null ? true : stored === '1';
-
     state.voiceBtn = document.getElementById('ai-core-voice');
     if (!state.voiceBtn) return;
 
@@ -1712,7 +1709,7 @@
       return;
     }
 
-    updateVoiceButton();
+    setVoiceEnabled(true);
     refreshSpeechVoices();
 
     if (window.speechSynthesis.onvoiceschanged !== undefined) {
@@ -2493,6 +2490,7 @@
     requestMicPermission().then(function (granted) {
       micLog('info', 'bootstrap.permission', { granted: granted });
       updateMicButton();
+      if (granted !== false && micIsEnabled()) maybeAutoStartMic();
     });
   }
 
@@ -2720,9 +2718,8 @@
       return;
     }
 
-    var storedMic = localStorage.getItem(MIC_AUTO_KEY);
-    state.micAutoStart = storedMic === null ? true : storedMic === '1';
-    micLog('info', 'init.load', { autoStart: state.micAutoStart, storedMic: storedMic });
+    setMicAutoStart(true);
+    micLog('info', 'init.load', { autoStart: state.micAutoStart });
     updateMicButton();
 
     requestMicPermission().then(function (granted) {
