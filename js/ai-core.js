@@ -3115,6 +3115,9 @@
     }
     state.inputEl.style.height = next + 'px';
     state.inputEl.style.overflowY = scrollH > max ? 'auto' : 'hidden';
+    if (state.formEl) {
+      state.formEl.classList.toggle('is-input-expanded', !!(val && next > state.inputBaseHeight + 1));
+    }
   }
 
   function resetInputBaseHeight() {
