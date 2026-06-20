@@ -3877,12 +3877,14 @@ main { position: relative; z-index: 1; padding-top: var(--header-stack); padding
   font: inherit;
   font-size: var(--ai-input-font-size);
   line-height: var(--ai-input-leading);
-  height: calc(var(--ai-input-font-size) * var(--ai-input-leading));
   min-height: calc(var(--ai-input-font-size) * var(--ai-input-leading));
   max-height: 7.5rem;
   padding: 0;
   margin: 0;
   resize: none;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
   overflow-x: hidden;
   overflow-y: hidden;
 }

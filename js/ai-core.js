@@ -3097,8 +3097,6 @@
   var inputHeightRaf = 0;
   var inputLineH = 0;
   var inputMaxH = 120;
-  var inputExpanded = false;
-  var inputMetricsMobile = null;
 
   function measureInputSingleLine() {
     if (!state.inputEl) return 0;
@@ -3109,47 +3107,36 @@
   }
 
   function cacheInputMetrics() {
-    inputMetricsMobile = !!(window.matchMedia && window.matchMedia('(max-width: 768px)').matches);
+    var mobile = !!(window.matchMedia && window.matchMedia('(max-width: 768px)').matches);
     inputLineH = measureInputSingleLine();
-    inputMaxH = inputMetricsMobile ? 104 : 120;
+    inputMaxH = mobile ? 104 : 120;
   }
 
   function syncInputHeight() {
     if (!state.inputEl) return;
     if (!inputLineH) cacheInputMetrics();
 
-    var val = state.inputEl.value;
+    var el = state.inputEl;
     var wrap = state.inputWrapEl;
     var form = state.formEl;
     var lineH = inputLineH;
+    var val = el.value;
 
     if (!val) {
-      state.inputEl.style.height = lineH + 'px';
-      state.inputEl.style.overflowY = 'hidden';
-      inputExpanded = false;
+      el.style.height = lineH + 'px';
+      el.style.overflowY = 'hidden';
       if (wrap) wrap.classList.remove('is-expanded');
       if (form) form.classList.remove('is-input-expanded');
       return;
     }
 
-    var hasNewline = val.indexOf('\n') !== -1;
-    if (!hasNewline && !inputExpanded) {
-      state.inputEl.style.height = lineH + 'px';
-      state.inputEl.style.overflowY = 'hidden';
-      if (val.length > 24 && state.inputEl.scrollHeight > lineH + 1) {
-        inputExpanded = true;
-      } else {
-        return;
-      }
-    }
+    el.style.height = '0px';
+    var scrollH = el.scrollHeight;
+    var next = Math.max(lineH, Math.min(scrollH, inputMaxH));
+    var expanded = scrollH > lineH + 1;
 
-    state.inputEl.style.height = 'auto';
-    var scrollH = state.inputEl.scrollHeight;
-    var next = Math.min(scrollH, inputMaxH);
-    var expanded = hasNewline || scrollH > lineH + 1;
-    state.inputEl.style.height = next + 'px';
-    state.inputEl.style.overflowY = scrollH > inputMaxH ? 'auto' : 'hidden';
-    inputExpanded = expanded;
+    el.style.height = next + 'px';
+    el.style.overflowY = scrollH > inputMaxH ? 'auto' : 'hidden';
     if (wrap) wrap.classList.toggle('is-expanded', expanded);
     if (form) form.classList.toggle('is-input-expanded', expanded);
   }
@@ -3164,7 +3151,6 @@
 
   function resetInputMetrics() {
     inputLineH = 0;
-    inputExpanded = false;
     cacheInputMetrics();
     scheduleSyncInputHeight();
   }
@@ -3436,6 +3422,10 @@
       state.inputEl.addEventListener('input', scheduleSyncInputHeight);
       resetInputMetrics();
       state.inputEl.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && e.shiftKey) {
+          requestAnimationFrame(scheduleSyncInputHeight);
+          return;
+        }
         if (e.key === 'Enter' && !e.shiftKey) {
           e.preventDefault();
           if (typeof state.formEl.requestSubmit === 'function') {
