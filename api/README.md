@@ -39,7 +39,19 @@ curl -sS http://localhost:3000/api/ai -H 'Content-Type: application/json' \
   -d '{"input":"open roadmap","context":{"locale":"en"}}'
 ```
 
-## Client actions
+## Client routing (local-first)
+
+These stay **entirely in `ai-core.js`** — never hit TinyModel:
+
+| Input | Handler |
+| ----- | ------- |
+| Premade chips (Overview, Guided tour, Current section, section names) | Local tour / help / `presentSection` |
+| Section nav labels (`Roadmap`, `Vision`, …) | `openSection` + i18n voice |
+| Tour / help / here keywords | `startTour`, `ai.help`, `ai.here` |
+
+TinyModel composer runs only for **general chat** fallback (`askGeneral`). When the sidecar returns `strategy_section`, the client uses **`presentSection`** (same UX as chips), not a generic English template.
+
+---
 
 When TinyModel maps to a strategy section, the API returns:
 

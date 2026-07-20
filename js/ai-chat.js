@@ -90,14 +90,18 @@
 
   function askHsp(input, lang, signal) {
     var config = getConfig();
+    var composerContext = {};
+    if (window.HLS && typeof window.HLS.getComposerContext === 'function') {
+      composerContext = window.HLS.getComposerContext() || {};
+    }
     var payload = {
       input: formatHistoryBlock() + 'user: ' + input,
       mode: config.mode || 'chat',
-      context: {
+      context: Object.assign({
         source: 'strategy-site',
         locale: lang,
         surface: 'ai-core'
-      }
+      }, composerContext)
     };
 
     var instructions = getInstructions(lang);

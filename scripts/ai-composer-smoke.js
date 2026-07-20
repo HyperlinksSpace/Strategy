@@ -9,6 +9,7 @@
 var composer = require('../api/lib/strategy-composer');
 
 var cases = [
+  { name: 'local-tour-skip', input: 'Guided tour', expectLocal: true },
   { name: 'strategy-nav-roadmap', input: 'open the roadmap section', expectSection: 'roadmap' },
   { name: 'strategy-architecture', input: 'explain TinyModel sidecar composer', expectSection: 'architecture' },
   { name: 'hsp-nav-swap', input: 'open swap page', expectHsp: true }
@@ -27,6 +28,12 @@ async function runLocal() {
     };
     try {
       var result = await composer.composeStrategyTurn(payload, null);
+      if (c.expectLocal) {
+        var pass = !result.ok && result.error === 'local_only_intent';
+        console.log((pass ? 'OK' : 'FAIL') + '  ' + c.name + ': defer=' + (result.meta && result.meta.defer));
+        if (pass) ok++;
+        continue;
+      }
       var pass = !!(result.ok && result.output_text);
       if (c.expectSection) {
         pass = pass && result.actions && result.actions[0] &&

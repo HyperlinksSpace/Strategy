@@ -46,8 +46,17 @@ function mapPlanContext(clientContext) {
   return {
     locale: clientContext.locale,
     route: clientContext.route,
-    surface: clientContext.surface || 'strategy-site'
+    surface: clientContext.surface || 'strategy-site',
+    visible_section: clientContext.visible_section,
+    tour_active: clientContext.tour_active
   };
+}
+
+/** Inputs handled locally by ai-core (tour, chips, section labels) — skip sidecar plan. */
+function isLocalOnlyStrategyInput(text) {
+  return /\b(tour|guided tour|walk me|quick tour|overview|current section|where am i)\b/i.test(text) ||
+    /\b(экскурс|обзор|текущ|где я)\b/i.test(text) ||
+    /\b(导览|引导游览|概览|当前章节|我在哪)\b/i.test(text);
 }
 
 function templateNavigate(sectionId) {
@@ -141,6 +150,16 @@ async function composeStrategyTurn(payload, callOpenAi) {
   var instructions = typeof payload.instructions === 'string' ? payload.instructions : '';
   var userText = extractUserMessage(input);
   var provider = (process.env.AI_PROVIDER || 'hybrid').trim().toLowerCase();
+
+  if (isLocalOnlyStrategyInput(userText)) {
+    return {
+      ok: false,
+      error: 'local_only_intent',
+      provider: 'strategy-local',
+      mode: payload.mode || 'chat',
+      meta: { composer: 'strategy', defer: 'local', reason: 'tour_or_chip_intent' }
+    };
+  }
 
   var plan = null;
   var planUsed = false;

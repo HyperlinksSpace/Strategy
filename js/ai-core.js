@@ -3108,11 +3108,11 @@
     }
     if (isChipPremadeInput(text)) {
       if (normalize(text) === normalize(t('ai.chipHelp'))) {
-        handleChipHelp();
+        sayChipHelp();
       } else if (normalize(text) === normalize(t('ai.chipTour'))) {
         startTour(t('ai.chipTour'));
       } else {
-        handleChipHere();
+        sayChipHere();
       }
       return true;
     }
@@ -3126,6 +3126,12 @@
       } else {
         sayBot('ai.hereUnknown');
       }
+      return true;
+    }
+
+    var navLabelSec = detectSectionByNavLabel(text);
+    if (navLabelSec && !isGeneralQuestion(text)) {
+      openSection(navLabelSec, text);
       return true;
     }
 
@@ -3185,9 +3191,9 @@
       state.chipsEl.appendChild(btn);
     }
 
-    addChip(t('ai.chipHelp'), handleChipHelp);
+    addChip(t('ai.chipHelp'), function () { sayUser(t('ai.chipHelp')); sayChipHelp(); });
     addChip(t('ai.chipTour'), function () { startTour(t('ai.chipTour')); });
-    addChip(t('ai.chipHere'), handleChipHere);
+    addChip(t('ai.chipHere'), function () { sayUser(t('ai.chipHere')); sayChipHere(); });
 
     SECTIONS.forEach(function (sec) {
       addChip(t(sec.nameKey), function () {
@@ -3588,6 +3594,14 @@
     };
     window.HLS.getSpeechVoiceInfo = getSpeechVoiceInfo;
     window.HLS.refreshSpeechVoices = refreshSpeechVoices;
+    window.HLS.getComposerContext = function () {
+      return {
+        visible_section: getVisibleSectionId(),
+        tour_active: !!state.tourActive,
+        locale: getLang(),
+        surface: 'ai-core'
+      };
+    };
 
     initVoice();
     initSpeechRecognition();
