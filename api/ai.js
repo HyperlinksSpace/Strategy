@@ -3,7 +3,7 @@
  * Composer: TinyModel sidecar POST /v1/plan → OpenAI generation (hybrid).
  *
  * Env (Vercel project):
- *   TINYMODEL_API_URL  — sidecar base (default: Railway TinyModel-sidecar)
+ *   TINYMODEL_API_URL  — sidecar base (default: https://tinymodel.hyperlinks.space)
  *   OPENAI or OPENAI_API_KEY — optional; enriches RAG/plan replies
  *   OPENAI_MODEL       — default gpt-4o-mini
  *   AI_PROVIDER        — hybrid (default) | openai | tinymodel

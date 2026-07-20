@@ -6,7 +6,7 @@
 function tinymodelBaseUrl() {
   return (
     process.env.TINYMODEL_API_URL ||
-    'https://tinymodel-sidecar-20260720-v2-production.up.railway.app'
+    'https://tinymodel.hyperlinks.space'
   ).replace(/\/$/, '');
 }
 

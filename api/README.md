@@ -16,7 +16,7 @@ Browser (ai-chat.js)
 
 | Variable | Required | Default |
 | -------- | -------- | ------- |
-| `TINYMODEL_API_URL` | No | Railway `TinyModel-sidecar-20260720-v2` URL |
+| `TINYMODEL_API_URL` | No | [https://tinymodel.hyperlinks.space](https://tinymodel.hyperlinks.space) |
 | `OPENAI` or `OPENAI_API_KEY` | For LLM replies | — |
 | `OPENAI_MODEL` | No | `gpt-4o-mini` |
 | `AI_PROVIDER` | No | `hybrid` (`openai` = legacy OpenAI-only) |
