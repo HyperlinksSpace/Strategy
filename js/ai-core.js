@@ -680,6 +680,18 @@
     if (wasActive) releaseOrbIdle(350);
   }
 
+  function applyStrategyActions(actions) {
+    if (!actions || !actions.length) return;
+    actions.forEach(function (action) {
+      if (!action || action.type !== 'strategy_section' || !action.sectionId) return;
+      var id = String(action.sectionId);
+      scrollToSectionWhenReady(id).then(function () {
+        document.dispatchEvent(new CustomEvent('ai-core:navigate', { detail: { sectionId: id } }));
+        emitOrb('navigate', { sectionId: id, impulse: 0.6 });
+      });
+    });
+  }
+
   function askGeneral(raw) {
     if (state.aiPending || state.typing) return;
 
@@ -705,6 +717,9 @@
       }
 
       if (result.ok && result.text) {
+        if (result.actions && result.actions.length) {
+          applyStrategyActions(result.actions);
+        }
         showBotMessage(result.text, {
           speakText: result.text,
           onDone: micAutoStartAfterSpeech

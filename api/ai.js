@@ -1,13 +1,20 @@
 /**
  * Strategy site AI gateway (Vercel serverless).
- * Matches the Hyperlinks Space Program /api/ai contract used by js/ai-chat.js.
+ * Composer: TinyModel sidecar POST /v1/plan → OpenAI generation (hybrid).
  *
- * Requires OPENAI (or OPENAI_API_KEY) in Vercel project env.
- * Deploy this repo on Vercel and add ctrategy.hyperlinks.space to aiChat.sameOriginHosts
- * in js/settings.js so the static site can call same-origin /api/ai.
+ * Env (Vercel project):
+ *   TINYMODEL_API_URL  — sidecar base (default: Railway TinyModel-sidecar)
+ *   OPENAI or OPENAI_API_KEY — optional; enriches RAG/plan replies
+ *   OPENAI_MODEL       — default gpt-4o-mini
+ *   AI_PROVIDER        — hybrid (default) | openai | tinymodel
+ *
+ * Local: vercel dev  then set sameOriginHosts localhost in js/settings.js
  */
 
-const CORS_PATTERNS = [
+var composer = require('./lib/strategy-composer');
+var tinymodel = require('./lib/tinymodel-client');
+
+var CORS_PATTERNS = [
   /^https:\/\/([a-z0-9-]+\.)?hyperlinks\.space$/i,
   /^https:\/\/[a-z0-9-]+\.github\.io$/i,
   /^http:\/\/localhost(:\d+)?$/,
@@ -15,13 +22,13 @@ const CORS_PATTERNS = [
 ];
 
 function allowOrigin(req) {
-  const origin = String(req.headers.origin || '');
+  var origin = String(req.headers.origin || '');
   if (!origin) return '';
   return CORS_PATTERNS.some(function (re) { return re.test(origin); }) ? origin : '';
 }
 
 function applyCors(req, res) {
-  const origin = allowOrigin(req);
+  var origin = allowOrigin(req);
   if (origin) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Vary', 'Origin');
@@ -47,19 +54,19 @@ function getOpenAiKey() {
 }
 
 async function callOpenAi(input, instructions) {
-  const apiKey = getOpenAiKey();
+  var apiKey = getOpenAiKey();
   if (!apiKey) {
     return { ok: false, error: 'OPENAI env is not configured on the server.' };
   }
 
-  const model = (process.env.OPENAI_MODEL || 'gpt-4o-mini').trim();
-  const messages = [];
+  var model = (process.env.OPENAI_MODEL || 'gpt-4o-mini').trim();
+  var messages = [];
   if (instructions) {
     messages.push({ role: 'system', content: instructions });
   }
   messages.push({ role: 'user', content: input });
 
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+  var response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -73,22 +80,22 @@ async function callOpenAi(input, instructions) {
     })
   });
 
-  const body = await response.json().catch(function () { return null; });
+  var body = await response.json().catch(function () { return null; });
   if (!response.ok) {
-    const message = body && body.error && body.error.message
+    var message = body && body.error && body.error.message
       ? body.error.message
       : 'OpenAI request failed (' + response.status + ').';
     return { ok: false, error: message };
   }
 
-  const text = body && body.choices && body.choices[0] && body.choices[0].message
+  var text = body && body.choices && body.choices[0] && body.choices[0].message
     ? String(body.choices[0].message.content || '').trim()
     : '';
   if (!text) {
     return { ok: false, error: 'Empty response from OpenAI.' };
   }
 
-  return { ok: true, output_text: text, provider: 'openai', mode: 'chat' };
+  return { ok: true, output_text: text, provider: 'openai', mode: 'chat', model: model };
 }
 
 module.exports = async function handler(req, res) {
@@ -103,7 +110,12 @@ module.exports = async function handler(req, res) {
       ok: true,
       ai: true,
       source: 'strategy-site',
-      configured: !!getOpenAiKey()
+      composer: process.env.AI_PROVIDER || 'hybrid',
+      configured: !!getOpenAiKey(),
+      tinymodel: {
+        url: tinymodel.tinymodelBaseUrl(),
+        configured: !!process.env.TINYMODEL_API_URL || true
+      }
     });
   }
 
@@ -111,17 +123,25 @@ module.exports = async function handler(req, res) {
     return res.status(405).json({ ok: false, error: 'Method not allowed' });
   }
 
-  const payload = readBody(req);
+  var payload = readBody(req);
   if (!payload) {
     return res.status(400).json({ ok: false, error: 'Invalid JSON body' });
   }
 
-  const input = typeof payload.input === 'string' ? payload.input.trim() : '';
+  var input = typeof payload.input === 'string' ? payload.input.trim() : '';
   if (!input) {
     return res.status(400).json({ ok: false, error: "Field 'input' (string) is required." });
   }
 
-  const instructions = typeof payload.instructions === 'string' ? payload.instructions : '';
-  const result = await callOpenAi(input, instructions);
+  var provider = (process.env.AI_PROVIDER || 'hybrid').trim().toLowerCase();
+
+  if (provider === 'openai') {
+    var instructions = typeof payload.instructions === 'string' ? payload.instructions : '';
+    var legacy = await callOpenAi(input, instructions);
+    return res.status(legacy.ok ? 200 : 500).json(legacy);
+  }
+
+  var hasOpenAi = !!getOpenAiKey();
+  var result = await composer.composeStrategyTurn(payload, hasOpenAi ? callOpenAi : null);
   return res.status(result.ok ? 200 : 500).json(result);
 };

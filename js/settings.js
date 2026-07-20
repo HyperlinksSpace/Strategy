@@ -221,8 +221,10 @@
       enabled: true,
       endpoint: 'https://program.hyperlinks.space/api/ai',
       preferSameOrigin: true,
-      // Uncomment after deploying this repo on Vercel with api/ai.js + OPENAI env:
-      // sameOriginHosts: ['ctrategy.hyperlinks.space'],
+      // Same-origin /api/ai when deployed on Vercel (vercel dev → localhost:3000)
+      sameOriginHosts: ['localhost', '127.0.0.1'],
+      // After Vercel deploy with api/ai.js + env vars, add your strategy domain:
+      // 'ctrategy.hyperlinks.space',
       format: 'hsp',
       mode: 'chat',
       maxHistory: 12,

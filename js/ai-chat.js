@@ -75,7 +75,13 @@
     if (!text) {
       return { ok: false, error: 'Empty response from AI service.' };
     }
-    return { ok: true, text: text };
+    return {
+      ok: true,
+      text: text,
+      actions: Array.isArray(body.actions) ? body.actions : [],
+      meta: body.meta || null,
+      provider: body.provider || null
+    };
   }
 
   function isAbortError(err) {

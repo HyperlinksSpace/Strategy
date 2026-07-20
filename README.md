@@ -44,6 +44,14 @@ npx serve .
 
 Open `http://localhost:8080`
 
+## AI CORE + TinyModel composer
+
+The floating **AI CORE** chat calls `POST /api/ai` (Vercel serverless). The gateway uses the **TinyModel sidecar** (`POST /v1/plan`) as composer control plane, then returns `output_text` (+ optional section scroll actions).
+
+- **Static preview** (`python -m http.server`): chat uses remote `program.hyperlinks.space/api/ai` unless you change `js/settings.js`.
+- **Full stack**: `vercel dev` + env vars — see [`api/README.md`](api/README.md).
+- **Smoke test**: `node scripts/ai-composer-smoke.js`
+
 ---
 
 *The monopoly from hyperlinks to space and beyond.*
