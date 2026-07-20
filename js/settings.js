@@ -219,12 +219,15 @@
 
     aiChat: {
       enabled: true,
-      endpoint: 'https://program.hyperlinks.space/api/ai',
+      endpoint: 'https://hyperlinks-strategy.vercel.app/api/ai',
       preferSameOrigin: true,
-      // Same-origin /api/ai when deployed on Vercel (vercel dev → localhost:3000)
-      sameOriginHosts: ['localhost', '127.0.0.1'],
-      // After Vercel deploy with api/ai.js + env vars, add your strategy domain:
-      // 'ctrategy.hyperlinks.space',
+      // Same-origin /api/ai on Vercel (vercel dev → localhost; production → ctrategy / vercel alias)
+      sameOriginHosts: [
+        'localhost',
+        '127.0.0.1',
+        'ctrategy.hyperlinks.space',
+        'hyperlinks-strategy.vercel.app'
+      ],
       format: 'hsp',
       mode: 'chat',
       maxHistory: 12,

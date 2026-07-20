@@ -103,15 +103,120 @@ function buildPlanContextBlock(plan) {
   return lines.join('\n');
 }
 
+function isNavigationLike(text) {
+  return /\b(open|show|go to|go|navigate|scroll|take me|visit|section|покаж|откр|перей|打开|去)\b/i.test(text);
+}
+
+function minRetrievalOverlap() {
+  var n = Number(process.env.TINYMODEL_MIN_KEYWORD_OVERLAP || 0.35);
+  return Number.isFinite(n) ? n : 0.35;
+}
+
+/** Reject HSP corpus chunks that do not match the user's question (common without OpenAI). */
+function retrievalIsRelevant(plan, userText) {
+  if (!plan || !plan.retrieval || !plan.retrieval.chunk_preview) return false;
+  var r = plan.retrieval;
+  var overlap = typeof r.keyword_overlap === 'number' ? r.keyword_overlap : 1;
+  if (overlap < minRetrievalOverlap()) return false;
+
+  var chunk = ((r.top_title || '') + ' ' + r.chunk_preview).toLowerCase();
+  if (/\b(tinymodel|composer|sidecar|strategy site|ai core|this site)\b/i.test(userText)) {
+    if (!/\b(tinymodel|composer|sidecar|architecture|transmitter|strategy|ai core|edge|partition)\b/i.test(chunk)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function isStrategyComposerMetaQuery(text) {
+  return /\b(tinymodel|sidecar|composer|control plane|\/api\/ai|ai core)\b/i.test(text) &&
+    (/\b(explain|what|how|describe|work|wired|flow|strategy site|this site|on this site)\b/i.test(text) ||
+      /\b(на этом сайте|как работает|объясни)\b/i.test(text) ||
+      /\b(这个网站|如何工作|解释)\b/i.test(text));
+}
+
+function isSidecarHandshakeQuery(text) {
+  return /\b(?:sidecar\s+)?(?:ping|handshake)\b/i.test(text) &&
+    (/\b(strategy|ai[\s\-]?core)\b/i.test(text) || /\bsidecar\s+ping\b/i.test(text));
+}
+
+function composeSidecarHandshake(plan) {
+  var reply = (plan && (plan.reply_text ||
+    (plan.retrieval && plan.retrieval.chunk_preview))) || '';
+  reply = String(reply || '').trim();
+  if (!reply || reply.indexOf('TM1-SIDECAR-OK') < 0) {
+    return null;
+  }
+  return {
+    ok: true,
+    output_text: reply,
+    actions: [],
+    provider: 'tinymodel-sidecar',
+    mode: 'chat',
+    meta: Object.assign(composerMeta(plan, true, null, 'sidecar_handshake'), {
+      sidecar_verified: true,
+      handshake_token: 'TM1-SIDECAR-OK'
+    })
+  };
+}
+
+function templateStrategyComposerMeta(userText) {
+  var actions = [];
+  if (isNavigationLike(userText) && detectStrategySection(userText) === 'architecture') {
+    actions = [{ type: 'strategy_section', sectionId: 'architecture' }];
+  }
+  var openHint = actions.length
+    ? 'Opening **Architecture** for the on-page stack diagram.'
+    : 'Say **open Architecture** to see the stack diagram on this page.';
+
+  return {
+    output_text:
+      'On this strategy site, AI CORE chat posts to **POST /api/ai** (Vercel serverless). ' +
+      'The composer calls **TinyModel** (`HyperlinksSpace/TinyModel1` at tinymodel.hyperlinks.space) via **POST /v1/plan** ' +
+      'for intent classification, HSP corpus retrieval, and route hints. ' +
+      'Section navigation returns `strategy_section` actions; the browser scrolls with `presentSection`. ' +
+      'Hybrid mode enriches replies with OpenAI when configured; otherwise template + retrieval grounding is used. ' +
+      openHint,
+    actions: actions
+  };
+}
+
+function genericStrategyFallback(userText) {
+  var sectionId = detectStrategySection(userText);
+  if (sectionId && !isNavigationLike(userText)) {
+    return {
+      output_text:
+        'I can open **' + sectionId.replace(/-/g, ' ') + '** on this strategy page—say "open ' +
+        sectionId.replace(/-/g, ' ') + '". Or try **guided tour**, **Architecture**, or ask about HSP, TinyModel, or the roadmap.',
+      actions: []
+    };
+  }
+  return {
+    output_text:
+      'I can navigate strategy sections (Vision, Pillars, Roadmap, Architecture, Revenue, Moats, …), ' +
+      'run a **guided tour**, or answer from TinyModel + HSP docs. Try "open Roadmap" or "explain TinyModel sidecar composer".',
+    actions: []
+  };
+}
+
+function composerMeta(plan, planUsed, planError, generator) {
+  return {
+    composer: 'strategy',
+    plan_used: planUsed,
+    plan_error: planError,
+    generator: generator || undefined,
+    tinymodel: plan ? tinymodel.buildMetaTinyModel(plan) : { error: planError || 'plan_unavailable' }
+  };
+}
+
 function strategyActionsFromPlan(plan, userText) {
   var sectionId = detectStrategySection(userText);
-  if (sectionId) {
+  if (sectionId && isNavigationLike(userText)) {
     return [{ type: 'strategy_section', sectionId: sectionId }];
   }
 
   if (plan && plan.intent === 'navigate' && plan.actions && plan.actions.length) {
-    var arch = detectStrategySection('architecture tinymodel');
-    if (/\b(tinymodel|sidecar|composer|transmitter)\b/i.test(userText)) {
+    if (/\b(tinymodel|sidecar|composer|transmitter)\b/i.test(userText) && isNavigationLike(userText)) {
       return [{ type: 'strategy_section', sectionId: 'architecture' }];
     }
   }
@@ -134,7 +239,7 @@ function composeTemplate(plan, userText, actions) {
     };
   }
 
-  if (plan && plan.retrieval && plan.retrieval.chunk_preview) {
+  if (plan && retrievalIsRelevant(plan, userText)) {
     var title = plan.retrieval.top_title ? '**' + plan.retrieval.top_title + '**\n\n' : '';
     return {
       output_text: title + plan.retrieval.chunk_preview.trim(),
@@ -177,6 +282,39 @@ async function composeStrategyTurn(payload, callOpenAi) {
   }
 
   var actions = strategyActionsFromPlan(plan, userText);
+
+  if (plan && (plan.intent === 'strategy_handshake' || isSidecarHandshakeQuery(userText))) {
+    var handshake = composeSidecarHandshake(plan);
+    if (handshake) {
+      handshake.mode = payload.mode || 'chat';
+      return handshake;
+    }
+    if (isSidecarHandshakeQuery(userText)) {
+      return {
+        ok: true,
+        output_text:
+          'Sidecar handshake failed: TinyModel plan did not return TM1-SIDECAR-OK. ' +
+          (planError ? ('Error: ' + planError) : 'Redeploy tinymodel.hyperlinks.space and retry "sidecar ping".'),
+        actions: [],
+        provider: 'tinymodel-composer',
+        mode: payload.mode || 'chat',
+        meta: composerMeta(plan, planUsed, planError, 'sidecar_handshake_failed')
+      };
+    }
+  }
+
+  if (isStrategyComposerMetaQuery(userText)) {
+    var metaTpl = templateStrategyComposerMeta(userText);
+    return {
+      ok: true,
+      output_text: metaTpl.output_text,
+      actions: metaTpl.actions,
+      provider: 'tinymodel-composer',
+      mode: payload.mode || 'chat',
+      meta: composerMeta(plan, planUsed, planError, 'strategy_meta')
+    };
+  }
+
   var template = composeTemplate(plan, userText, actions);
   if (template && (!callOpenAi || provider === 'tinymodel')) {
     return {
@@ -211,23 +349,14 @@ async function composeStrategyTurn(payload, callOpenAi) {
   }
 
   if (!callOpenAi) {
-    var fallback = template || {
-      output_text: 'TinyModel plan is unavailable and OPENAI is not configured on this server.',
-      actions: actions
-    };
+    var noLlm = template || genericStrategyFallback(userText);
     return {
-      ok: !!template,
-      output_text: fallback.output_text,
-      actions: fallback.actions || actions,
+      ok: true,
+      output_text: noLlm.output_text,
+      actions: noLlm.actions || actions,
       provider: 'tinymodel-composer',
       mode: payload.mode || 'chat',
-      error: template ? undefined : 'AI not configured',
-      meta: {
-        composer: 'strategy',
-        plan_used: planUsed,
-        plan_error: planError,
-        tinymodel: plan ? tinymodel.buildMetaTinyModel(plan) : { error: planError || 'plan_unavailable' }
-      }
+      meta: composerMeta(plan, planUsed, planError, template ? 'template' : 'strategy_fallback')
     };
   }
 
@@ -240,7 +369,7 @@ async function composeStrategyTurn(payload, callOpenAi) {
   );
   systemParts.push(buildPlanContextBlock(plan));
   var rag = buildRagBlock(plan);
-  if (rag) systemParts.push(rag);
+  if (rag && retrievalIsRelevant(plan, userText)) systemParts.push(rag);
 
   var openAi = await callOpenAi(input, systemParts.filter(Boolean).join('\n\n'));
   if (!openAi.ok) {
@@ -260,7 +389,15 @@ async function composeStrategyTurn(payload, callOpenAi) {
         }
       };
     }
-    return openAi;
+    var fb = genericStrategyFallback(userText);
+    return {
+      ok: true,
+      output_text: fb.output_text,
+      actions: fb.actions || actions,
+      provider: 'tinymodel-composer',
+      mode: payload.mode || 'chat',
+      meta: composerMeta(plan, planUsed, planError, 'strategy_fallback')
+    };
   }
 
   return {

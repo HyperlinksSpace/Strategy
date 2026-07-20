@@ -4,11 +4,9 @@ Interactive strategy website for [Hyperlinks Space](https://github.com/Hyperlink
 
 ## Live Site
 
-After enabling GitHub Pages on this repository:
+**Production (Vercel):** [https://ctrategy.hyperlinks.space](https://ctrategy.hyperlinks.space)
 
-**Settings → Pages → Source: Deploy from branch → `main` / `/ (root)`**
-
-Site URL: `https://hyperlinksspace.github.io/Strategy/`
+Also: `https://hyperlinks-strategy.vercel.app` · GitHub Pages mirror (static only, no `/api/ai`): `https://hyperlinksspace.github.io/Strategy/`
 
 ## Features
 
@@ -46,11 +44,43 @@ Open `http://localhost:8080`
 
 ## AI CORE + TinyModel composer
 
-The floating **AI CORE** chat calls `POST /api/ai` (Vercel serverless). The gateway uses the **TinyModel sidecar** (`POST /v1/plan`) as composer control plane, then returns `output_text` (+ optional section scroll actions).
+The floating **AI CORE** chat calls `POST /api/ai` (Vercel serverless). The gateway uses the **TinyModel sidecar** ([tinymodel.hyperlinks.space](https://tinymodel.hyperlinks.space/) → `POST /v1/plan`) as composer control plane, then returns `output_text` (+ optional section scroll actions).
 
-- **Static preview** (`python -m http.server`): chat uses remote `program.hyperlinks.space/api/ai` unless you change `js/settings.js`.
+- **Static preview** (`python -m http.server`): chat falls back to the configured remote endpoint in `js/settings.js`.
 - **Full stack**: `vercel dev` + env vars — see [`api/README.md`](api/README.md).
 - **Smoke test**: `node scripts/ai-composer-smoke.js`
+
+### Sidecar handshake (prove TinyModel → AI CORE)
+
+Use this phrase in **AI CORE** (typed message, not a chip) to verify the Railway sidecar is the source of the reply:
+
+```text
+sidecar ping strategy ai core
+```
+
+**Pass criteria** — the bot must reply with a line containing `TM1-SIDECAR-OK`, for example:
+
+```text
+SIDECAR_OK · TM1-SIDECAR-OK · HyperlinksSpace/TinyModel1 · tinymodel.hyperlinks.space · intent=strategy_handshake · pair=strategy-ai-core
+```
+
+API check (same token):
+
+```bash
+curl -sS -X POST https://ctrategy.hyperlinks.space/api/ai \
+  -H 'Content-Type: application/json' \
+  -d '{"input":"sidecar ping strategy ai core","mode":"chat","context":{"locale":"en","surface":"ai-core"}}'
+# expect: provider "tinymodel-sidecar", meta.sidecar_verified true, output_text with TM1-SIDECAR-OK
+```
+
+Direct sidecar:
+
+```bash
+curl -sS -X POST https://tinymodel.hyperlinks.space/v1/plan \
+  -H 'Content-Type: application/json' \
+  -d '{"text":"sidecar ping"}'
+# expect: intent "strategy_handshake", reply_text with TM1-SIDECAR-OK
+```
 
 ---
 

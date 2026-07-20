@@ -11,8 +11,8 @@ function tinymodelBaseUrl() {
 }
 
 function planTimeoutMs() {
-  var n = Number(process.env.TINYMODEL_PLAN_TIMEOUT_MS || 8000);
-  return Number.isFinite(n) && n > 0 ? n : 8000;
+  var n = Number(process.env.TINYMODEL_PLAN_TIMEOUT_MS || 20000);
+  return Number.isFinite(n) && n > 0 ? n : 20000;
 }
 
 async function postJson(path, body) {
@@ -69,7 +69,11 @@ function buildMetaTinyModel(plan) {
     actions: plan.actions,
     routing: plan.routing,
     retrieval: plan.retrieval,
-    classify_top_label: top || null
+    reply_text: plan.reply_text || null,
+    classify_top_label: top || null,
+    handshake: plan.intent === 'strategy_handshake'
+      ? { verified: true, token: 'TM1-SIDECAR-OK' }
+      : null
   };
 }
 

@@ -11,7 +11,16 @@ var composer = require('../api/lib/strategy-composer');
 var cases = [
   { name: 'local-tour-skip', input: 'Guided tour', expectLocal: true },
   { name: 'strategy-nav-roadmap', input: 'open the roadmap section', expectSection: 'roadmap' },
-  { name: 'strategy-architecture', input: 'explain TinyModel sidecar composer', expectSection: 'architecture' },
+  { name: 'strategy-architecture', input: 'open the architecture section', expectSection: 'architecture' },
+  { name: 'strategy-tinymodel-explain', input: 'explain TinyModel sidecar composer', expectNoSection: true, expectMatch: /TinyModel|composer|\/api\/ai|sidecar/i },
+  {
+    name: 'strategy-sidecar-handshake',
+    input: 'sidecar ping strategy ai core',
+    expectNoSection: true,
+    expectMatch: /TM1-SIDECAR-OK/,
+    expectProvider: 'tinymodel-sidecar'
+  },
+  { name: 'strategy-general-hsp', input: 'How does HSP swap routing work across multiple ledgers?', expectNoSection: true },
   { name: 'hsp-nav-swap', input: 'open swap page', expectHsp: true }
 ];
 
@@ -39,8 +48,17 @@ async function runLocal() {
         pass = pass && result.actions && result.actions[0] &&
           result.actions[0].sectionId === c.expectSection;
       }
+      if (c.expectNoSection) {
+        pass = pass && (!result.actions || !result.actions.length);
+      }
       if (c.expectHsp) {
         pass = pass && /HSP|Hyperlinks Space Program|hyperlinks/i.test(result.output_text);
+      }
+      if (c.expectMatch) {
+        pass = pass && c.expectMatch.test(result.output_text);
+      }
+      if (c.expectProvider) {
+        pass = pass && result.provider === c.expectProvider;
       }
       console.log((pass ? 'OK' : 'FAIL') + '  ' + c.name + ': ' +
         (result.output_text || result.error || '').slice(0, 80).replace(/\n/g, ' '));
@@ -68,6 +86,10 @@ async function runHttp(baseUrl) {
   var body = await res.json();
   if (!res.ok || !body.ok || !body.output_text) {
     console.error('FAIL', res.status, body);
+    return 1;
+  }
+  if (!/TinyModel|composer|\/api\/ai|sidecar/i.test(body.output_text)) {
+    console.error('FAIL irrelevant reply:', body.output_text.slice(0, 160).replace(/\n/g, ' '));
     return 1;
   }
   console.log('OK', body.provider, body.output_text.slice(0, 120).replace(/\n/g, ' '));

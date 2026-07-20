@@ -757,8 +757,14 @@
             presentSectionFromComposerAction(result.actions[0], micAutoStartAfterSpeech)) {
           return;
         }
-        showBotMessage(result.text, {
-          speakText: result.text,
+        var speak = result.text;
+        var display = result.text;
+        if (result.meta && result.meta.sidecar_verified) {
+          display = result.text;
+          speak = 'Sidecar handshake verified. ' + result.text;
+        }
+        showBotMessage(display, {
+          speakText: speak,
           onDone: micAutoStartAfterSpeech
         });
         return;

@@ -20,7 +20,7 @@ Browser (ai-chat.js)
 | `OPENAI` or `OPENAI_API_KEY` | For LLM replies | — |
 | `OPENAI_MODEL` | No | `gpt-4o-mini` |
 | `AI_PROVIDER` | No | `hybrid` (`openai` = legacy OpenAI-only) |
-| `TINYMODEL_PLAN_TIMEOUT_MS` | No | `8000` |
+| `TINYMODEL_PLAN_TIMEOUT_MS` | No | `20000` |
 
 ## Local dev
 
@@ -37,6 +37,23 @@ vercel dev        # serves /api/ai on http://localhost:3000
 node scripts/ai-composer-smoke.js
 curl -sS http://localhost:3000/api/ai -H 'Content-Type: application/json' \
   -d '{"input":"open roadmap","context":{"locale":"en"}}'
+```
+
+### Sidecar handshake test flow
+
+1. TinyModel (`POST /v1/plan`) recognizes `sidecar ping` / `sidecar ping strategy ai core` and returns `intent: strategy_handshake` with `reply_text` containing **`TM1-SIDECAR-OK`** (fast path — no classify/retrieve).
+2. Strategy composer echoes that `reply_text` as `output_text` with `provider: tinymodel-sidecar` and `meta.sidecar_verified: true`.
+3. In the browser AI CORE on [ctrategy.hyperlinks.space](https://ctrategy.hyperlinks.space/), send the ping phrase and confirm the fingerprint appears in the chat bubble.
+
+```bash
+# Production pair check
+curl -sS -X POST https://tinymodel.hyperlinks.space/v1/plan \
+  -H 'Content-Type: application/json' \
+  -d '{"text":"sidecar ping strategy ai core"}'
+
+curl -sS -X POST https://ctrategy.hyperlinks.space/api/ai \
+  -H 'Content-Type: application/json' \
+  -d '{"input":"sidecar ping strategy ai core","mode":"chat","context":{"locale":"en"}}'
 ```
 
 ## Client routing (local-first)

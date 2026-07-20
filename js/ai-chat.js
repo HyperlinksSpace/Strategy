@@ -13,10 +13,12 @@
     }
 
     var host = (window.location.hostname || '').toLowerCase();
-    // Only these origins actually run POST /api/ai (Vercel serverless). Static hosts
-    // such as ctrategy.hyperlinks.space on GitHub Pages must use the remote endpoint.
+    // Origins that serve Strategy POST /api/ai (Vercel serverless). GitHub Pages
+    // copies of the site use config.endpoint until DNS points at Vercel.
     var sameOriginApiHosts = {
-      'program.hyperlinks.space': true
+      'program.hyperlinks.space': true,
+      'hyperlinks-strategy.vercel.app': true,
+      'ctrategy.hyperlinks.space': true
     };
     if (config.sameOriginHosts) {
       config.sameOriginHosts.forEach(function (h) {
