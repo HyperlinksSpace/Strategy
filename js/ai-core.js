@@ -121,15 +121,15 @@
   };
 
   var HELP_WORDS = {
-    en: ['help', 'guide', 'navigate', 'what can', 'sections', 'menu'],
-    ru: ['помощ', 'помог', 'гид', 'навигац', 'раздел', 'меню'],
-    zh: ['帮助', '导航', '章节', '菜单', '怎么用']
+    en: ['help', 'guide', 'navigate', 'what can', 'sections', 'menu', 'overview'],
+    ru: ['помощ', 'помог', 'гид', 'навигац', 'раздел', 'меню', 'обзор'],
+    zh: ['帮助', '导航', '章节', '菜单', '怎么用', '概览']
   };
 
   var TOUR_WORDS = {
-    en: ['tour', 'walk me', 'show all', 'everything', 'quick tour'],
+    en: ['tour', 'walk me', 'show all', 'everything', 'quick tour', 'guided tour'],
     ru: ['экскурс', 'тур', 'покажи вс', 'обойди', 'все раздел'],
-    zh: ['导览', ' tour', '全部', '所有章节', '快速']
+    zh: ['导览', ' tour', '全部', '所有章节', '快速', '引导游览']
   };
 
   var HERE_WORDS = {
@@ -188,6 +188,9 @@
   var speechQueueGen = 0;
   var speechKeepalive = 0;
   var speechVoicesReady = false;
+  var speechLastText = '';
+  var speechEndedAt = 0;
+  var SPEECH_MIC_GRACE_MS = 900;
   var micRestartTimer = 0;
   var micAutoStartTimer = 0;
   var micInterimTimer = 0;
@@ -205,7 +208,7 @@
   var micFailureRebuilds = 0;
   var MIC_RESTART_MIN_MS = 1000;
   var MIC_MAX_FAILURE_REBUILDS = 2;
-  var MIC_POST_SPEECH_MS = 1400;
+  var MIC_POST_SPEECH_MS = 1800;
   var recognitionFailCount = 0;
   var micNoSpeechCount = 0;
   var micStopReason = '';
@@ -553,6 +556,43 @@
     return false;
   }
 
+  function detectSectionByNavLabel(text) {
+    var norm = normalize(text);
+    if (!norm) return null;
+    for (var i = 0; i < SECTIONS.length; i++) {
+      var sec = SECTIONS[i];
+      var label = normalize(t(sec.nameKey));
+      if (label && norm === label) return sec;
+    }
+    return null;
+  }
+
+  function isChipPremadeInput(text) {
+    var norm = normalize(text);
+    if (!norm) return false;
+    var keys = ['ai.chipHelp', 'ai.chipTour', 'ai.chipHere'];
+    for (var k = 0; k < keys.length; k++) {
+      if (normalize(t(keys[k])) === norm) return true;
+    }
+    return false;
+  }
+
+  function sayChipHelp() {
+    sayBot('ai.help');
+  }
+
+  function sayChipHere() {
+    var hereId = getVisibleSectionId();
+    if (hereId) {
+      var hereMeta = sectionMeta(hereId);
+      showBotMessage(t('ai.here', hereMeta), {
+        speakText: tVoice('ai.here', hereMeta)
+      });
+    } else {
+      sayBot('ai.hereUnknown');
+    }
+  }
+
   function detectSection(text) {
     var lang = getLang();
     var best = null;
@@ -680,16 +720,12 @@
     if (wasActive) releaseOrbIdle(350);
   }
 
-  function applyStrategyActions(actions) {
-    if (!actions || !actions.length) return;
-    actions.forEach(function (action) {
-      if (!action || action.type !== 'strategy_section' || !action.sectionId) return;
-      var id = String(action.sectionId);
-      scrollToSectionWhenReady(id).then(function () {
-        document.dispatchEvent(new CustomEvent('ai-core:navigate', { detail: { sectionId: id } }));
-        emitOrb('navigate', { sectionId: id, impulse: 0.6 });
-      });
-    });
+  function presentSectionFromComposerAction(action, onDone) {
+    if (!action || action.type !== 'strategy_section' || !action.sectionId) return false;
+    var sec = sectionFromId(String(action.sectionId));
+    if (!sec) return false;
+    presentSection(sec, { onDone: onDone || micAutoStartAfterSpeech });
+    return true;
   }
 
   function askGeneral(raw) {
@@ -717,8 +753,9 @@
       }
 
       if (result.ok && result.text) {
-        if (result.actions && result.actions.length) {
-          applyStrategyActions(result.actions);
+        if (result.actions && result.actions.length &&
+            presentSectionFromComposerAction(result.actions[0], micAutoStartAfterSpeech)) {
+          return;
         }
         showBotMessage(result.text, {
           speakText: result.text,
@@ -1501,8 +1538,9 @@
     if (speechKeepalive) return;
     speechKeepalive = window.setInterval(function () {
       if (!state.voiceEnabled || !state.speaking || !window.speechSynthesis) return;
-      if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
-        try { window.speechSynthesis.resume(); } catch (e) { /* noop */ }
+      var syn = window.speechSynthesis;
+      if (syn.paused && (syn.speaking || syn.pending)) {
+        try { syn.resume(); } catch (e) { /* noop */ }
       }
     }, 7000);
   }
@@ -1517,6 +1555,8 @@
     speechQueueGen += 1;
     stopSpeechKeepalive();
     state.speaking = false;
+    markSpeechEnded();
+    speechLastText = '';
     if (state.speechSupported && window.speechSynthesis) {
       try { window.speechSynthesis.cancel(); } catch (e) { /* noop */ }
       window.setTimeout(function () {
@@ -1552,6 +1592,7 @@
       state.speaking = false;
       stopSpeechKeepalive();
       setGeneratingUI(false);
+      markSpeechEnded();
       if (state.speechResolve === resolve) state.speechResolve = null;
       if (!state.typing) releaseOrbIdle(650);
       resolve(!!ok);
@@ -1584,12 +1625,13 @@
       };
       utterance.onerror = function (event) {
         if (gen !== speechQueueGen) return;
-        if (!retrying && isSpeechInterruptError(event)) {
-          window.setTimeout(function () { speakCurrent(true); }, 160);
-          return;
-        }
-        index += 1;
-        speakCurrent(false);
+        state.speaking = false;
+        stopSpeechKeepalive();
+        setGeneratingUI(false);
+        markSpeechEnded();
+        if (state.speechResolve === resolve) state.speechResolve = null;
+        if (!state.typing) releaseOrbIdle(400);
+        resolve(false);
       };
       window.speechSynthesis.speak(utterance);
     }
@@ -1617,9 +1659,20 @@
         return;
       }
 
+      var line = String(text || '').trim();
+      if (!line) {
+        resolve(true);
+        return;
+      }
+      if (speechActive() && line === speechLastText) {
+        resolve(true);
+        return;
+      }
+
       stopSpeech();
       if (state.listening || state.micStarting) stopListening(true);
       ensureSpeechVoices();
+      speechLastText = line;
 
       var uiLang = opts.lang || getLang();
       var segments = textHasMixedSpeechScripts(text)
@@ -1635,10 +1688,9 @@
 
       if (segments.length <= 1) {
         var singleLang = segments[0] ? segments[0].lang : uiLang;
-        var line = segments[0] ? segments[0].text : text;
-        var retried = false;
+        var segmentLine = segments[0] ? segments[0].text : line;
 
-        function speakSingle(retrying) {
+        function speakSingle() {
           if (gen !== speechQueueGen || !state.voiceEnabled) {
             state.speaking = false;
             stopSpeechKeepalive();
@@ -1647,12 +1699,13 @@
             resolve(false);
             return;
           }
-          var utterance = buildUtterance(line, singleLang);
+          var utterance = buildUtterance(segmentLine, singleLang);
           if (!utterance) {
             state.speaking = false;
             stopSpeechKeepalive();
             setGeneratingUI(false);
             state.speechResolve = null;
+            markSpeechEnded();
             resolve(true);
             return;
           }
@@ -1661,20 +1714,17 @@
             state.speaking = false;
             stopSpeechKeepalive();
             setGeneratingUI(false);
+            markSpeechEnded();
             if (state.speechResolve === resolve) state.speechResolve = null;
             if (!state.typing) releaseOrbIdle(650);
             resolve(true);
           };
-          utterance.onerror = function (event) {
+          utterance.onerror = function () {
             if (gen !== speechQueueGen) return;
-            if (!retrying && !retried && isSpeechInterruptError(event)) {
-              retried = true;
-              window.setTimeout(function () { speakSingle(true); }, 160);
-              return;
-            }
             state.speaking = false;
             stopSpeechKeepalive();
             setGeneratingUI(false);
+            markSpeechEnded();
             if (state.speechResolve === resolve) state.speechResolve = null;
             if (!state.typing) releaseOrbIdle(400);
             resolve(false);
@@ -1682,7 +1732,7 @@
           window.speechSynthesis.speak(utterance);
         }
 
-        speakSingle(false);
+        speakSingle();
         return;
       }
 
@@ -2097,7 +2147,14 @@
   }
 
   function speechActive() {
-    return !!state.speaking;
+    if (state.speaking) return true;
+    var syn = window.speechSynthesis;
+    if (syn && (syn.speaking || syn.pending)) return true;
+    return Date.now() - speechEndedAt < SPEECH_MIC_GRACE_MS;
+  }
+
+  function markSpeechEnded() {
+    speechEndedAt = Date.now();
   }
 
   function prepareForVoiceInput() {
@@ -2111,6 +2168,7 @@
       if (!micWatchdog) {
         micWatchdog = window.setInterval(function () {
           if (!micIsEnabled() || state.listening || state.micStarting || micBusy()) return;
+          if (speechActive()) return;
           if (micPausedByFailure || micRecEnding) return;
           if (micRestartTimer || micStartDelayTimer || micAutoStartTimer) return;
           micLog('debug', 'watchdog.startListening', micSnapshot());
@@ -2163,6 +2221,7 @@
   }
 
   function handleRecognitionResult(event) {
+    if (speechActive()) return;
     var parsed = parseRecognitionEvent(event);
     micLog('info', 'recognition.result', {
       resultIndex: event.resultIndex,
@@ -2434,6 +2493,10 @@
 
   function commitInterimTranscript() {
     micInterimTimer = 0;
+    if (speechActive()) {
+      micLog('debug', 'interim.commit.skip', { reason: 'speechActive' });
+      return;
+    }
     var text = micLastInterim.trim();
     micLastInterim = '';
     if (!text) {
@@ -2462,6 +2525,10 @@
     text = String(text || '').trim();
     if (!text) {
       micLog('debug', 'transcript.empty', { isFinal: !!isFinal });
+      return;
+    }
+    if (speechActive()) {
+      micLog('debug', 'transcript.ignored', { reason: 'speechActive', isFinal: !!isFinal });
       return;
     }
     micLog('info', 'transcript.process', { isFinal: !!isFinal, len: text.length });
@@ -2663,6 +2730,11 @@
       micLog('debug', 'start.skip', { reason: 'disabled', autoStart: state.micAutoStart, permission: state.micPermissionGranted });
       return;
     }
+    if (!force && speechActive()) {
+      micLog('debug', 'start.defer', { reason: 'speechActive' });
+      scheduleMicAutoStart(MIC_POST_SPEECH_MS);
+      return;
+    }
     if (state.listening || state.micStarting) {
       micLog('debug', 'start.skip', { reason: 'alreadyActive', listening: state.listening, starting: state.micStarting });
       return;
@@ -2693,6 +2765,11 @@
   function maybeAutoStartMic() {
     if (!micIsEnabled()) {
       micLog('debug', 'auto.skip', { reason: 'disabled' });
+      return;
+    }
+    if (speechActive()) {
+      micLog('debug', 'auto.skip', { reason: 'speechActive' });
+      scheduleMicAutoStart(MIC_POST_SPEECH_MS);
       return;
     }
     if (micPausedByFailure) {
@@ -2899,7 +2976,7 @@
 
     var meta = sectionMeta(sec.id);
     var displayText = t('ai.sectionLead', meta);
-    var voiceText = t('ai.navigatingVoice', { name: meta.name }) + ' ' + t('ai.sectionVoice', meta);
+    var voiceText = tVoice('ai.sectionVoice', meta);
 
     scrollToSectionWhenReady(sec.id).then(function () {
       document.dispatchEvent(new CustomEvent('ai-core:navigate', { detail: { sectionId: sec.id } }));
@@ -3029,6 +3106,16 @@
       startTour();
       return true;
     }
+    if (isChipPremadeInput(text)) {
+      if (normalize(text) === normalize(t('ai.chipHelp'))) {
+        handleChipHelp();
+      } else if (normalize(text) === normalize(t('ai.chipTour'))) {
+        startTour(t('ai.chipTour'));
+      } else {
+        handleChipHere();
+      }
+      return true;
+    }
     if (matchesAny(text, HERE_WORDS[lang] || HERE_WORDS.en)) {
       var hereId = getVisibleSectionId();
       if (hereId) {
@@ -3098,9 +3185,9 @@
       state.chipsEl.appendChild(btn);
     }
 
-    addChip(t('ai.chipHelp'), function () { handleInput(t('ai.chipHelp')); });
+    addChip(t('ai.chipHelp'), handleChipHelp);
     addChip(t('ai.chipTour'), function () { startTour(t('ai.chipTour')); });
-    addChip(t('ai.chipHere'), function () { handleInput(t('ai.chipHere')); });
+    addChip(t('ai.chipHere'), handleChipHere);
 
     SECTIONS.forEach(function (sec) {
       addChip(t(sec.nameKey), function () {
