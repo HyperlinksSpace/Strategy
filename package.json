@@ -1,9 +1,18 @@
 {
   "name": "hyperlinks-space-strategy",
   "private": true,
-  "description": "Strategy site + Vercel /api/ai composer (TinyModel + Vercel AI SDK)",
+  "description": "Strategy site + AI composer gateway (TinyModel + Vercel AI Gateway)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
   "dependencies": {
     "@ai-sdk/gateway": "^4.0.24",
-    "ai": "^4.3.16"
+    "ai": "^4.3.16",
+    "express": "^4.22.2"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }

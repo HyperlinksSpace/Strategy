@@ -1,0 +1,12 @@
+# Strategy AI gateway — static site + /api/ai composer on Railway.
+# Docs: deploy/railway/README.md
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+healthcheckPath = "/healthz"
+healthcheckTimeout = 120
+restartPolicyType = "ON_FAILURE"
+numReplicas = 1
