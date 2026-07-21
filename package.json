@@ -3,6 +3,7 @@
   "private": true,
   "description": "Strategy site + Vercel /api/ai composer (TinyModel + Vercel AI SDK)",
   "dependencies": {
+    "@ai-sdk/gateway": "^4.0.24",
     "ai": "^4.3.16"
   }
 }

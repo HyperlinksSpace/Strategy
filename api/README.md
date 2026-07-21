@@ -26,9 +26,17 @@ Browser (ai-chat.js)
 
 Run `npm install` in repo root (Vercel `ai` SDK for `/api/ai`).
 
-**Generation priority (`hybrid`):** Vercel AI Gateway → legacy OpenAI → template/RAG.
+**Generation routing (`hybrid`):**
 
-**Premade vs AI:** `"explain TinyModel sidecar"` returns a fixed template (`meta.generator: strategy_meta`) only when no LLM is configured. With Gateway or OpenAI, the same prompt is AI-generated using TinyModel plan + wiring context.
+| Composer choice | When | `meta.generator` |
+| --------------- | ---- | ---------------- |
+| **TinyModel only** | Section nav template, sidecar handshake, high-confidence short RAG | `tinymodel` |
+| **Vercel AI Gateway** | Complex questions, explain/meta, soft rephrase, low-confidence chat | `vercel_ai` |
+| **Legacy OpenAI** | Gateway unavailable | `openai` |
+
+Gateway uses `@ai-sdk/gateway` + `AI_GATEWAY_API_KEY`. Model strings like `openai/gpt-4o-mini` with fallbacks via `AI_GATEWAY_ORDER` / `AI_GATEWAY_FALLBACK_MODELS`.
+
+Inspect routing in responses: `meta.lane`, `meta.route_reason`, `meta.model`, `meta.gateway`.
 
 ## Local dev
 

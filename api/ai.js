@@ -128,8 +128,10 @@ module.exports = async function handler(req, res) {
       configured: !!(generators.vercelAi || generators.openai),
       vercel_ai: {
         configured: !!generators.vercelAi,
-        gateway: vercelAi.isVercelAiConfigured(),
-        model: vercelAi.defaultQualityModel()
+        gateway_key: !!(process.env.AI_GATEWAY_API_KEY && process.env.AI_GATEWAY_API_KEY.trim()),
+        gateway_provider: !!vercelAi.getGatewayProvider(),
+        model: vercelAi.defaultQualityModel(),
+        fast_model: vercelAi.defaultFastModel()
       },
       openai_legacy: {
         configured: !!generators.openai

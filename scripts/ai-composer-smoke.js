@@ -7,10 +7,25 @@
  */
 
 var composer = require('../api/lib/strategy-composer');
+var composerRouter = require('../api/lib/composer-router');
+
+function mockVercelCaller() {
+  return async function (input, system, options) {
+    return {
+      ok: true,
+      output_text: 'Gateway mock: ' + String(input).slice(0, 40),
+      provider: 'vercel_ai',
+      model: (options && options.model) || 'openai/gpt-4o-mini',
+      gateway: true,
+      mode: 'chat'
+    };
+  };
+}
 
 var cases = [
   { name: 'local-tour-skip', input: 'Guided tour', expectLocal: true },
-  { name: 'strategy-nav-roadmap', input: 'open the roadmap section', expectSection: 'roadmap' },
+  { name: 'router-nav-template', input: 'open the roadmap section', expectGenerator: 'tinymodel', expectSection: 'roadmap' },
+  { name: 'router-complex-gateway', input: 'explain how TinyModel composer wires to Vercel Gateway', expectGenerator: 'vercel_ai', expectNoSection: true, mockGateway: true },
   { name: 'strategy-architecture', input: 'open the architecture section', expectSection: 'architecture' },
   { name: 'strategy-tinymodel-explain', input: 'explain TinyModel sidecar composer', expectNoSection: true, expectMatch: /TinyModel|composer|\/api\/ai|sidecar/i },
   {
@@ -36,7 +51,11 @@ async function runLocal() {
       instructions: 'You are AI CORE on the strategy site.'
     };
     try {
-      var result = await composer.composeStrategyTurn(payload, null);
+      var generators = {};
+      if (c.mockGateway) {
+        generators.vercelAi = mockVercelCaller();
+      }
+      var result = await composer.composeStrategyTurn(payload, generators);
       if (c.expectLocal) {
         var pass = !result.ok && result.error === 'local_only_intent';
         console.log((pass ? 'OK' : 'FAIL') + '  ' + c.name + ': defer=' + (result.meta && result.meta.defer));
@@ -60,8 +79,12 @@ async function runLocal() {
       if (c.expectProvider) {
         pass = pass && result.provider === c.expectProvider;
       }
+      if (c.expectGenerator) {
+        pass = pass && result.meta && result.meta.generator === c.expectGenerator;
+      }
       console.log((pass ? 'OK' : 'FAIL') + '  ' + c.name + ': ' +
-        (result.output_text || result.error || '').slice(0, 80).replace(/\n/g, ' '));
+        (result.meta && result.meta.generator ? result.meta.generator + ' · ' : '') +
+        (result.output_text || result.error || '').slice(0, 70).replace(/\n/g, ' '));
       if (pass) ok++;
     } catch (err) {
       console.log('FAIL  ' + c.name + ': ' + err.message);
