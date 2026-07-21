@@ -8,7 +8,7 @@ Serverless gateway (`api/ai.js`) for the AI CORE chat on the strategy site.
 Browser (ai-chat.js)
   → POST /api/ai { input, mode, context, instructions }
       → POST TINYMODEL_API_URL/v1/plan   (TinyModel sidecar)
-      → template (navigate) or OpenAI (RAG-enriched chat)
+      → template (navigate) or Vercel AI generateText (RAG-enriched chat; OpenAI legacy fallback)
   ← { ok, output_text, actions[], meta.tinymodel }
 ```
 
@@ -17,10 +17,18 @@ Browser (ai-chat.js)
 | Variable | Required | Default |
 | -------- | -------- | ------- |
 | `TINYMODEL_API_URL` | No | [https://tinymodel.hyperlinks.space](https://tinymodel.hyperlinks.space) |
-| `OPENAI` or `OPENAI_API_KEY` | For LLM replies | — |
+| `AI_PROVIDER` | No | `hybrid` (`vercel_ai` · `openai` · `tinymodel`) |
+| `AI_GATEWAY_API_KEY` | Vercel AI Gateway (OIDC on Vercel deploy) | — |
+| `AI_COMPOSER_QUALITY_MODEL` | No | `openai/gpt-4o-mini` |
+| `OPENAI` or `OPENAI_API_KEY` | Legacy LLM fallback | — |
 | `OPENAI_MODEL` | No | `gpt-4o-mini` |
-| `AI_PROVIDER` | No | `hybrid` (`openai` = legacy OpenAI-only) |
 | `TINYMODEL_PLAN_TIMEOUT_MS` | No | `20000` |
+
+Run `npm install` in repo root (Vercel `ai` SDK for `/api/ai`).
+
+**Generation priority (`hybrid`):** Vercel AI Gateway → legacy OpenAI → template/RAG.
+
+**Premade vs AI:** `"explain TinyModel sidecar"` returns a fixed template (`meta.generator: strategy_meta`) only when no LLM is configured. With Gateway or OpenAI, the same prompt is AI-generated using TinyModel plan + wiring context.
 
 ## Local dev
 

@@ -160,6 +160,17 @@ function composeSidecarHandshake(plan) {
   };
 }
 
+function strategyMetaContextBlock() {
+  return [
+    'Strategy site wiring (use for factual answers):',
+    '- Browser AI CORE → POST /api/ai (Vercel serverless on this repo)',
+    '- Composer → TinyModel HyperlinksSpace/TinyModel1 at tinymodel.hyperlinks.space via POST /v1/plan',
+    '- Plan yields intent, HSP corpus retrieval, route hints; section nav returns strategy_section actions',
+    '- Client scrolls with presentSection; tour/chips/section labels stay local in ai-core.js',
+    '- Hybrid mode: TinyModel plan + Vercel AI generation (priority over legacy OpenAI fetch)'
+  ].join('\n');
+}
+
 function templateStrategyComposerMeta(userText) {
   var actions = [];
   if (isNavigationLike(userText) && detectStrategySection(userText) === 'architecture') {
@@ -250,11 +261,16 @@ function composeTemplate(plan, userText, actions) {
   return null;
 }
 
-async function composeStrategyTurn(payload, callOpenAi) {
+async function composeStrategyTurn(payload, generators) {
+  var vercelAi = require('./vercel-ai-client');
+  generators = generators || {};
   var input = typeof payload.input === 'string' ? payload.input.trim() : '';
   var instructions = typeof payload.instructions === 'string' ? payload.instructions : '';
   var userText = extractUserMessage(input);
   var provider = (process.env.AI_PROVIDER || 'hybrid').trim().toLowerCase();
+  var llm = vercelAi.resolveGenerationCaller(generators);
+  var callLlm = llm ? llm.fn : null;
+  var llmName = llm ? llm.name : null;
 
   if (isLocalOnlyStrategyInput(userText)) {
     return {
@@ -303,7 +319,7 @@ async function composeStrategyTurn(payload, callOpenAi) {
     }
   }
 
-  if (isStrategyComposerMetaQuery(userText)) {
+  if (isStrategyComposerMetaQuery(userText) && !callLlm) {
     var metaTpl = templateStrategyComposerMeta(userText);
     return {
       ok: true,
@@ -316,7 +332,7 @@ async function composeStrategyTurn(payload, callOpenAi) {
   }
 
   var template = composeTemplate(plan, userText, actions);
-  if (template && (!callOpenAi || provider === 'tinymodel')) {
+  if (template && (!callLlm || provider === 'tinymodel')) {
     return {
       ok: true,
       output_text: template.output_text,
@@ -348,7 +364,7 @@ async function composeStrategyTurn(payload, callOpenAi) {
     };
   }
 
-  if (!callOpenAi) {
+  if (!callLlm) {
     var noLlm = template || genericStrategyFallback(userText);
     return {
       ok: true,
@@ -367,12 +383,17 @@ async function composeStrategyTurn(payload, callOpenAi) {
     'Prefer concise executive answers. When plan suggests HSP in-app navigation, clarify it applies to hyperlinks.space; ' +
     'offer relevant strategy sections (Vision, Architecture, Roadmap, etc.) when helpful.'
   );
+  systemParts.push(strategyMetaContextBlock());
   systemParts.push(buildPlanContextBlock(plan));
   var rag = buildRagBlock(plan);
   if (rag && retrievalIsRelevant(plan, userText)) systemParts.push(rag);
 
-  var openAi = await callOpenAi(input, systemParts.filter(Boolean).join('\n\n'));
-  if (!openAi.ok) {
+  var llmResult = await callLlm(
+    input,
+    systemParts.filter(Boolean).join('\n\n'),
+    { model: vercelAi.pickModelForIntent(userText, plan) }
+  );
+  if (!llmResult.ok) {
     if (template) {
       return {
         ok: true,
@@ -380,13 +401,23 @@ async function composeStrategyTurn(payload, callOpenAi) {
         actions: template.actions || actions,
         provider: 'tinymodel-composer',
         mode: payload.mode || 'chat',
-        meta: {
-          composer: 'strategy',
-          plan_used: planUsed,
-          openai_error: openAi.error,
-          generator: 'template_fallback',
-          tinymodel: plan ? tinymodel.buildMetaTinyModel(plan) : null
-        }
+        meta: Object.assign(composerMeta(plan, planUsed, planError, 'template_fallback'), {
+          llm_error: llmResult.error,
+          llm_provider: llmName
+        })
+      };
+    }
+    if (isStrategyComposerMetaQuery(userText)) {
+      var metaFallback = templateStrategyComposerMeta(userText);
+      return {
+        ok: true,
+        output_text: metaFallback.output_text,
+        actions: metaFallback.actions,
+        provider: 'tinymodel-composer',
+        mode: payload.mode || 'chat',
+        meta: Object.assign(composerMeta(plan, planUsed, planError, 'strategy_meta'), {
+          llm_error: llmResult.error
+        })
       };
     }
     var fb = genericStrategyFallback(userText);
@@ -402,17 +433,13 @@ async function composeStrategyTurn(payload, callOpenAi) {
 
   return {
     ok: true,
-    output_text: openAi.output_text,
+    output_text: llmResult.output_text,
     actions: actions,
-    provider: 'tinymodel-composer+openai',
+    provider: llmName === 'vercel_ai' ? 'tinymodel-composer+vercel_ai' : 'tinymodel-composer+openai',
     mode: payload.mode || 'chat',
-    meta: {
-      composer: 'strategy',
-      plan_used: planUsed,
-      generator: 'openai',
-      openai_model: openAi.model,
-      tinymodel: plan ? tinymodel.buildMetaTinyModel(plan) : { error: planError || 'plan_unavailable' }
-    }
+    meta: Object.assign(composerMeta(plan, planUsed, planError, llmName), {
+      model: llmResult.model
+    })
   };
 }
 

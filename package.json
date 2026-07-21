@@ -1,0 +1,8 @@
+{
+  "name": "hyperlinks-space-strategy",
+  "private": true,
+  "description": "Strategy site + Vercel /api/ai composer (TinyModel + Vercel AI SDK)",
+  "dependencies": {
+    "ai": "^4.3.16"
+  }
+}

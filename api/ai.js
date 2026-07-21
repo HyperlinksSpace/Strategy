@@ -1,18 +1,18 @@
 /**
  * Strategy site AI gateway (Vercel serverless).
- * Composer: TinyModel sidecar POST /v1/plan → OpenAI generation (hybrid).
+ * Composer: TinyModel POST /v1/plan → Vercel AI SDK generateText (hybrid priority).
  *
  * Env (Vercel project):
- *   TINYMODEL_API_URL  — sidecar base (default: https://tinymodel.hyperlinks.space)
- *   OPENAI or OPENAI_API_KEY — optional; enriches RAG/plan replies
- *   OPENAI_MODEL       — default gpt-4o-mini
- *   AI_PROVIDER        — hybrid (default) | openai | tinymodel
- *
- * Local: vercel dev  then set sameOriginHosts localhost in js/settings.js
+ *   TINYMODEL_API_URL       — default https://tinymodel.hyperlinks.space
+ *   AI_PROVIDER             — hybrid (default) | vercel_ai | openai | tinymodel
+ *   AI_GATEWAY_API_KEY      — Vercel AI Gateway (or use Vercel OIDC on deploy)
+ *   AI_COMPOSER_QUALITY_MODEL — e.g. openai/gpt-4o-mini
+ *   OPENAI / OPENAI_API_KEY — legacy direct OpenAI fallback
  */
 
 var composer = require('./lib/strategy-composer');
 var tinymodel = require('./lib/tinymodel-client');
+var vercelAi = require('./lib/vercel-ai-client');
 
 var CORS_PATTERNS = [
   /^https:\/\/([a-z0-9-]+\.)?hyperlinks\.space$/i,
@@ -53,13 +53,17 @@ function getOpenAiKey() {
   return (process.env.OPENAI || process.env.OPENAI_API_KEY || '').trim();
 }
 
-async function callOpenAi(input, instructions) {
+async function callOpenAi(input, instructions, options) {
   var apiKey = getOpenAiKey();
   if (!apiKey) {
     return { ok: false, error: 'OPENAI env is not configured on the server.' };
   }
 
-  var model = (process.env.OPENAI_MODEL || 'gpt-4o-mini').trim();
+  var model = (options && options.model) ||
+    (process.env.OPENAI_MODEL || 'gpt-4o-mini').trim();
+  if (model.indexOf('/') >= 0) {
+    model = model.split('/').pop();
+  }
   var messages = [];
   if (instructions) {
     messages.push({ role: 'system', content: instructions });
@@ -76,7 +80,7 @@ async function callOpenAi(input, instructions) {
       model: model,
       messages: messages,
       temperature: 0.7,
-      max_tokens: 800
+      max_tokens: (options && options.maxOutputTokens) || 800
     })
   });
 
@@ -98,6 +102,15 @@ async function callOpenAi(input, instructions) {
   return { ok: true, output_text: text, provider: 'openai', mode: 'chat', model: model };
 }
 
+function buildGenerators() {
+  var vercelCaller = vercelAi.createVercelAiCaller();
+  var openai = getOpenAiKey() ? callOpenAi : null;
+  return {
+    vercelAi: vercelCaller,
+    openai: openai
+  };
+}
+
 module.exports = async function handler(req, res) {
   applyCors(req, res);
 
@@ -106,15 +119,24 @@ module.exports = async function handler(req, res) {
   }
 
   if (req.method === 'GET') {
+    var generators = buildGenerators();
     return res.status(200).json({
       ok: true,
       ai: true,
       source: 'strategy-site',
       composer: process.env.AI_PROVIDER || 'hybrid',
-      configured: !!getOpenAiKey(),
+      configured: !!(generators.vercelAi || generators.openai),
+      vercel_ai: {
+        configured: !!generators.vercelAi,
+        gateway: vercelAi.isVercelAiConfigured(),
+        model: vercelAi.defaultQualityModel()
+      },
+      openai_legacy: {
+        configured: !!generators.openai
+      },
       tinymodel: {
         url: tinymodel.tinymodelBaseUrl(),
-        configured: !!process.env.TINYMODEL_API_URL || true
+        configured: true
       }
     });
   }
@@ -141,7 +163,6 @@ module.exports = async function handler(req, res) {
     return res.status(legacy.ok ? 200 : 500).json(legacy);
   }
 
-  var hasOpenAi = !!getOpenAiKey();
-  var result = await composer.composeStrategyTurn(payload, hasOpenAi ? callOpenAi : null);
+  var result = await composer.composeStrategyTurn(payload, buildGenerators());
   return res.status(result.ok ? 200 : 500).json(result);
 };
