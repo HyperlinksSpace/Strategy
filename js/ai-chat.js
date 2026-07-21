@@ -18,8 +18,7 @@
     var sameOriginApiHosts = {
       'program.hyperlinks.space': true,
       'hyperlinks-strategy.vercel.app': true,
-      'ctrategy.hyperlinks.space': true,
-      'strategy-ai-gateway-production.up.railway.app': true
+      'ctrategy.hyperlinks.space': true
     };
     if (config.sameOriginHosts) {
       config.sameOriginHosts.forEach(function (h) {

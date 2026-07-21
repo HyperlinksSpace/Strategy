@@ -1,52 +1,16 @@
-# Railway — Strategy AI gateway
+# Railway — optional self-host (not production)
 
-Serves the strategy SPA + **`POST /api/ai`** composer:
+**Production Strategy site uses [Vercel](../vercel/README.md), not Railway.**
 
-```text
-Browser → /api/ai → tinymodel.hyperlinks.space/v1/plan → Vercel AI Gateway (or TinyModel-only)
-```
+Railway hosts only the **TinyModel sidecar**: [tinymodel.hyperlinks.space](https://tinymodel.hyperlinks.space) (TinyModel repo).
 
-## Deploy
+The `Strategy-AI-Gateway` service (if created) duplicated the Vercel `/api/ai` role — you can **delete it** in Railway dashboard if you do not need it:
+
+Railway → HSP → Strategy-AI-Gateway → Settings → Delete service
+
+To redeploy TinyModel sidecar only, use the **TinyModel** repo:
 
 ```bash
-cd Strategy
-railway login
-export AI_GATEWAY_API_KEY=...   # optional here; can set in Railway dashboard
+cd TinyModel
 bash deploy/railway/deploy-new-instance.sh
-```
-
-After deploy:
-
-```bash
-railway domain --service Strategy-AI-Gateway
-```
-
-Point **ctrategy.hyperlinks.space** CNAME to Railway (or add custom domain in Railway dashboard).
-
-## Required variables
-
-| Variable | Value |
-| -------- | ----- |
-| `AI_GATEWAY_API_KEY` | Vercel AI Gateway key |
-| `TINYMODEL_API_URL` | `https://tinymodel.hyperlinks.space` |
-| `AI_PROVIDER` | `hybrid` |
-
-## Verify
-
-```bash
-curl -sS https://YOUR-URL/healthz
-curl -sS https://YOUR-URL/api/ai
-curl -sS -X POST https://YOUR-URL/api/ai \
-  -H 'Content-Type: application/json' \
-  -d '{"input":"sidecar ping strategy ai core","context":{"locale":"en"}}'
-```
-
-Expect `meta.generator: vercel_ai` for complex prompts when Gateway key is set.
-
-## Client wiring
-
-In `js/settings.js`, add Railway host to `sameOriginHosts` or set:
-
-```javascript
-endpoint: 'https://YOUR-RAILWAY-URL/api/ai'
 ```

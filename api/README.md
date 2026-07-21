@@ -1,7 +1,8 @@
-# Strategy `/api/ai` — TinyModel composer
+# Strategy `/api/ai` — TinyModel composer (Vercel serverless)
 
-Serverless gateway (`api/ai.js`) for the AI CORE chat on the strategy site.
+Runs on **Vercel** at `ctrategy.hyperlinks.space/api/ai`. Calls the **Railway TinyModel sidecar** at `tinymodel.hyperlinks.space` for `POST /v1/plan`, then **Vercel AI Gateway** for LLM generation.
 
+**Deploy + env:** [`deploy/vercel/README.md`](../deploy/vercel/README.md)
 ## Flow
 
 ```text

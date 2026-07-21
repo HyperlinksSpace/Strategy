@@ -219,15 +219,14 @@
 
     aiChat: {
       enabled: true,
-      endpoint: 'https://strategy-ai-gateway-production.up.railway.app/api/ai',
+      endpoint: 'https://ctrategy.hyperlinks.space/api/ai',
       preferSameOrigin: true,
-      // Same-origin /api/ai on Vercel or Railway
+      // Same-origin /api/ai on Vercel (ctrategy.hyperlinks.space)
       sameOriginHosts: [
         'localhost',
         '127.0.0.1',
         'ctrategy.hyperlinks.space',
-        'hyperlinks-strategy.vercel.app',
-        'strategy-ai-gateway-production.up.railway.app'
+        'hyperlinks-strategy.vercel.app'
       ],
       format: 'hsp',
       mode: 'chat',

@@ -47,8 +47,8 @@ Open `http://localhost:8080`
 The floating **AI CORE** chat calls `POST /api/ai` (Vercel serverless). The gateway uses the **TinyModel sidecar** ([tinymodel.hyperlinks.space](https://tinymodel.hyperlinks.space/) → `POST /v1/plan`) as composer control plane, then returns `output_text` (+ optional section scroll actions).
 
 - **Static preview** (`python -m http.server`): chat falls back to the configured remote endpoint in `js/settings.js`.
-- **Full stack**: `vercel dev` + env vars — see [`api/README.md`](api/README.md).
-- **Smoke test**: `node scripts/ai-composer-smoke.js`
+- **Full stack**: deploy on **Vercel** with env vars — see [`deploy/vercel/README.md`](deploy/vercel/README.md).
+- **Smoke test**: `node scripts/ai-composer-smoke.js --base-url https://ctrategy.hyperlinks.space`
 
 ### Sidecar handshake (prove TinyModel → AI CORE)
 
