@@ -35,9 +35,23 @@ function isSoftIntent(text) {
 }
 
 function isComplexQuestion(text) {
-  return /\b(explain|why|how|compare|describe|difference|what is|walk me through|tell me about)\b/i.test(text) ||
-    /\b(объясни|расскаж|что такое|как работает)\b/i.test(text) ||
-    /\b(解释|介绍|是什么|如何)\b/i.test(text);
+  return isGeneralKnowledgeQuery(text) ||
+    /\b(explain|why|how|compare|describe|difference|what is|walk me through|tell me about)\b/i.test(text) ||
+    /\b(объясни|расскаж|что такое|как работает|кто такой|кто такая)\b/i.test(text) ||
+    /\b(解释|介绍|是什么|如何|是谁)\b/i.test(text);
+}
+
+function isGeneralKnowledgeQuery(text) {
+  return /\b(who is|who was|who are|what is|what was|when did|when was|where is|where was)\b/i.test(text) ||
+    /\b(кто такой|кто такая|кто был|что такое|когда|где находится)\b/i.test(text) ||
+    /\b(是谁|什么是|什么时候|在哪里)\b/i.test(text);
+}
+
+function planNeedsGeneration(plan, userText, retrievalOk) {
+  if (isGeneralKnowledgeQuery(userText)) return true;
+  if (plan && plan.routing && plan.routing.fallback && !retrievalOk) return true;
+  if (plan && plan.intent === 'chat' && !retrievalOk) return true;
+  return false;
 }
 
 function wordCount(text) {
@@ -81,6 +95,10 @@ function canAnswerWithTinyModelOnly(ctx) {
   if (ctx.handshake) return { yes: true, reason: 'sidecar_handshake' };
   if (actions.length && template) return { yes: true, reason: 'strategy_section_nav' };
   if (plan && plan.intent === 'navigate' && template) return { yes: true, reason: 'hsp_navigate_template' };
+
+  if (planNeedsGeneration(plan, userText, retrievalOk)) {
+    return { yes: false, reason: 'general_or_offtopic_needs_generation' };
+  }
 
   if (retrievalOk && plan && plan.retrieval) {
     if (isComplexQuestion(userText)) {
@@ -143,12 +161,14 @@ function composeTurnRoute(ctx) {
     generator = 'vercel_ai';
   } else if (availability.openai) {
     generator = 'openai';
+  } else if (availability.transmitter) {
+    generator = 'transmitter';
   } else {
-    generator = 'tinymodel';
+    generator = 'unconfigured';
   }
 
   var modelRoute = null;
-  if (generator === 'vercel_ai') {
+  if (generator === 'vercel_ai' || generator === 'transmitter' || generator === 'openai') {
     modelRoute = pickModelRoute(intent, lane, config);
     if (isComplexQuestion(userText) || intent === 'explain_screen' || ctx.metaQuery) {
       modelRoute = Object.assign({}, modelRoute, {
@@ -180,5 +200,7 @@ module.exports = {
   composeTurnRoute: composeTurnRoute,
   canAnswerWithTinyModelOnly: canAnswerWithTinyModelOnly,
   isComplexQuestion: isComplexQuestion,
+  isGeneralKnowledgeQuery: isGeneralKnowledgeQuery,
+  planNeedsGeneration: planNeedsGeneration,
   buildGatewayOptions: buildGatewayOptions
 };

@@ -4,6 +4,7 @@
 
 var tinymodel = require('./tinymodel-client');
 var composerRouter = require('./composer-router');
+var wikiFallback = require('./wiki-fallback');
 
 var SECTION_HINTS = [
   { id: 'roadmap', re: /\b(roadmap|road map|phase|timeline|trillion|bootstrap)\b/i },
@@ -390,7 +391,64 @@ async function composeStrategyTurn(payload, generators) {
     };
   }
 
+  if (turnRoute.generator === 'unconfigured') {
+    if (composerRouter.isGeneralKnowledgeQuery(userText)) {
+      try {
+        var wikiOnly = await wikiFallback.answerGeneralKnowledge(userText);
+        if (wikiOnly && wikiOnly.ok) {
+          return {
+            ok: true,
+            output_text: wikiOnly.output_text,
+            actions: actions,
+            provider: 'tinymodel-composer+wikipedia',
+            mode: payload.mode || 'chat',
+            meta: composerMeta(plan, planUsed, planError, 'wikipedia_fallback', {
+              intent: turnRoute.intent,
+              lane: turnRoute.lane,
+              route_reason: 'no_llm_configured'
+            })
+          };
+        }
+      } catch (e) { /* fall through */ }
+    }
+    var unconfiguredText =
+      'General chat needs an LLM on this deploy. Set **OPENAI** or **AI_GATEWAY_API_KEY** on Vercel ' +
+      '(TinyModel still handles section navigation and the sidecar handshake).';
+    return {
+      ok: true,
+      error: 'ai_not_configured',
+      output_text: unconfiguredText,
+      actions: [],
+      provider: 'tinymodel-composer',
+      mode: payload.mode || 'chat',
+      meta: composerMeta(plan, planUsed, planError, 'unconfigured', {
+        intent: turnRoute.intent,
+        lane: turnRoute.lane,
+        route_reason: turnRoute.routeReason
+      })
+    };
+  }
+
   if (!callLlm) {
+    if (composerRouter.isGeneralKnowledgeQuery(userText)) {
+      try {
+        var wikiNoCaller = await wikiFallback.answerGeneralKnowledge(userText);
+        if (wikiNoCaller && wikiNoCaller.ok) {
+          return {
+            ok: true,
+            output_text: wikiNoCaller.output_text,
+            actions: actions,
+            provider: 'tinymodel-composer+wikipedia',
+            mode: payload.mode || 'chat',
+            meta: composerMeta(plan, planUsed, planError, 'wikipedia_fallback', {
+              intent: turnRoute.intent,
+              lane: turnRoute.lane,
+              route_reason: 'gateway_unavailable'
+            })
+          };
+        }
+      } catch (e2) { /* fall through */ }
+    }
     var noLlm = template || genericStrategyFallback(userText);
     return {
       ok: true,
@@ -429,6 +487,31 @@ async function composeStrategyTurn(payload, generators) {
     }
   );
   if (!llmResult.ok) {
+    if (composerRouter.isGeneralKnowledgeQuery(userText)) {
+      try {
+        var wiki = await wikiFallback.answerGeneralKnowledge(userText);
+        if (wiki && wiki.ok) {
+          return {
+            ok: true,
+            output_text: wiki.output_text,
+            actions: actions,
+            provider: 'tinymodel-composer+wikipedia',
+            mode: payload.mode || 'chat',
+            meta: composerMeta(plan, planUsed, planError, 'wikipedia_fallback', {
+              intent: turnRoute.intent,
+              lane: turnRoute.lane,
+              route_reason: turnRoute.routeReason,
+              llm_error: llmResult.error,
+              llm_provider: llmName,
+              model: wiki.model
+            })
+          };
+        }
+      } catch (wikiErr) {
+        // fall through to template / explicit error
+      }
+    }
+
     if (template) {
       return {
         ok: true,
@@ -446,6 +529,28 @@ async function composeStrategyTurn(payload, generators) {
         })
       };
     }
+
+    if (composerRouter.isGeneralKnowledgeQuery(userText) || composerRouter.planNeedsGeneration(plan, userText, retrievalOk)) {
+      return {
+        ok: true,
+        output_text:
+          'I could not generate an answer right now (' +
+          String(llmResult.error || 'llm_unavailable') +
+          '). Strategy navigation still works — try **open Roadmap** or **guided tour**.',
+        actions: actions,
+        provider: 'tinymodel-composer',
+        mode: payload.mode || 'chat',
+        meta: composerMeta(plan, planUsed, planError, 'llm_error', {
+          intent: turnRoute.intent,
+          lane: turnRoute.lane,
+          route_reason: turnRoute.routeReason,
+          llm_error: llmResult.error,
+          llm_provider: llmName,
+          model: modelRoute.model
+        })
+      };
+    }
+
     var fb = genericStrategyFallback(userText);
     return {
       ok: true,

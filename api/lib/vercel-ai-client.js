@@ -15,9 +15,13 @@ function resolveAiProvider() {
 }
 
 function isVercelAiConfigured() {
+  // Only treat Gateway as available when an explicit key is present.
+  // VERCEL_ENV alone is not enough — generateText then hangs/fails and breaks AI CORE chat.
   if (process.env.AI_GATEWAY_API_KEY && process.env.AI_GATEWAY_API_KEY.trim()) return true;
-  if (process.env.VERCEL === '1' || process.env.VERCEL_ENV) return true;
-  if (process.env.VERCEL_OIDC_TOKEN && process.env.VERCEL_OIDC_TOKEN.trim()) return true;
+  if (process.env.VERCEL_OIDC_TOKEN && process.env.VERCEL_OIDC_TOKEN.trim() &&
+      process.env.AI_GATEWAY_USE_OIDC === '1') {
+    return true;
+  }
   return false;
 }
 
@@ -139,7 +143,8 @@ function resolveAvailability(generators) {
   return {
     tinymodel: true,
     vercel_ai: !!generators.vercelAi,
-    openai: !!generators.openai
+    openai: !!generators.openai,
+    transmitter: !!generators.transmitter
   };
 }
 
@@ -151,6 +156,9 @@ function resolveGenerationCaller(generators, turnRoute) {
     return generators.openai ? { fn: generators.openai, name: 'openai' } : null;
   }
 
+  if (turnRoute && turnRoute.generator === 'transmitter' && generators.transmitter) {
+    return { fn: generators.transmitter, name: 'ai_transmitter' };
+  }
   if (turnRoute && turnRoute.generator === 'openai' && generators.openai) {
     return { fn: generators.openai, name: 'openai' };
   }
@@ -162,6 +170,9 @@ function resolveGenerationCaller(generators, turnRoute) {
   }
   if (generators.openai) {
     return { fn: generators.openai, name: 'openai' };
+  }
+  if (generators.transmitter) {
+    return { fn: generators.transmitter, name: 'ai_transmitter' };
   }
   return null;
 }

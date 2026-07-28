@@ -109,29 +109,38 @@
     var instructions = getInstructions(lang);
     if (instructions) payload.instructions = instructions;
 
-    return fetch(config.endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-      signal: signal
-    })
-      .then(function (res) {
-        return res.text().then(function (raw) {
-          var body;
-          try {
-            body = raw ? JSON.parse(raw) : null;
-          } catch (e) {
-            return { ok: false, error: 'invalid_json' };
-          }
-          return parseHspResponse(res, body);
-        });
+    function once() {
+      return fetch(config.endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        signal: signal
       })
-      .catch(function (err) {
-        if (isAbortError(err)) {
+        .then(function (res) {
+          return res.text().then(function (raw) {
+            var body;
+            try {
+              body = raw ? JSON.parse(raw) : null;
+            } catch (e) {
+              return { ok: false, error: 'invalid_json' };
+            }
+            return parseHspResponse(res, body);
+          });
+        });
+    }
+
+    return once().catch(function (err) {
+      if (isAbortError(err)) {
+        return { ok: false, error: 'aborted' };
+      }
+      // One retry for flaky edge / cold-start timeouts.
+      return once().catch(function (err2) {
+        if (isAbortError(err2)) {
           return { ok: false, error: 'aborted' };
         }
         return { ok: false, error: 'network' };
       });
+    });
   }
 
   function askOpenAi(input, lang, signal) {

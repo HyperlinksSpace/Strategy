@@ -13,6 +13,10 @@
 var composer = require('./lib/strategy-composer');
 var tinymodel = require('./lib/tinymodel-client');
 var vercelAi = require('./lib/vercel-ai-client');
+var transmitter = require('./lib/ai-transmitter-client');
+
+// Hobby/Pro default is too short when TinyModel plan + LLM both run.
+module.exports.config = { maxDuration: 60 };
 
 var CORS_PATTERNS = [
   /^https:\/\/([a-z0-9-]+\.)?hyperlinks\.space$/i,
@@ -105,9 +109,11 @@ async function callOpenAi(input, instructions, options) {
 function buildGenerators() {
   var vercelCaller = vercelAi.createVercelAiCaller();
   var openai = getOpenAiKey() ? callOpenAi : null;
+  var transmitterCaller = transmitter.createTransmitterCaller();
   return {
     vercelAi: vercelCaller,
-    openai: openai
+    openai: openai,
+    transmitter: transmitterCaller
   };
 }
 
