@@ -20,7 +20,13 @@ Browser (ai-chat.js)
 | `TINYMODEL_API_URL` | No | [https://tinymodel.hyperlinks.space](https://tinymodel.hyperlinks.space) |
 | `AI_PROVIDER` | No | `hybrid` (`vercel_ai` · `openai` · `tinymodel`) |
 | `AI_GATEWAY_API_KEY` | Vercel AI Gateway (OIDC on Vercel deploy) | — |
-| `AI_COMPOSER_QUALITY_MODEL` | No | `openai/gpt-4o-mini` |
+| `AI_COMPOSER_FAST_MODEL` | No | `openai/gpt-4.1-nano` |
+| `AI_COMPOSER_BALANCED_MODEL` | No | `openai/gpt-4o-mini` |
+| `AI_COMPOSER_QUALITY_MODEL` | No | `openai/gpt-4.1-mini` |
+| `AI_COMPOSER_REASONING_MODEL` | No | `anthropic/claude-sonnet-4-20250514` |
+| `AI_COMPOSER_CODE_MODEL` | No | `openai/gpt-4.1-mini` |
+| `AI_GATEWAY_ORDER` | No | `openai,anthropic,google` |
+| `AI_GATEWAY_FALLBACK_MODELS` | No | `google/gemini-2.0-flash,anthropic/claude-3-5-haiku-latest,openai/gpt-4o-mini` |
 | `OPENAI` or `OPENAI_API_KEY` | Legacy LLM fallback | — |
 | `OPENAI_MODEL` | No | `gpt-4o-mini` |
 | `TINYMODEL_PLAN_TIMEOUT_MS` | No | `20000` |
@@ -35,9 +41,23 @@ Run `npm install` in repo root (Vercel `ai` SDK for `/api/ai`).
 | **Vercel AI Gateway** | Complex questions, explain/meta, soft rephrase, low-confidence chat | `vercel_ai` |
 | **Legacy OpenAI** | Gateway unavailable | `openai` |
 
-Gateway uses `@ai-sdk/gateway` + `AI_GATEWAY_API_KEY`. Model strings like `openai/gpt-4o-mini` with fallbacks via `AI_GATEWAY_ORDER` / `AI_GATEWAY_FALLBACK_MODELS`.
+Gateway uses `@ai-sdk/gateway` + `AI_GATEWAY_API_KEY`. Model strings use `provider/model` format with automatic fallbacks via `AI_GATEWAY_FALLBACK_MODELS`.
 
-Inspect routing in responses: `meta.lane`, `meta.route_reason`, `meta.model`, `meta.gateway`.
+### Smart model selection (TinyModel plan → Vercel model)
+
+After `POST /v1/plan`, the composer reads TinyModel signals (`intent`, `routing.confidence`, `routing.fallback`, `retrieval.keyword_overlap`) plus prompt shape to pick a **model tier**:
+
+| Tier | Typical model (env override) | When |
+| ---- | ---------------------------- | ---- |
+| `fast` | `AI_COMPOSER_FAST_MODEL` | Soft rephrase, high-confidence short RAG |
+| `balanced` | `AI_COMPOSER_BALANCED_MODEL` | Default grounded chat |
+| `quality` | `AI_COMPOSER_QUALITY_MODEL` | explain_screen, strategy meta |
+| `reasoning` | `AI_COMPOSER_REASONING_MODEL` | compare/analyze, low TinyModel confidence |
+| `code` | `AI_COMPOSER_CODE_MODEL` | architecture, protocols, stack questions |
+
+Inspect routing in responses: `meta.model_tier`, `meta.model_reason`, `meta.model`, `meta.gateway_fallbacks`.
+
+`GET /api/ai` returns the configured catalog under `vercel_ai.catalog`.
 
 ## Local dev
 

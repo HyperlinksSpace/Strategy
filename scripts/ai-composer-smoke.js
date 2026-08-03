@@ -25,7 +25,7 @@ function mockVercelCaller() {
 var cases = [
   { name: 'local-tour-skip', input: 'Guided tour', expectLocal: true },
   { name: 'router-nav-template', input: 'open the roadmap section', expectGenerator: 'tinymodel', expectSection: 'roadmap' },
-  { name: 'router-complex-gateway', input: 'explain how TinyModel composer wires to Vercel Gateway', expectGenerator: 'vercel_ai', expectNoSection: true, mockGateway: true },
+  { name: 'router-complex-gateway', input: 'explain how TinyModel composer wires to Vercel Gateway', expectGenerator: 'vercel_ai', expectModelTier: 'code', expectNoSection: true, mockGateway: true },
   { name: 'strategy-architecture', input: 'open the architecture section', expectSection: 'architecture' },
   { name: 'strategy-tinymodel-explain', input: 'explain TinyModel sidecar composer', expectNoSection: true, expectMatch: /TinyModel|composer|\/api\/ai|sidecar/i },
   {
@@ -35,6 +35,7 @@ var cases = [
     expectMatch: /TM1-SIDECAR-OK/,
     expectProvider: 'tinymodel-sidecar'
   },
+  { name: 'router-soft-fast', input: 'summarize the roadmap briefly', expectGenerator: 'vercel_ai', expectModelTier: 'fast', expectNoSection: true, mockGateway: true },
   { name: 'strategy-general-hsp', input: 'How does HSP swap routing work across multiple ledgers?', expectNoSection: true },
   { name: 'hsp-nav-swap', input: 'open swap page', expectHsp: true }
 ];
@@ -82,8 +83,12 @@ async function runLocal() {
       if (c.expectGenerator) {
         pass = pass && result.meta && result.meta.generator === c.expectGenerator;
       }
+      if (c.expectModelTier) {
+        pass = pass && result.meta && result.meta.model_tier === c.expectModelTier;
+      }
       console.log((pass ? 'OK' : 'FAIL') + '  ' + c.name + ': ' +
         (result.meta && result.meta.generator ? result.meta.generator + ' · ' : '') +
+        (result.meta && result.meta.model_tier ? result.meta.model_tier + ' · ' : '') +
         (result.output_text || result.error || '').slice(0, 70).replace(/\n/g, ' '));
       if (pass) ok++;
     } catch (err) {

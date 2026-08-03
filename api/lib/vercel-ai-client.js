@@ -3,6 +3,8 @@
  * Uses @ai-sdk/gateway when AI_GATEWAY_API_KEY is set (see Vercel AI Gateway docs).
  */
 
+var modelRegistry = require('./model-registry');
+
 var gatewayProvider = null;
 var gatewayInitError = null;
 
@@ -30,15 +32,34 @@ function isLegacyOpenAiConfigured() {
 }
 
 function defaultQualityModel() {
-  return (
-    process.env.AI_COMPOSER_QUALITY_MODEL ||
-    process.env.OPENAI_MODEL ||
-    'openai/gpt-4o-mini'
-  ).trim();
+  return modelRegistry.loadModelCatalog().tiers.quality;
 }
 
 function defaultFastModel() {
-  return (process.env.AI_COMPOSER_FAST_MODEL || 'openai/gpt-4.1-nano').trim();
+  return modelRegistry.loadModelCatalog().tiers.fast;
+}
+
+function defaultBalancedModel() {
+  return modelRegistry.loadModelCatalog().tiers.balanced;
+}
+
+function buildModelFallbackChain(primaryModel, gatewayOpts) {
+  var chain = [];
+  var seen = {};
+  function add(id) {
+    if (!id || seen[id]) return;
+    seen[id] = true;
+    chain.push(id);
+  }
+  add(primaryModel);
+  if (gatewayOpts && gatewayOpts.models) {
+    gatewayOpts.models.forEach(add);
+  }
+  var catalog = modelRegistry.loadModelCatalog();
+  Object.keys(catalog.tiers).forEach(function (tier) {
+    if (catalog.tiers[tier] !== primaryModel) add(catalog.tiers[tier]);
+  });
+  return chain;
 }
 
 function getGatewayProvider() {
@@ -102,39 +123,49 @@ function createVercelAiCaller() {
     options = options || {};
     var modelId = options.model || defaultQualityModel();
     var gatewayOpts = options.gateway;
-    var resolved = resolveModelHandle(modelId, gatewayOpts);
+    var models = buildModelFallbackChain(modelId, gatewayOpts);
+    var lastError = null;
 
-    var params = {
-      model: resolved.model,
-      system: system,
-      prompt: input,
-      maxTokens: options.maxOutputTokens || 800,
-      temperature: 0.7
-    };
-    if (resolved.providerOptions) {
-      params.providerOptions = resolved.providerOptions;
-    }
-
-    try {
-      var result = await generateText(params);
-      var text = String(result.text || '').trim();
-      if (!text) {
-        return { ok: false, error: 'Empty response from Vercel AI Gateway.' };
+    for (var i = 0; i < models.length; i++) {
+      var tryModel = models[i];
+      var resolved = resolveModelHandle(tryModel, gatewayOpts);
+      var params = {
+        model: resolved.model,
+        system: system,
+        prompt: input,
+        maxTokens: options.maxOutputTokens || 800,
+        temperature: 0.7
+      };
+      if (resolved.providerOptions) {
+        params.providerOptions = resolved.providerOptions;
       }
-      return {
-        ok: true,
-        output_text: text,
-        provider: 'vercel_ai',
-        model: modelId,
-        gateway: true,
-        mode: 'chat'
-      };
-    } catch (err) {
-      return {
-        ok: false,
-        error: 'Gateway: ' + String(err && err.message ? err.message : err)
-      };
+
+      try {
+        var result = await generateText(params);
+        var text = String(result.text || '').trim();
+        if (!text) {
+          lastError = 'Empty response from Vercel AI Gateway.';
+          continue;
+        }
+        return {
+          ok: true,
+          output_text: text,
+          provider: 'vercel_ai',
+          model: tryModel,
+          model_attempts: i + 1,
+          gateway: true,
+          mode: 'chat'
+        };
+      } catch (err) {
+        lastError = String(err && err.message ? err.message : err);
+        // Try next model in cascade (quota, model_not_found, provider outage).
+      }
     }
+
+    return {
+      ok: false,
+      error: 'Gateway: ' + (lastError || 'all models failed')
+    };
   };
 }
 
@@ -186,5 +217,7 @@ module.exports = {
   resolveAvailability: resolveAvailability,
   defaultQualityModel: defaultQualityModel,
   defaultFastModel: defaultFastModel,
-  getGatewayProvider: getGatewayProvider
+  defaultBalancedModel: defaultBalancedModel,
+  getGatewayProvider: getGatewayProvider,
+  listModelCatalog: modelRegistry.listCatalogForMeta
 };

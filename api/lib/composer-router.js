@@ -1,25 +1,23 @@
 /**
- * Strategy composer router — TinyModel plan → lane → generator decision.
- * Mirrors TinyModel integrations/hsp/reference/composer.ts (Strategy subset).
- *
- * generator:
- *   tinymodel  — template ack, sidecar handshake, or direct RAG (no Gateway call)
- *   vercel_ai  — Vercel AI Gateway generateText with modelRoute
- *   openai     — legacy direct OpenAI (fallback)
+ * Strategy composer router — TinyModel plan → lane → generator → Vercel model tier.
  */
 
+var modelRegistry = require('./model-registry');
+
 function defaultConfig() {
+  var catalog = modelRegistry.loadModelCatalog();
   return {
-    qualityModel: (process.env.AI_COMPOSER_QUALITY_MODEL || 'openai/gpt-4o-mini').trim(),
-    fastModel: (process.env.AI_COMPOSER_FAST_MODEL || 'openai/gpt-4.1-nano').trim(),
+    qualityModel: catalog.tiers.quality,
+    fastModel: catalog.tiers.fast,
+    balancedModel: catalog.tiers.balanced,
+    reasoningModel: catalog.tiers.reasoning,
+    codeModel: catalog.tiers.code,
     navigateAck: (process.env.AI_COMPOSER_NAVIGATE_ACK || 'template').trim(),
-    gatewayOrder: (process.env.AI_GATEWAY_ORDER || 'openai,anthropic,google')
-      .split(',').map(function (s) { return s.trim(); }).filter(Boolean),
-    gatewayFallbackModels: (process.env.AI_GATEWAY_FALLBACK_MODELS ||
-      'google/gemini-2.0-flash,anthropic/claude-3-5-haiku-latest')
-      .split(',').map(function (s) { return s.trim(); }).filter(Boolean),
+    gatewayOrder: catalog.gatewayOrder,
+    gatewayFallbackModels: catalog.gatewayFallbackModels,
     ragOnlyMinOverlap: Number(process.env.TINYMODEL_RAG_ONLY_MIN_OVERLAP || 0.55),
-    ragOnlyMaxWords: Number(process.env.TINYMODEL_RAG_ONLY_MAX_WORDS || 14)
+    ragOnlyMaxWords: Number(process.env.TINYMODEL_RAG_ONLY_MAX_WORDS || 14),
+    catalog: catalog
   };
 }
 
@@ -42,7 +40,7 @@ function isComplexQuestion(text) {
 }
 
 function isGeneralKnowledgeQuery(text) {
-  return /\b(who is|who was|who are|what is|what was|when did|when was|where is|where was)\b/i.test(text) ||
+  return /\b(who is|who was|who are|what is|what was|when did|when was|when is|where is|where was)\b/i.test(text) ||
     /\b(кто такой|кто такая|кто был|что такое|когда|где находится)\b/i.test(text) ||
     /\b(是谁|什么是|什么时候|在哪里)\b/i.test(text);
 }
@@ -59,27 +57,42 @@ function wordCount(text) {
 }
 
 function buildGatewayOptions(config) {
-  return {
-    order: config.gatewayOrder,
-    models: config.gatewayFallbackModels
-  };
+  return modelRegistry.buildGatewayOptions(config.catalog || modelRegistry.loadModelCatalog());
 }
 
-function pickModelRoute(intent, lane, config) {
-  var gateway = buildGatewayOptions(config);
-  if (lane === 'soft') {
-    return { model: config.fastModel, gateway: gateway, maxOutputTokens: 600 };
-  }
+function pickModelRoute(intent, lane, config, ctx) {
+  ctx = ctx || {};
   if (lane === 'control') {
     if (config.navigateAck !== 'template') {
-      return { model: config.navigateAck, gateway: gateway, maxOutputTokens: 120 };
+      return {
+        model: config.navigateAck,
+        gateway: buildGatewayOptions(config),
+        maxOutputTokens: 120,
+        tier: 'fast',
+        model_reason: 'navigate_ack_model'
+      };
     }
     return null;
   }
-  if (intent === 'explain_screen' || (lane === 'grounded' && isComplexQuestion(''))) {
-    return { model: config.qualityModel, gateway: gateway, maxOutputTokens: 1200 };
-  }
-  return { model: config.qualityModel, gateway: gateway, maxOutputTokens: 900 };
+
+  var picked = modelRegistry.pickModelFromPlan({
+    userText: ctx.userText || '',
+    plan: ctx.plan,
+    lane: lane,
+    intent: intent,
+    metaQuery: ctx.metaQuery,
+    complexQuestion: ctx.complexQuestion,
+    softIntent: ctx.softIntent || isSoftIntent(ctx.userText || '')
+  });
+
+  return {
+    model: picked.model,
+    gateway: picked.gateway,
+    maxOutputTokens: picked.maxOutputTokens,
+    tier: picked.tier,
+    model_reason: picked.reason,
+    tinymodel_signals: picked.signals
+  };
 }
 
 /**
@@ -168,19 +181,15 @@ function composeTurnRoute(ctx) {
   }
 
   var modelRoute = null;
+  var routeCtx = {
+    userText: userText,
+    plan: plan,
+    metaQuery: ctx.metaQuery,
+    complexQuestion: isComplexQuestion(userText),
+    softIntent: isSoftIntent(userText)
+  };
   if (generator === 'vercel_ai' || generator === 'transmitter' || generator === 'openai') {
-    modelRoute = pickModelRoute(intent, lane, config);
-    if (isComplexQuestion(userText) || intent === 'explain_screen' || ctx.metaQuery) {
-      modelRoute = Object.assign({}, modelRoute, {
-        model: config.qualityModel,
-        maxOutputTokens: 1200
-      });
-    } else if (lane === 'soft') {
-      modelRoute = Object.assign({}, modelRoute, {
-        model: config.fastModel,
-        maxOutputTokens: 600
-      });
-    }
+    modelRoute = pickModelRoute(intent, lane, config, routeCtx);
   }
 
   return {
@@ -201,6 +210,8 @@ module.exports = {
   canAnswerWithTinyModelOnly: canAnswerWithTinyModelOnly,
   isComplexQuestion: isComplexQuestion,
   isGeneralKnowledgeQuery: isGeneralKnowledgeQuery,
+  isSoftIntent: isSoftIntent,
   planNeedsGeneration: planNeedsGeneration,
-  buildGatewayOptions: buildGatewayOptions
+  buildGatewayOptions: buildGatewayOptions,
+  pickModelRoute: pickModelRoute
 };

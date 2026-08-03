@@ -146,6 +146,7 @@
 
   var state = {
     messagesEl: null,
+    lastUserBubble: null,
     chipsEl: null,
     inputEl: null,
     inputWrapEl: null,
@@ -190,7 +191,12 @@
   var speechVoicesReady = false;
   var speechLastText = '';
   var speechEndedAt = 0;
-  var SPEECH_MIC_GRACE_MS = 900;
+  var lastAiSpeechNorm = '';
+  var SPEECH_MIC_GRACE_MS = 3200;
+  var MIC_POST_SPEECH_MS = 2800;
+  // Hard gate: ignore mic / recognition while our own TTS audio is in the air.
+  var micPlaybackGateUntil = 0;
+  var micAecHolderStream = null;
   var micRestartTimer = 0;
   var micAutoStartTimer = 0;
   var micInterimTimer = 0;
@@ -208,7 +214,6 @@
   var micFailureRebuilds = 0;
   var MIC_RESTART_MIN_MS = 1000;
   var MIC_MAX_FAILURE_REBUILDS = 2;
-  var MIC_POST_SPEECH_MS = 1800;
   var recognitionFailCount = 0;
   var micNoSpeechCount = 0;
   var micStopReason = '';
@@ -231,33 +236,21 @@
     monitorAttempted: false
   };
 
-  var MIC_BUILD = '20250619c';
-  var MIC_DEBUG_KEY = 'hls-mic-debug';
-  var MIC_LOG_MAX = 200;
+  var MIC_BUILD = '20250803e';
+  var MIC_DEBUG_KEY = 'hls-mic-debug-v2';
+  var MIC_LOG_MAX = 120;
+  // Opt-in only: keep console quiet unless ?micDebug=1 or HLS.micDebug.enable()
   var MIC_LOG_ALWAYS = {
-    'debug.init': true,
     'init.unsupported': true,
     'init.hideButton': true,
     'env.iosNoSpeechRecognition': true,
     'env.insecureContext': true,
     'permission.denied': true,
-    'permission.request': true,
-    'permission.granted': true,
-    'start.call': true,
-    'start.skip': true,
     'start.timeout': true,
     'start.exception': true,
-    'start.force': true,
-    'recognition.onstart': true,
-    'recognition.onend': true,
-    'recognition.onerror': true,
-    'recognition.onaudiostart': true,
-    'recognition.onsoundstart': true,
-    'recognition.result': true,
-    'recognition.audioButNoVoice': true,
-    'transcript.final': true,
-    'stop': true
+    'recognition.onerror': true
   };
+  var micAutoDeferCount = 0;
   var micLogBuffer = [];
   var micDebugOn = false;
   var micDebugPanel = null;
@@ -267,12 +260,15 @@
 
   function micDebugEnabled() {
     try {
-      if (localStorage.getItem(MIC_DEBUG_KEY) === '0') return false;
-    } catch (e) { /* noop */ }
-    try {
+      if (/(?:^|[?&])micDebug=1(?:&|$)/.test(window.location.search || '')) return true;
       if (/(?:^|[?&])micDebug=0(?:&|$)/.test(window.location.search || '')) return false;
     } catch (e) { /* noop */ }
-    return true;
+    try {
+      var stored = localStorage.getItem(MIC_DEBUG_KEY);
+      if (stored === '1') return true;
+      if (stored === '0') return false;
+    } catch (e2) { /* noop */ }
+    return false;
   }
 
   function micBusyReasons() {
@@ -313,6 +309,9 @@
         (state.tourActive && (state.speaking || state.tourTimer))),
       busyReasons: micBusyReasons(),
       speaking: state.speaking,
+      playbackGate: micPlaybackGated(),
+      playbackGateMs: Math.max(0, micPlaybackGateUntil - Date.now()),
+      aecHolder: !!micAecHolderStream,
       typing: state.typing,
       aiPending: state.aiPending,
       tourActive: state.tourActive,
@@ -453,13 +452,25 @@
 
     var toConsole = micDebugOn || level === 'error' || level === 'warn' || !!MIC_LOG_ALWAYS[event];
     if (toConsole) {
-      if (micDebugOn) micDebugEnsurePanel();
-      if (micDebugOn) micDebugRenderPanel(entry);
+      if (micDebugOn) {
+        micDebugEnsurePanel();
+        micDebugRenderPanel(entry);
+      }
       var msg = '[HLS mic] ' + event;
-      var payload = micDebugOn ? { detail: detail, snap: micSnapshot() } : (detail == null ? micSnapshot() : detail);
-      if (level === 'error') console.error(msg, payload);
-      else if (level === 'warn') console.warn(msg, payload);
-      else console.log(msg, payload);
+      if (micDebugOn) {
+        var dbgPayload = { detail: detail, snap: micSnapshot() };
+        if (level === 'error') console.error(msg, dbgPayload);
+        else if (level === 'warn') console.warn(msg, dbgPayload);
+        else console.log(msg, dbgPayload);
+      } else if (detail != null) {
+        if (level === 'error') console.error(msg, detail);
+        else if (level === 'warn') console.warn(msg, detail);
+        else console.log(msg, detail);
+      } else if (level === 'error') {
+        console.error(msg);
+      } else if (level === 'warn') {
+        console.warn(msg);
+      }
     }
   }
 
@@ -570,7 +581,7 @@
   function isChipPremadeInput(text) {
     var norm = normalize(text);
     if (!norm) return false;
-    var keys = ['ai.chipHelp', 'ai.chipTour', 'ai.chipHere'];
+    var keys = ['ai.chipHelp', 'ai.chipTour', 'ai.chipHere', 'ai.chipFx', 'ai.chipHsp', 'ai.chipRoadmap'];
     for (var k = 0; k < keys.length; k++) {
       if (normalize(t(keys[k])) === norm) return true;
     }
@@ -657,7 +668,7 @@
     state.thinkingEl.setAttribute('aria-busy', 'true');
     state.thinkingEl.textContent = t('ai.thinking');
     state.messagesEl.appendChild(state.thinkingEl);
-    state.messagesEl.scrollTop = state.messagesEl.scrollHeight;
+    scrollTurnIntoView(state.thinkingEl);
   }
 
   function hideThinking() {
@@ -753,8 +764,12 @@
       }
 
       if (result.ok && result.text) {
-        if (result.actions && result.actions.length &&
-            presentSectionFromComposerAction(result.actions[0], micAutoStartAfterSpeech)) {
+        var action0 = result.actions && result.actions[0];
+        if (action0 && action0.type === 'start_tour') {
+          showBotMessage(result.text, {
+            speakText: result.text,
+            onDone: function () { startTour(); }
+          });
           return;
         }
         var speak = result.text;
@@ -765,7 +780,12 @@
         }
         showBotMessage(display, {
           speakText: speak,
-          onDone: micAutoStartAfterSpeech
+          onDone: function () {
+            if (action0 && presentSectionFromComposerAction(action0, micAutoStartAfterSpeech)) {
+              return;
+            }
+            micAutoStartAfterSpeech();
+          }
         });
         return;
       }
@@ -851,13 +871,155 @@
     });
   }
 
+  function escapeHtml(text) {
+    return String(text || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function scrollTranscriptTo(el, mode) {
+    if (!state.messagesEl || !el || !el.isConnected) return;
+    var box = state.messagesEl;
+    // Only adjust the chat transcript — never the page.
+    var boxRect = box.getBoundingClientRect();
+    var elRect = el.getBoundingClientRect();
+    if (mode === 'start') {
+      // Show the beginning of the message so long replies are readable top-down.
+      box.scrollTop += (elRect.top - boxRect.top) - 10;
+      return;
+    }
+    if (mode === 'end') {
+      box.scrollTop = box.scrollHeight;
+      return;
+    }
+    // nearest: only scroll if the bubble is clipped
+    if (elRect.bottom > boxRect.bottom - 6) {
+      box.scrollTop += elRect.bottom - boxRect.bottom + 10;
+    } else if (elRect.top < boxRect.top + 6) {
+      box.scrollTop += elRect.top - boxRect.top - 10;
+    }
+  }
+
+  /** Keep the latest user request visible; bot reply starts just under it. */
+  function scrollTurnIntoView(botOrThinkingEl) {
+    var anchor = state.lastUserBubble && state.lastUserBubble.isConnected
+      ? state.lastUserBubble
+      : botOrThinkingEl;
+    if (!anchor) return;
+    scrollTranscriptTo(anchor, 'start');
+  }
+
+  function collapseLineCount() {
+    return 3;
+  }
+
+  function wireUserCollapse(bubble, body) {
+    if (!bubble || !body) return;
+    function measureAndMaybeCollapse() {
+      if (!body.isConnected) return;
+      var cs = window.getComputedStyle(body);
+      var lh = parseFloat(cs.lineHeight);
+      if (!lh || isNaN(lh)) {
+        var fs = parseFloat(cs.fontSize) || 14;
+        lh = fs * 1.45;
+      }
+      var maxH = Math.ceil(lh * collapseLineCount() + 2);
+      if (body.scrollHeight <= maxH + 6) {
+        bubble.classList.remove('is-collapsed');
+        return;
+      }
+
+      bubble.classList.add('is-collapsed');
+      body.style.maxHeight = maxH + 'px';
+
+      if (bubble.querySelector('.ai-core-msg-more')) return;
+
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'ai-core-msg-more';
+      btn.setAttribute('aria-expanded', 'false');
+      btn.textContent = t('ai.more');
+      btn.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var expanded = bubble.classList.contains('is-expanded');
+        if (expanded) {
+          bubble.classList.remove('is-expanded');
+          bubble.classList.add('is-collapsed');
+          body.style.maxHeight = maxH + 'px';
+          btn.setAttribute('aria-expanded', 'false');
+          btn.textContent = t('ai.more');
+        } else {
+          bubble.classList.add('is-expanded');
+          bubble.classList.remove('is-collapsed');
+          body.style.maxHeight = '';
+          btn.setAttribute('aria-expanded', 'true');
+          btn.textContent = t('ai.less');
+        }
+      });
+      bubble.appendChild(btn);
+    }
+
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(function () {
+        requestAnimationFrame(measureAndMaybeCollapse);
+      });
+    } else {
+      window.setTimeout(measureAndMaybeCollapse, 0);
+    }
+  }
+
+  function appendUserBubble(text) {
+    if (!state.messagesEl) return null;
+    var bubble = document.createElement('div');
+    bubble.className = 'ai-core-msg ai-core-msg--user';
+    var body = document.createElement('div');
+    body.className = 'ai-core-msg-body';
+    body.textContent = text;
+    bubble.appendChild(body);
+    state.messagesEl.appendChild(bubble);
+    state.lastUserBubble = bubble;
+    wireUserCollapse(bubble, body);
+    scrollTranscriptTo(bubble, 'start');
+    return bubble;
+  }
+
+  function formatBubbleHtml(text) {
+    var escaped = escapeHtml(text);
+    // Autolink http(s) URLs
+    escaped = escaped.replace(
+      /(https?:\/\/[^\s<>"']+)/g,
+      function (url) {
+        var clean = url.replace(/[),.;!?]+$/g, '');
+        var trail = url.slice(clean.length);
+        return '<a href="' + clean + '" target="_blank" rel="noopener noreferrer">' + clean + '</a>' + trail;
+      }
+    );
+    // Simple **bold** markers from composer replies
+    escaped = escaped.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    // Preserve newlines
+    escaped = escaped.replace(/\n/g, '<br>');
+    return escaped;
+  }
+
+  function setBubbleContent(el, text) {
+    if (!el) return;
+    el.innerHTML = formatBubbleHtml(text);
+  }
+
   function appendBubble(text, role) {
     if (!state.messagesEl) return;
+    if (role === 'user') {
+      return appendUserBubble(text);
+    }
     var bubble = document.createElement('div');
-    bubble.className = 'ai-core-msg ai-core-msg--' + (role || 'bot');
-    bubble.textContent = text;
+    bubble.className = 'ai-core-msg ai-core-msg--bot';
+    setBubbleContent(bubble, text);
     state.messagesEl.appendChild(bubble);
-    state.messagesEl.scrollTop = state.messagesEl.scrollHeight;
+    // Anchor on the user request so both stay readable; bot starts under it.
+    scrollTurnIntoView(bubble);
     return bubble;
   }
 
@@ -1431,6 +1593,13 @@
       return;
     }
 
+    // Long replies: skip char-by-char typing (was lagging the whole UI + mic loop).
+    if (String(text || '').length > 220) {
+      appendBubble(text, 'bot');
+      if (done) done();
+      return;
+    }
+
     state.typing = true;
     setGeneratingUI(true);
     emitOrb('typing');
@@ -1438,21 +1607,26 @@
     bubble.className = 'ai-core-msg ai-core-msg--bot ai-core-msg--typing';
     state.messagesEl.appendChild(bubble);
     state.typingBubble = bubble;
+    scrollTurnIntoView(bubble);
 
     var i = 0;
-    var speed = 14;
+    var full = String(text || '');
+    // Chunk by 2–4 chars so typing finishes faster without looking broken.
+    var step = full.length > 120 ? 4 : (full.length > 60 ? 2 : 1);
+    var speed = 12;
 
     function tick() {
       if (!state.typing || state.typingBubble !== bubble) return;
-      bubble.textContent = text.slice(0, i);
-      state.messagesEl.scrollTop = state.messagesEl.scrollHeight;
-      i += 1;
-      if (i <= text.length) {
+      i = Math.min(full.length, i + step);
+      bubble.textContent = full.slice(0, i);
+      // Do not chase the growing bottom — keeps the readable start of the reply in view.
+      if (i < full.length) {
         state.typingTimer = setTimeout(tick, speed);
       } else {
         state.typingTimer = null;
         state.typingBubble = null;
         bubble.classList.remove('ai-core-msg--typing');
+        setBubbleContent(bubble, full);
         state.typing = false;
         if (done) {
           done();
@@ -1562,6 +1736,7 @@
     stopSpeechKeepalive();
     state.speaking = false;
     markSpeechEnded();
+    // Keep lastAiSpeechNorm so post-TTS mic echo can still be rejected.
     speechLastText = '';
     if (state.speechSupported && window.speechSynthesis) {
       try { window.speechSynthesis.cancel(); } catch (e) { /* noop */ }
@@ -1675,10 +1850,18 @@
         return;
       }
 
+      // Cancel any prior utterance, then arm speaking BEFORE stopping the mic so
+      // recognition.onend sees speechActive/micBusy and does not restart into TTS.
       stopSpeech();
+      state.speaking = true;
+      rememberAiSpeech(line);
+      armMicPlaybackGate(line);
+      clearVoiceCaptureBuffers();
       if (state.listening || state.micStarting) stopListening(true);
+      clearMicRestartTimer();
+      clearMicAutoStartTimer();
       ensureSpeechVoices();
-      speechLastText = line;
+      ensureMicAecHolder();
 
       var uiLang = opts.lang || getLang();
       var segments = textHasMixedSpeechScripts(text)
@@ -1687,7 +1870,6 @@
       var gen = speechQueueGen;
 
       state.speechResolve = resolve;
-      state.speaking = true;
       setGeneratingUI(true);
       startSpeechKeepalive();
       emitOrb('speaking');
@@ -1939,7 +2121,10 @@
     var prev = state.micAutoStart;
     state.micAutoStart = !!enabled;
     micLog('info', 'autoStart.set', { enabled: state.micAutoStart, persist: persist !== false, prev: prev });
-    if (state.micAutoStart) resetMicFailureState();
+    if (state.micAutoStart) {
+      resetMicFailureState();
+      ensureMicAecHolder();
+    }
     if (persist !== false) {
       localStorage.setItem(MIC_AUTO_KEY, state.micAutoStart ? '1' : '0');
     }
@@ -1951,6 +2136,8 @@
       pendingVoiceInput = '';
       stopListening(true);
       releaseMicCapture();
+      releaseMicAecHolder();
+      clearMicPlaybackGate(0);
     }
     if (!state.micAutoStart) micVisLastPulseAt = 0;
     updateMicButton();
@@ -2032,11 +2219,7 @@
     micVis.monitorAttempted = true;
 
     navigator.mediaDevices.getUserMedia({
-      audio: {
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: true
-      }
+      audio: micAudioConstraints()
     }).then(function (stream) {
       if (!state.listening) {
         stream.getTracks().forEach(function (track) { track.stop(); });
@@ -2152,20 +2335,200 @@
     return !!(state.micAutoStart && state.micPermissionGranted !== false);
   }
 
+  function micAudioConstraints() {
+    // Ask the browser/OS for acoustic echo cancellation against speaker output.
+    return {
+      echoCancellation: { ideal: true },
+      noiseSuppression: { ideal: true },
+      autoGainControl: { ideal: true },
+      channelCount: { ideal: 1 }
+    };
+  }
+
+  function estimateSpeechMs(text) {
+    var words = String(text || '').trim().split(/\s+/).filter(Boolean).length;
+    var chars = String(text || '').trim().length;
+    // ~145 wpm synthesis + cushion for punctuation / engine lag.
+    return Math.max(1400, Math.min(90000, words * 430 + chars * 8 + 900));
+  }
+
+  function micPlaybackGated() {
+    return Date.now() < micPlaybackGateUntil;
+  }
+
+  function setMicCaptureLive(live) {
+    var enabled = !!live;
+    // Mute only the visualizer capture. Keep the AEC holder track live so the
+    // browser/OS can keep cancelling speaker TTS against an active mic path.
+    if (state.micStream) {
+      state.micStream.getAudioTracks().forEach(function (track) {
+        try { track.enabled = enabled; } catch (e) { /* noop */ }
+      });
+    }
+    if (!enabled) {
+      stopMicVisualizer();
+      resetMicEqBars();
+    }
+  }
+
+  function armMicPlaybackGate(textOrMs) {
+    var ms = typeof textOrMs === 'number' ? textOrMs : estimateSpeechMs(textOrMs);
+    // Extra acoustic settle so room/speaker echo after TTS is also ignored.
+    var until = Date.now() + ms + Math.max(SPEECH_MIC_GRACE_MS, 2200);
+    if (until > micPlaybackGateUntil) micPlaybackGateUntil = until;
+    setMicCaptureLive(false);
+    clearVoiceCaptureBuffers();
+    clearMicRestartTimer();
+    clearMicAutoStartTimer();
+    scheduleMicPlaybackGateRelease();
+    micLog('debug', 'playbackGate.arm', {
+      ms: Math.round(until - Date.now()),
+      until: micPlaybackGateUntil
+    });
+  }
+
+  function extendMicPlaybackGate(extraMs) {
+    var add = extraMs == null ? SPEECH_MIC_GRACE_MS : extraMs;
+    var until = Date.now() + Math.max(800, add);
+    if (until > micPlaybackGateUntil) micPlaybackGateUntil = until;
+    setMicCaptureLive(false);
+    scheduleMicPlaybackGateRelease();
+  }
+
+  var micPlaybackGateTimer = 0;
+  function scheduleMicPlaybackGateRelease() {
+    if (micPlaybackGateTimer) {
+      clearTimeout(micPlaybackGateTimer);
+      micPlaybackGateTimer = 0;
+    }
+    var wait = Math.max(0, micPlaybackGateUntil - Date.now()) + 40;
+    micPlaybackGateTimer = window.setTimeout(function () {
+      micPlaybackGateTimer = 0;
+      if (micPlaybackGated() || state.speaking) {
+        scheduleMicPlaybackGateRelease();
+        return;
+      }
+      setMicCaptureLive(true);
+      clearVoiceCaptureBuffers();
+      if (micIsEnabled()) scheduleMicAutoStart(MIC_POST_SPEECH_MS);
+      micLog('debug', 'playbackGate.release', null);
+    }, wait);
+  }
+
+  function clearMicPlaybackGate(softMs) {
+    micPlaybackGateUntil = Date.now() + (softMs == null ? 0 : softMs);
+    if (!micPlaybackGated()) {
+      setMicCaptureLive(true);
+      if (micPlaybackGateTimer) {
+        clearTimeout(micPlaybackGateTimer);
+        micPlaybackGateTimer = 0;
+      }
+    } else {
+      scheduleMicPlaybackGateRelease();
+    }
+  }
+
+  function ensureMicAecHolder() {
+    if (micAecHolderStream) return;
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
+    // Keep a silent AEC-enabled capture stream alive so the OS can cancel speaker TTS.
+    navigator.mediaDevices.getUserMedia({ audio: micAudioConstraints() }).then(function (stream) {
+      if (micAecHolderStream) {
+        stream.getTracks().forEach(function (t) { t.stop(); });
+        return;
+      }
+      micAecHolderStream = stream;
+      // Keep tracks enabled: AEC needs a live capture path; we never connect this
+      // stream to recognition or the page audio graph.
+      stream.getAudioTracks().forEach(function (track) {
+        try { track.enabled = true; } catch (e) { /* noop */ }
+      });
+      micLog('debug', 'aecHolder.on', null);
+    }).catch(function (err) {
+      micLog('debug', 'aecHolder.skip', { message: err && err.message });
+    });
+  }
+
+  function releaseMicAecHolder() {
+    if (!micAecHolderStream) return;
+    micAecHolderStream.getTracks().forEach(function (track) {
+      try { track.stop(); } catch (e) { /* noop */ }
+    });
+    micAecHolderStream = null;
+    micLog('debug', 'aecHolder.off', null);
+  }
+
+  function micEchoGuardMs() {
+    // Longer mute after long TTS so the speakers' echo isn't treated as user speech.
+    var base = SPEECH_MIC_GRACE_MS;
+    var extra = Math.min(10000, Math.floor((lastAiSpeechNorm || '').length * 18));
+    return base + extra;
+  }
+
+  function normalizeSpeechText(text) {
+    return String(text || '')
+      .toLowerCase()
+      .replace(/https?:\/\/\S+/g, ' ')
+      .replace(/[^a-z0-9а-яё\u0400-\u04ff\s]/gi, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function rememberAiSpeech(text) {
+    lastAiSpeechNorm = normalizeSpeechText(text);
+    speechLastText = String(text || '').trim();
+  }
+
+  function isEchoOfAiSpeech(text) {
+    var n = normalizeSpeechText(text);
+    if (!n || n.length < 3) return false;
+    if (micPlaybackGated()) return true;
+    var since = Date.now() - speechEndedAt;
+    var guard = micEchoGuardMs() + 4000;
+    if (speechEndedAt && since > guard) return false;
+    if (!lastAiSpeechNorm) {
+      return !!(speechEndedAt && since < SPEECH_MIC_GRACE_MS);
+    }
+    if (lastAiSpeechNorm.indexOf(n) >= 0) return true;
+    if (n.length >= 12 && lastAiSpeechNorm.indexOf(n.slice(0, Math.min(48, n.length))) >= 0) return true;
+    if (n.indexOf(lastAiSpeechNorm.slice(0, Math.min(36, lastAiSpeechNorm.length))) >= 0) return true;
+
+    var a = n.split(' ').filter(function (w) { return w.length > 2; });
+    if (a.length < 3) return false;
+    var b = lastAiSpeechNorm.split(' ');
+    var hits = 0;
+    for (var i = 0; i < a.length; i++) {
+      if (b.indexOf(a[i]) >= 0) hits += 1;
+    }
+    return (hits / a.length) >= 0.55;
+  }
+
   function speechActive() {
     if (state.speaking) return true;
+    if (micPlaybackGated()) return true;
     var syn = window.speechSynthesis;
     if (syn && (syn.speaking || syn.pending)) return true;
-    return Date.now() - speechEndedAt < SPEECH_MIC_GRACE_MS;
+    if (speechEndedAt && Date.now() - speechEndedAt < micEchoGuardMs()) return true;
+    return false;
   }
 
   function markSpeechEnded() {
     speechEndedAt = Date.now();
+    // Keep ignoring mic until speaker echo dies down.
+    extendMicPlaybackGate(micEchoGuardMs());
+  }
+
+  function clearVoiceCaptureBuffers() {
+    clearMicInterimTimer();
+    micLastInterim = '';
+    pendingVoiceInput = '';
   }
 
   function prepareForVoiceInput() {
     cancelGeneration();
     stopSpeech();
+    // User barged in — drop the playback gate quickly so their mic is heard.
+    clearMicPlaybackGate(350);
     if (state.tourActive) stopTour();
   }
 
@@ -2174,7 +2537,7 @@
       if (!micWatchdog) {
         micWatchdog = window.setInterval(function () {
           if (!micIsEnabled() || state.listening || state.micStarting || micBusy()) return;
-          if (speechActive()) return;
+          if (speechActive() || micPlaybackGated()) return;
           if (micPausedByFailure || micRecEnding) return;
           if (micRestartTimer || micStartDelayTimer || micAutoStartTimer) return;
           micLog('debug', 'watchdog.startListening', micSnapshot());
@@ -2227,8 +2590,20 @@
   }
 
   function handleRecognitionResult(event) {
-    if (speechActive()) return;
+    if (speechActive() || micPlaybackGated()) {
+      clearVoiceCaptureBuffers();
+      return;
+    }
     var parsed = parseRecognitionEvent(event);
+    if ((parsed.final && isEchoOfAiSpeech(parsed.final)) ||
+        (parsed.interim && isEchoOfAiSpeech(parsed.interim))) {
+      micLog('debug', 'recognition.result.echo', {
+        final: parsed.final.slice(0, 80),
+        interim: parsed.interim.slice(0, 80)
+      });
+      clearVoiceCaptureBuffers();
+      return;
+    }
     micLog('info', 'recognition.result', {
       resultIndex: event.resultIndex,
       resultsLen: event.results ? event.results.length : 0,
@@ -2302,8 +2677,13 @@
       updateMicButton();
       if (!micBusy()) releaseOrbIdle(700);
       if (!micIsEnabled()) return;
+      // While TTS (or echo guard) is active, do not restart — showBotMessage schedules mic after speech.
+      if (speechActive() || state.speaking) {
+        micLog('debug', 'recognition.onend.deferSpeech', { reason: reason });
+        return;
+      }
       if (micBusy()) {
-        scheduleMicAutoStart(500);
+        scheduleMicAutoStart(Math.max(900, MIC_POST_SPEECH_MS));
         return;
       }
 
@@ -2501,12 +2881,18 @@
     micInterimTimer = 0;
     if (speechActive()) {
       micLog('debug', 'interim.commit.skip', { reason: 'speechActive' });
+      clearVoiceCaptureBuffers();
       return;
     }
     var text = micLastInterim.trim();
     micLastInterim = '';
     if (!text) {
       micLog('debug', 'interim.commit.empty', null);
+      return;
+    }
+    if (isEchoOfAiSpeech(text)) {
+      micLog('debug', 'interim.commit.skip', { reason: 'aiEcho', text: text.slice(0, 80) });
+      clearVoiceCaptureBuffers();
       return;
     }
     micLog('info', 'interim.commit', { text: text.slice(0, 120) });
@@ -2535,6 +2921,15 @@
     }
     if (speechActive()) {
       micLog('debug', 'transcript.ignored', { reason: 'speechActive', isFinal: !!isFinal });
+      clearVoiceCaptureBuffers();
+      return;
+    }
+    if (isEchoOfAiSpeech(text)) {
+      micLog('debug', 'transcript.ignored', { reason: 'aiEcho', isFinal: !!isFinal, text: text.slice(0, 80) });
+      clearVoiceCaptureBuffers();
+      if (state.inputEl && normalizeSpeechText(state.inputEl.value) === normalizeSpeechText(text)) {
+        state.inputEl.value = '';
+      }
       return;
     }
     micLog('info', 'transcript.process', { isFinal: !!isFinal, len: text.length });
@@ -2736,9 +3131,9 @@
       micLog('debug', 'start.skip', { reason: 'disabled', autoStart: state.micAutoStart, permission: state.micPermissionGranted });
       return;
     }
-    if (!force && speechActive()) {
-      micLog('debug', 'start.defer', { reason: 'speechActive' });
-      scheduleMicAutoStart(MIC_POST_SPEECH_MS);
+    if (!force && (speechActive() || micPlaybackGated())) {
+      micLog('debug', 'start.defer', { reason: micPlaybackGated() ? 'playbackGate' : 'speechActive' });
+      scheduleMicAutoStart(Math.max(MIC_POST_SPEECH_MS, micPlaybackGateUntil - Date.now()));
       return;
     }
     if (state.listening || state.micStarting) {
@@ -2773,9 +3168,10 @@
       micLog('debug', 'auto.skip', { reason: 'disabled' });
       return;
     }
-    if (speechActive()) {
-      micLog('debug', 'auto.skip', { reason: 'speechActive' });
-      scheduleMicAutoStart(MIC_POST_SPEECH_MS);
+    if (micPlaybackGated() || speechActive()) {
+      var wait = Math.max(MIC_POST_SPEECH_MS, micPlaybackGateUntil - Date.now());
+      micLog('debug', 'auto.skip', { reason: micPlaybackGated() ? 'playbackGate' : 'speechActive', wait: wait });
+      scheduleMicAutoStart(wait);
       return;
     }
     if (micPausedByFailure) {
@@ -2784,7 +3180,7 @@
     }
     if (micRecEnding) {
       micLog('debug', 'auto.skip', { reason: 'recEnding' });
-      scheduleMicAutoStart(300);
+      scheduleMicAutoStart(400);
       return;
     }
     if (state.listening || state.micStarting) {
@@ -2797,12 +3193,20 @@
       return;
     }
     if (micBusy()) {
-      micLog('debug', 'auto.defer', { busyReasons: micBusyReasons() });
-      if (!micAutoStartTimer) {
-        scheduleMicAutoStart(speechActive() ? MIC_POST_SPEECH_MS : 700);
-      }
+      micAutoDeferCount += 1;
+      // Back off while the UI is busy (typing / AI / speech) — avoids 700ms poll spam.
+      var backoff = Math.min(8000, 900 * Math.pow(1.45, Math.min(micAutoDeferCount - 1, 7)));
+      if (state.typing || state.aiPending) backoff = Math.max(backoff, 1800);
+      if (speechActive()) backoff = Math.max(backoff, MIC_POST_SPEECH_MS);
+      micLog('debug', 'auto.defer', {
+        busyReasons: micBusyReasons(),
+        backoff: Math.round(backoff),
+        count: micAutoDeferCount
+      });
+      if (!micAutoStartTimer) scheduleMicAutoStart(backoff);
       return;
     }
+    micAutoDeferCount = 0;
     micLog('debug', 'auto.startListening', null);
     startListening();
   }
@@ -2905,7 +3309,7 @@
   }
 
   function sayUser(text) {
-    appendBubble(text, 'user');
+    appendUserBubble(text);
     emitOrb('user', { impulse: 0.48 });
   }
 
@@ -3084,9 +3488,15 @@
 
     if (opts.fromVoice) {
       prepareForVoiceInput();
-    } else if (micBusy() || (state.tourActive && state.speaking)) {
-      if (!opts.fromQueue) queueVoiceInput(raw);
-      return false;
+    } else {
+      // Typed / chip submit must never silently queue behind TTS or the mic
+      // playback gate — that looked like "Send does nothing" with voice on.
+      if (speechActive() || state.tourActive || state.aiPending || state.typing) {
+        prepareForVoiceInput();
+      }
+      if (state.listening || state.micStarting) {
+        stopListening(true);
+      }
     }
 
     pendingVoiceInput = '';
@@ -3200,6 +3610,18 @@
     addChip(t('ai.chipHelp'), function () { sayUser(t('ai.chipHelp')); sayChipHelp(); });
     addChip(t('ai.chipTour'), function () { startTour(t('ai.chipTour')); });
     addChip(t('ai.chipHere'), function () { sayUser(t('ai.chipHere')); sayChipHere(); });
+    addChip(t('ai.chipFx'), function () {
+      sayUser(t('ai.chipFx'));
+      askGeneral(t('ai.chipFxPrompt'));
+    });
+    addChip(t('ai.chipHsp'), function () {
+      sayUser(t('ai.chipHsp'));
+      askGeneral(t('ai.chipHspPrompt'));
+    });
+    addChip(t('ai.chipRoadmap'), function () {
+      var sec = sectionFromId('roadmap');
+      if (sec) presentSection(sec, { userText: t('ai.chipRoadmap') });
+    });
 
     SECTIONS.forEach(function (sec) {
       addChip(t(sec.nameKey), function () {

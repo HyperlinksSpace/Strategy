@@ -22,8 +22,13 @@ Set in **Vercel → Strategy project → Settings → Environment Variables** (P
 | `TINYMODEL_API_URL` | `https://tinymodel.hyperlinks.space` |
 | `AI_GATEWAY_API_KEY` | Your Vercel AI Gateway API key |
 | `AI_PROVIDER` | `hybrid` |
-| `AI_COMPOSER_QUALITY_MODEL` | `openai/gpt-4o-mini` (optional) |
-| `AI_COMPOSER_FAST_MODEL` | `openai/gpt-4.1-nano` (optional) |
+| `AI_COMPOSER_FAST_MODEL` | `openai/gpt-4.1-nano` |
+| `AI_COMPOSER_BALANCED_MODEL` | `openai/gpt-4o-mini` |
+| `AI_COMPOSER_QUALITY_MODEL` | `openai/gpt-4.1-mini` |
+| `AI_COMPOSER_REASONING_MODEL` | `anthropic/claude-sonnet-4-20250514` |
+| `AI_COMPOSER_CODE_MODEL` | `openai/gpt-4.1-mini` |
+| `AI_GATEWAY_ORDER` | `openai,anthropic,google` |
+| `AI_GATEWAY_FALLBACK_MODELS` | `google/gemini-2.0-flash,anthropic/claude-3-5-haiku-latest,openai/gpt-4o-mini` |
 
 Optional legacy fallback: `OPENAI` or `OPENAI_API_KEY`.
 

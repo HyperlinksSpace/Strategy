@@ -3813,6 +3813,23 @@ main { position: relative; z-index: 1; padding-top: var(--header-stack); padding
   background: var(--undercover);
   border: none;
   color: var(--text-primary);
+  white-space: normal;
+  word-break: break-word;
+}
+
+.ai-core-msg a {
+  color: var(--brand-green-solid, #3dcf8e);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.ai-core-msg a:hover {
+  opacity: 0.85;
+}
+
+.ai-core-msg--user a {
+  color: inherit;
 }
 
 .ai-core-msg--user {
@@ -3820,7 +3837,48 @@ main { position: relative; z-index: 1; padding-top: var(--header-stack); padding
   background: var(--brand-green-solid);
   border: none;
   color: var(--text-on-brand);
+  white-space: normal;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.3rem;
+}
+
+.ai-core-msg-body {
   white-space: pre-wrap;
+  word-break: break-word;
+  overflow: hidden;
+}
+
+.ai-core-msg--user.is-collapsed .ai-core-msg-body {
+  -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent);
+  mask-image: linear-gradient(to bottom, #000 55%, transparent);
+}
+
+.ai-core-msg--user.is-expanded .ai-core-msg-body {
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+.ai-core-msg-more {
+  align-self: flex-end;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.2;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  opacity: 0.9;
+}
+
+.ai-core-msg-more:hover {
+  opacity: 1;
 }
 
 .ai-core-chips {
