@@ -57,10 +57,19 @@ function getOpenAiKey() {
   return (process.env.OPENAI || process.env.OPENAI_API_KEY || '').trim();
 }
 
+/** Skip burning latency on OpenAI after account-wide quota failures. */
+var openAiQuotaCooldownUntil = 0;
+
 async function callOpenAi(input, instructions, options) {
   var apiKey = getOpenAiKey();
   if (!apiKey) {
     return { ok: false, error: 'OPENAI env is not configured on the server.' };
+  }
+  if (Date.now() < openAiQuotaCooldownUntil) {
+    return {
+      ok: false,
+      error: 'OpenAI quota exhausted (cooldown). Add credits or set AI_GATEWAY_API_KEY.'
+    };
   }
 
   var preferred = (options && options.model) ||
@@ -117,7 +126,8 @@ async function callOpenAi(input, instructions, options) {
           ? body.error.message
           : 'OpenAI request failed (' + response.status + ').';
         // Account-wide quota: further model attempts waste seconds and always fail.
-        if (/insufficient_quota|exceeded your current quota|billing details/i.test(lastError)) {
+        if (/insufficient_quota|exceeded your current quota|billing details|no credits remaining/i.test(lastError)) {
+          openAiQuotaCooldownUntil = Date.now() + 15 * 60 * 1000;
           return { ok: false, error: lastError };
         }
         // Try next model on not-found / rate-limit.
@@ -135,6 +145,7 @@ async function callOpenAi(input, instructions, options) {
         continue;
       }
 
+      openAiQuotaCooldownUntil = 0;
       return {
         ok: true,
         output_text: text,
@@ -184,6 +195,7 @@ module.exports = async function handler(req, res) {
         configured: !!generators.vercelAi,
         gateway_key: !!(process.env.AI_GATEWAY_API_KEY && process.env.AI_GATEWAY_API_KEY.trim()),
         gateway_provider: !!vercelAi.getGatewayProvider(),
+        gateway_init_error: vercelAi.getGatewayInitError ? vercelAi.getGatewayInitError() : undefined,
         model: vercelAi.defaultQualityModel(),
         fast_model: vercelAi.defaultFastModel(),
         balanced_model: vercelAi.defaultBalancedModel(),

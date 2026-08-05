@@ -1200,10 +1200,31 @@
     });
   }
 
+  function stripMarkdownForSpeech(text) {
+    return String(text || '')
+      .replace(/```[\s\S]*?```/g, ' ')
+      .replace(/`([^`]+)`/g, '$1')
+      .replace(/!\[[^\]]*\]\([^)]+\)/g, ' ')
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1')
+      .replace(/\*\*([^*]+)\*\*/g, '$1')
+      .replace(/__([^_]+)__/g, '$1')
+      .replace(/(^|[^\w])\*([^*\n]+)\*(?!\w)/g, '$1$2')
+      .replace(/(^|[^\w])_([^_\n]+)_(?!\w)/g, '$1$2')
+      .replace(/^#{1,6}\s+/gm, '')
+      .replace(/^>\s?/gm, '')
+      .replace(/^\s*[-*•]\s+/gm, '')
+      .replace(/^\s*\d+\.\s+/gm, '')
+      // Leftover markdown markers (RU TTS reads "**" as "звёздочка звёздочка")
+      .replace(/\*+/g, ' ')
+      .replace(/[_#`~|]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
   function prepareSpeechText(text, lang, opts) {
     opts = opts || {};
     lang = lang || getLang();
-    var out = String(text);
+    var out = stripMarkdownForSpeech(text);
     var i;
 
     if (lang === 'ru') {
@@ -1840,7 +1861,9 @@
         return;
       }
 
-      var line = String(text || '').trim();
+      var uiLang = opts.lang || getLang();
+      // Strip markdown before TTS (RU voices read "**" as "звёздочка звёздочка").
+      var line = prepareSpeechText(String(text || ''), uiLang);
       if (!line) {
         resolve(true);
         return;
@@ -1863,10 +1886,10 @@
       ensureSpeechVoices();
       ensureMicAecHolder();
 
-      var uiLang = opts.lang || getLang();
-      var segments = textHasMixedSpeechScripts(text)
-        ? splitSpeechSegments(text, uiLang)
-        : [{ lang: uiLang, text: text }];
+      // Already prepared for speech; avoid double-processing in buildUtterance.
+      var segments = textHasMixedSpeechScripts(line)
+        ? splitSpeechSegments(line, uiLang)
+        : [{ lang: uiLang, text: line }];
       var gen = speechQueueGen;
 
       state.speechResolve = resolve;

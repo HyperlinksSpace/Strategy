@@ -1,6 +1,6 @@
 /**
  * Vercel AI Gateway adapter for Strategy composer.
- * Uses @ai-sdk/gateway when AI_GATEWAY_API_KEY is set (see Vercel AI Gateway docs).
+ * Uses AI SDK generateText + createGateway when AI_GATEWAY_API_KEY is set.
  */
 
 var modelRegistry = require('./model-registry');
@@ -62,27 +62,47 @@ function buildModelFallbackChain(primaryModel, gatewayOpts) {
   return chain;
 }
 
+function loadAiSdk() {
+  try {
+    return require('ai');
+  } catch (err) {
+    gatewayInitError = 'require(ai) failed: ' + String(err && err.message ? err.message : err);
+    return null;
+  }
+}
+
 function getGatewayProvider() {
   if (gatewayProvider !== null) return gatewayProvider;
   if (gatewayInitError) return null;
 
   var apiKey = (process.env.AI_GATEWAY_API_KEY || '').trim();
-  if (!apiKey && !process.env.VERCEL_ENV && !process.env.VERCEL_OIDC_TOKEN) {
-    gatewayProvider = null;
+  if (!apiKey && !(process.env.AI_GATEWAY_USE_OIDC === '1' && process.env.VERCEL_OIDC_TOKEN)) {
+    gatewayInitError = 'No AI_GATEWAY_API_KEY (and OIDC not enabled)';
     return null;
   }
 
+  var ai = loadAiSdk();
+  if (!ai) return null;
+
   try {
-    var createGateway = require('@ai-sdk/gateway').createGateway;
+    // Prefer createGateway from `ai` (CJS-friendly). Fall back to @ai-sdk/gateway.
+    var createGateway = typeof ai.createGateway === 'function'
+      ? ai.createGateway
+      : require('@ai-sdk/gateway').createGateway;
     gatewayProvider = createGateway({
-      apiKey: apiKey || process.env.VERCEL_OIDC_TOKEN
+      apiKey: apiKey || undefined
     });
+    gatewayInitError = null;
     return gatewayProvider;
   } catch (err) {
     gatewayInitError = String(err && err.message ? err.message : err);
     gatewayProvider = null;
     return null;
   }
+}
+
+function getGatewayInitError() {
+  return gatewayInitError;
 }
 
 function resolveModelHandle(modelId, gatewayOptions) {
@@ -97,6 +117,7 @@ function resolveModelHandle(modelId, gatewayOptions) {
     }
     return { model: model };
   }
+  // AI SDK 5+ routes provider/model strings through Gateway when AI_GATEWAY_API_KEY is set.
   return {
     model: modelId,
     providerOptions: gatewayOptions ? { gateway: gatewayOptions } : undefined
@@ -111,13 +132,9 @@ function createVercelAiCaller() {
     return null;
   }
 
-  var generateText;
-  try {
-    generateText = require('ai').generateText;
-  } catch (e) {
-    return null;
-  }
-  if (typeof generateText !== 'function') return null;
+  var ai = loadAiSdk();
+  if (!ai || typeof ai.generateText !== 'function') return null;
+  var generateText = ai.generateText;
 
   return async function callVercelAi(input, system, options) {
     options = options || {};
@@ -133,7 +150,8 @@ function createVercelAiCaller() {
         model: resolved.model,
         system: system,
         prompt: input,
-        maxTokens: options.maxOutputTokens || 800,
+        // AI SDK 5+: maxOutputTokens (maxTokens is ignored / removed)
+        maxOutputTokens: options.maxOutputTokens || 800,
         temperature: 0.7
       };
       if (resolved.providerOptions) {
@@ -219,5 +237,6 @@ module.exports = {
   defaultFastModel: defaultFastModel,
   defaultBalancedModel: defaultBalancedModel,
   getGatewayProvider: getGatewayProvider,
+  getGatewayInitError: getGatewayInitError,
   listModelCatalog: modelRegistry.listCatalogForMeta
 };

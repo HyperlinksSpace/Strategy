@@ -905,8 +905,9 @@ async function composeStrategyTurn(payload, generators) {
   if (!llmResult.ok) {
     var isQuotaError = /quota|billing|rate.limit|insufficient/i.test(String(llmResult.error || ''));
 
-    // Wikipedia only for true general-knowledge asks — never for HSP/TinyModel phrases.
-    if (!isStrategyDomainQuery(userText) && !isGreetingOrIdentityQuery(userText)) {
+    // Wikipedia / FX only for factoid asks — creative generation goes to free LLM next.
+    if (!isStrategyDomainQuery(userText) && !isGreetingOrIdentityQuery(userText) &&
+        composerRouter.isGeneralKnowledgeQuery(userText)) {
       try {
         var wiki = await wikiFallback.answerGeneralKnowledge(userText);
         if (wiki && wiki.ok) {
@@ -1065,7 +1066,8 @@ async function composeStrategyTurn(payload, generators) {
     var softError =
       'I could not reach a generative model right now' +
       (isQuotaError ? ' (cloud LLM quota exhausted)' : '') +
-      '. Strategy navigation still works — try **open Roadmap**, **guided tour**, or ask about **Architecture** / **dollar rate**.';
+      '. Strategy navigation still works — try open Roadmap, guided tour, or ask about Architecture / dollar rate. ' +
+      'To restore generative chat, add OpenAI credits or set AI_GATEWAY_API_KEY on Vercel.';
 
     var fbSoft = genericStrategyFallback(userText);
     return {
